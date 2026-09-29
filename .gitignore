@@ -19,5 +19,6 @@ node_modules/
 # --- my-aidlc workspace runtime (per project) ---
 # The workspace commits memory, artifacts, and state; it ignores local cursors.
 aidlc/.my-aidlc-sessions/
+aidlc/config.local.json
 aidlc/spaces/*/.active-space
 aidlc/spaces/*/intents/*/.active-intent

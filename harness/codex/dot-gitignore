@@ -1,4 +1,5 @@
 # my-aidlc workspace runtime
 aidlc/.my-aidlc-sessions/
+aidlc/config.local.json
 aidlc/spaces/*/.active-space
 aidlc/spaces/*/intents/*/.active-intent

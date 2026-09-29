@@ -54,6 +54,11 @@ my-aidlc config --harness pi      # or: claude, codex
 my-aidlc doctor
 ```
 
+This writes the harness directory, the engine, the methodology, the
+orchestrator skill, and the workspace memory files. The execution mode and
+question budget default to `normal` and `{ min: 0, max: 5 }`; see
+[Configuration](#configuration) to change them.
+
 ### 3. Start a workflow
 
 Open your harness in the configured project and describe the work:
@@ -73,6 +78,108 @@ decisions, and stops at an approval gate before each stage is committed.
 | PI Agent | `my-aidlc config --harness pi` | `pi` | `/aidlc` |
 | Codex CLI | `my-aidlc config --harness codex` | `codex` | `$aidlc` |
 | Claude Code | `my-aidlc config --harness claude` | `claude` | `/aidlc` |
+
+## Configuration
+
+Project configuration is layered, most specific wins. Show the current values
+with `my-aidlc config` (or `my-aidlc config --json`).
+
+| File | Purpose | Committed |
+| --- | --- | --- |
+| `aidlc/config.json` | Shared project settings | yes |
+| `aidlc/config.local.json` | Per-developer overrides (wins over `config.json`) | ignored |
+
+`aidlc/config.json` stores the settings you change; unset keys fall back to
+defaults. A project configured for PI Agent with a tighter question budget:
+
+```json
+{
+  "harness": "pi",
+  "version": "0.1.0",
+  "mode": "normal",
+  "questionBudget": { "min": 1, "max": 3 }
+}
+```
+
+The optional `defaultScope` key sets the profile used when a request matches no
+keyword (default `classic`).
+
+### Harness
+
+```bash
+my-aidlc config --harness pi      # pi | claude | codex
+```
+
+`config` scaffolds the harness directory, the engine and methodology, and the
+`aidlc/` workspace. Re-run it after switching harnesses or upgrading.
+
+### Execution mode
+
+| Mode | Questions | Approval gates | Use for |
+| --- | --- | --- | --- |
+| `normal` (default) | Asked, bounded by the question budget | Presented to the human | Anything that ships |
+| `yolo` | Skipped; the recommended answer is chosen | Auto-satisfied | Demos, POCs, trusted automation |
+
+```bash
+my-aidlc config --mode yolo       # auto-pick answers and auto-approve gates
+my-aidlc config --mode normal     # back to human questions and gates
+```
+
+YOLO does **not** skip any stage: every stage still runs and still writes its
+artifacts. It removes the human in the loop, not the work. Every auto-approval
+is recorded as `STAGE_AUTO_APPROVED` in `aidlc/audit.log`, so an unattended run
+stays auditable.
+
+### Question budget
+
+Cap how many clarifying questions each stage asks before its gate:
+
+```bash
+my-aidlc config --questions-min 1 --questions-max 3
+my-aidlc config --questions-max 0     # no questions; generate artifacts directly
+```
+
+Precedence, most specific first: **stage** `question_budget` → **scope**
+`question_budget` → project `questionBudget` → default `{ min: 0, max: 5 }`.
+`max: 0` disables the question flow for a stage. The budget never applies to
+the approval gate, which is always exactly one decision.
+
+### Per-scope overrides
+
+A workflow profile can pin its own mode and budget in frontmatter, so a
+throwaway profile can run unattended while the project stays `normal`:
+
+```yaml
+# core/scopes/poc.md
+mode: yolo
+question_budget:
+  min: 1
+  max: 3
+```
+
+### Workspace layout
+
+```text
+aidlc/
+  config.json            # project configuration
+  config.local.json      # per-developer overrides (gitignored)
+  state.json             # active intent and stage progress (tool-owned)
+  audit.log              # append-only event log (tool-owned)
+  spaces/default/
+    memory/              # org.md, team.md, project.md - your standing rules
+    intents/<id>/        # one directory per intent; artifacts per phase/stage
+```
+
+`state.json` and `audit.log` are tool-owned: never edit them by hand. The
+memory files are yours to edit; they are the method every stage reads.
+
+### Inspecting and validating
+
+```bash
+my-aidlc config           # show harness, mode, and question budget
+my-aidlc status           # active intent, mode, and per-stage progress
+my-aidlc doctor           # validate the engine, workspace, and configuration
+```
 
 ## Why my-aidlc
 
