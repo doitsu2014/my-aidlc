@@ -78,6 +78,7 @@ decisions, and stops at an approval gate before each stage is committed.
 - **7 workflow profiles** for features, bug fixes, MVPs, infrastructure,
   proof of concepts, express changes, and full lifecycle delivery
 - **Human approval gates** at every stage
+- **Database skills** for PostgreSQL, MySQL, SQL Server, and MongoDB
 - **Audit trail** plus persistent project/team/org memory
 - **One deterministic engine** across every supported harness
 
@@ -88,6 +89,7 @@ decisions, and stops at an approval gate before each stage is committed.
   - `core/phases/` — the five phases and their stage files
   - `core/scopes/` — workflow profiles
   - `core/protocols/` — stage, question, gate, and recovery protocols
+  - `core/skills/` — the orchestrator skill and database skills
   - `core/memory/` — org/team/project memory templates
   - `core/tools/` — the Node.js engine and authoring tools
   - `core/data/` — compiled stage graph and scope grid

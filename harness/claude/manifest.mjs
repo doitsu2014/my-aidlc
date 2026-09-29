@@ -19,12 +19,11 @@ const manifest = {
     { src: "scopes", dst: "scopes" },
     { src: "protocols", dst: "protocols" },
     { src: "knowledge", dst: "knowledge" },
+    // Native skill directory: the orchestrator skill and the database skills.
+    { src: "skills", dst: "skills" },
   ],
 
-  coreFiles: [
-    { src: "skills/aidlc/SKILL.md", dst: "skills/aidlc/SKILL.md" },
-    { src: "skills/aidlc/question-rendering.md", dst: "skills/aidlc/question-rendering.md" },
-  ],
+  coreFiles: [],
 
   harnessFiles: [
     { src: "rules-aidlc.md", dst: "rules/aidlc.md" },

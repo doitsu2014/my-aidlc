@@ -11,6 +11,10 @@ All notable changes to my-aidlc are documented here. The format follows
 - The five AIDLC phases — Analyze, Ideate, Develop, Launch, Curate — and 21
   stages with approval gates, derived from the
   [AIDLC cheatsheet](https://aidlc.io/cheatsheet/).
+- Four stack-neutral database integration skills: `db-postgres`, `db-mysql`,
+  `db-mssql`, and `db-mongodb`. Each covers configuration, drivers/ORMs,
+  schema design, migrations, indexing and query plans, transactions, pooling,
+  security, testing, and how it plugs into the stages.
 - Fifteen agents: composer, product, research, business analyst, architect,
   design, security, delivery, developer, code reviewer, QA, DevOps, SRE,
   performance, and technical writer.

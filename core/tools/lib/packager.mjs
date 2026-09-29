@@ -84,16 +84,16 @@ export async function buildHarness({ repoRoot, harnessName, outDir }) {
     copyDirWithSubstitution(join(coreRoot, dir.src), join(harnessTree, dir.dst), manifest);
   }
   for (const file of manifest.coreFiles || []) {
-    copyFileWithSubstitution(join(coreRoot, file.src), join(harnessTree, file.dst), manifest);
+    copyDirWithSubstitution(join(coreRoot, file.src), join(harnessTree, file.dst), manifest);
   }
   for (const file of manifest.coreProjectFiles || []) {
-    copyFileWithSubstitution(join(coreRoot, file.src), join(outDir, file.dst), manifest);
+    copyDirWithSubstitution(join(coreRoot, file.src), join(outDir, file.dst), manifest);
   }
   for (const file of manifest.harnessFiles || []) {
-    copyFileWithSubstitution(join(harnessRoot, file.src), join(harnessTree, file.dst), manifest);
+    copyDirWithSubstitution(join(harnessRoot, file.src), join(harnessTree, file.dst), manifest);
   }
   for (const file of manifest.projectFiles || []) {
-    copyFileWithSubstitution(join(harnessRoot, file.src), join(outDir, file.dst), manifest);
+    copyDirWithSubstitution(join(harnessRoot, file.src), join(outDir, file.dst), manifest);
   }
 
   if (manifest.onboarding) {
@@ -133,14 +133,14 @@ export function applyDistribution({ distributionDir, projectRoot, manifest }) {
     if (file.dst === ".gitignore") {
       mergeGitignoreBlock(projectRoot, from, manifest.name);
     } else {
-      copyFileWithSubstitution(from, join(projectRoot, file.dst), manifest);
+      copyDirWithSubstitution(from, join(projectRoot, file.dst), manifest);
     }
     written.push(file.dst);
   }
   for (const file of manifest.coreProjectFiles || []) {
     const from = join(distributionDir, file.dst);
     if (!existsSync(from)) continue;
-    copyFileWithSubstitution(from, join(projectRoot, file.dst), manifest);
+    copyDirWithSubstitution(from, join(projectRoot, file.dst), manifest);
     written.push(file.dst);
   }
   if (manifest.onboarding && manifest.onboarding.projectRoot) {

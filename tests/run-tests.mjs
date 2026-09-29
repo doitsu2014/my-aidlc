@@ -292,6 +292,38 @@ test("packaging builds every harness with tokens substituted", async () => {
   }
 });
 
+test("every harness ships the four database skills with valid frontmatter", async () => {
+  const expected = ["db-postgres", "db-mysql", "db-mssql", "db-mongodb"];
+  for (const name of listHarnesses(repoRoot())) {
+    const outDir = join(tempProject(), `dist-${name}`);
+    try {
+      const { manifest } = await buildHarness({ repoRoot: repoRoot(), harnessName: name, outDir });
+      const skillsDir = skillsDirFor(outDir, manifest);
+      for (const skill of expected) {
+        const path = join(skillsDir, skill, "SKILL.md");
+        assert.ok(existsSync(path), `${name} is missing ${skill} at ${path}`);
+        const { data } = parseFrontmatter(readFileSync(path, "utf8"));
+        assert.equal(data.name, skill, `${name}/${skill} frontmatter name mismatch`);
+        assert.ok(
+          typeof data.description === "string" && data.description.length > 20,
+          `${name}/${skill} needs a routing description`,
+        );
+        assert.ok(data.description.length <= 1024, `${name}/${skill} description exceeds 1024 chars`);
+      }
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  }
+});
+
+function skillsDirFor(outDir, manifest) {
+  const projectFile = (manifest.coreProjectFiles || []).find((file) => file.src === "skills");
+  if (projectFile) return join(outDir, projectFile.dst);
+  const dir = (manifest.coreDirs || []).find((entry) => entry.src === "skills");
+  if (dir) return join(outDir, manifest.harnessDir, dir.dst);
+  throw new Error(`harness ${manifest.name} ships no skills directory`);
+}
+
 test("doctor passes on a configured project", async () => {
   const root = tempProject();
   try {

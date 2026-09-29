@@ -28,10 +28,7 @@ const manifest = {
   projectFiles: [{ src: "dot-gitignore", dst: ".gitignore" }],
 
   // Codex discovers skills at .agents/skills/ (outside .codex/).
-  coreProjectFiles: [
-    { src: "skills/aidlc/SKILL.md", dst: ".agents/skills/aidlc/SKILL.md" },
-    { src: "skills/aidlc/question-rendering.md", dst: ".agents/skills/aidlc/question-rendering.md" },
-  ],
+  coreProjectFiles: [{ src: "skills", dst: ".agents/skills" }],
 
   onboarding: { src: "onboarding.md", dst: "AGENTS.md", projectRoot: true },
 };

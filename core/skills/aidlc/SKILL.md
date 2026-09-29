@@ -73,6 +73,25 @@ The engine selects a profile from the request or the human names one:
 | `poc` | Prove an assumption, then stop |
 | `infra` | Design, deploy, and operate infrastructure |
 
+## Database skills
+
+Four stack-neutral reference skills ship alongside the orchestrator. Load the
+matching one whenever a stage touches a database — they cover schema design,
+migrations, drivers/ORMs, pooling, indexing, transactions, security, and
+testing.
+
+| Skill | Load when the work targets |
+| --- | --- |
+| `db-postgres` | PostgreSQL |
+| `db-mysql` | MySQL or MariaDB |
+| `db-mssql` | SQL Server or Azure SQL |
+| `db-mongodb` | MongoDB |
+
+Each skill's last section ("How this skill plugs into my-aidlc") says which
+stage records what. Load the skill during Ideate (record engine/driver/ORM in
+`technical-spec`), Develop (schema changes are migrations), Launch
+(containerised test databases), and Curate (query-plan/index review).
+
 ## Utilities
 
 - `{{INVOKE}} status` — active intent, scope, and stage
