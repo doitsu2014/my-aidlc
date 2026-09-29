@@ -30,6 +30,7 @@ import {
   SUPPORTED_SHELLS,
   buildCompletionModel,
   completionScript,
+  completionStatus,
   detectShell,
   installCompletion,
   uninstallCompletion,
@@ -123,6 +124,7 @@ function cmdHelp() {
     "COMPLETION",
     `  ${cyan("completion")}                 Show shells and usage`,
     `  ${cyan("completion <shell>")}         Print the completion script for a shell`,
+    `  ${cyan("completion status")}          Check whether installed completion is current`,
     `  ${cyan("completion install")} [--shell] Install completion and wire your shell rc`,
     `  ${cyan("completion uninstall")} [--shell] Remove installed completion`,
     "",
@@ -398,7 +400,34 @@ function cmdCompletion(positionals, flags) {
     process.stdout.write(`  Detected: ${detected || dim("(unknown)")}\n\n`);
     process.stdout.write(`  Print a script:  my-aidlc completion <shell>\n`);
     process.stdout.write(`  Install:         my-aidlc completion install [--shell <shell>]\n`);
+    process.stdout.write(`  Status:          my-aidlc completion status\n`);
     process.stdout.write(`  Uninstall:       my-aidlc completion uninstall [--shell <shell>]\n`);
+    return;
+  }
+
+  if (action === "status") {
+    const requested = typeof flags.shell === "string" && flags.shell ? [flags.shell] : SUPPORTED_SHELLS;
+    const statuses = requested.map((shell) => completionStatus({ shell, model }));
+    if (flags.json) {
+      printJson(statuses);
+      return;
+    }
+    process.stdout.write(`${heading("my-aidlc completion status")}\n\n`);
+    for (const status of statuses) {
+      const label = !status.installed
+        ? dim("not installed")
+        : status.upToDate
+          ? green("up to date")
+          : yellow("STALE");
+      process.stdout.write(`  ${status.shell.padEnd(11)} ${label}\n`);
+      if (status.stale) {
+        process.stdout.write(`              run: my-aidlc completion install --shell ${status.shell}\n`);
+        process.stdout.write(`              then: ${rcHint(status.shell, status.scriptPath)}\n`);
+      }
+    }
+    process.stdout.write(
+      `\nIf completion looks stale in a running shell, reload it:${dim(" source the script (or exec your shell)")}\n`,
+    );
     return;
   }
 

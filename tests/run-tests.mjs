@@ -514,6 +514,33 @@ test("completion output includes the mode flag and its values", () => {
   }
 });
 
+test("completion status detects a missing, current, or stale install", () => {
+  const home = tempProject();
+  try {
+    return import("../core/tools/lib/completion.mjs").then((completion) => {
+      const model = completion.buildCompletionModel(
+        loadMethodology(engineRoot()),
+        listHarnesses(repoRoot()),
+        "my-aidlc",
+      );
+      assert.ok(model.groups.completion.includes("status"));
+
+      assert.equal(completion.completionStatus({ shell: "zsh", model, home }).installed, false);
+
+      completion.installCompletion({ shell: "zsh", model, home });
+      const fresh = completion.completionStatus({ shell: "zsh", model, home });
+      assert.equal(fresh.installed, true);
+      assert.equal(fresh.upToDate, true);
+      assert.equal(fresh.stale, false);
+
+      writeFileSync(fresh.scriptPath, "# stale\n", "utf8");
+      assert.equal(completion.completionStatus({ shell: "zsh", model, home }).stale, true);
+    });
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
 test("doctor passes on a configured project", async () => {
   const root = tempProject();
   try {

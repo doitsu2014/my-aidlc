@@ -130,4 +130,26 @@ A directive is a JSON object with a `kind`:
 
 A `run-stage` directive carries `stage_file`, `lead_agent_file`, `produces`,
 `produce_paths`, `consumes`, `consumes_absent`, `memory_path`,
-`protocol_modules`, `record_dir`, `narration`, and `workflow`.
+`protocol_modules`, `record_dir`, `narration`, `execution_mode`,
+`auto_approve`, `answer_policy`, `question_budget`, and `workflow`.
+
+## Shell completion
+
+```bash
+my-aidlc completion                 # list shells and usage
+my-aidlc completion zsh             # print the script for a shell
+my-aidlc completion install         # install for the detected shell
+my-aidlc completion install --shell bash
+my-aidlc completion status          # is the installed script current?
+my-aidlc completion uninstall
+```
+
+`completion status` compares the installed script against a freshly generated
+one and reports `up to date`, `STALE`, or `not installed`. If it is stale, run
+`completion install` again, then reload your shell (`source` the script, or
+`exec zsh`). A running shell keeps the function it loaded at startup; a new
+completion is not visible until it reloads.
+
+Completion covers the command surface from the live methodology: commands,
+subcommands, stage/scope/phase/agent names, `--harness`, `--shell`, `--scope`,
+`--stage`, `--result`, and `--mode` (with its `normal`/`yolo` values).
