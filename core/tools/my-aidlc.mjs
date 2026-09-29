@@ -102,15 +102,14 @@ function cmdHelp() {
     "",
     "COMMANDS",
     `  ${cyan("config")}    Configure the project for a harness (${listHarnesses(repoRoot()).join(", ")})`,
-  `               --mode <normal|yolo> / --questions-min <n> / --questions-max <n>`,
-  `               normal asks questions and gates; yolo auto-picks recommended answers`,
-  `               and auto-approves gates (recorded in the audit log)`
+    `               --mode <normal|yolo>  --questions-min <n>  --questions-max <n>`,
     `  ${cyan("init")}      Create the aidlc/ workspace and memory files`,
     `  ${cyan("doctor")}    Validate the engine, workspace, and configuration`,
     `  ${cyan("status")}    Show the active intent, scope, and stage progress`,
     `  ${cyan("list")}      List phases, stages, scopes, or agents`,
     `  ${cyan("stage")}     Show one stage definition`,
     `  ${cyan("scope")}     Show one workflow profile`,
+    `  ${cyan("phase")}     Show one phase`,
     `  ${cyan("graph")}     Print the compiled workflow graph (JSON)`,
     `  ${cyan("completion")} Print or install shell completion (bash, zsh, fish, powershell)`,
     `  ${cyan("version")}   Print the framework version`,
@@ -122,9 +121,15 @@ function cmdHelp() {
     `  ${cyan("orchestrate park")}`,
     "",
     "COMPLETION",
-    `  ${cyan("completion <shell>")}          Print the completion script for a shell`,
+    `  ${cyan("completion")}                 Show shells and usage`,
+    `  ${cyan("completion <shell>")}         Print the completion script for a shell`,
     `  ${cyan("completion install")} [--shell] Install completion and wire your shell rc`,
     `  ${cyan("completion uninstall")} [--shell] Remove installed completion`,
+    "",
+    "MODES",
+    "  normal  (default) human questions and approval gates",
+    "  yolo              skip questions, auto-pick recommended answers, and",
+    "                    auto-approve gates (each recorded as STAGE_AUTO_APPROVED)",
     "",
     "ALIASES",
     "  --status  --doctor  --version  --help  --config",
@@ -266,7 +271,11 @@ function cmdStatus(flags) {
         : stage.slug === report.currentStage
           ? cyan("▶")
           : dim("·");
-    process.stdout.write(`  ${marker} ${stage.phase.padEnd(9)} ${stage.name} ${dim(`(${stage.status})`)}\n`);
+    const label =
+      stage.status === "complete" && stage.autoApproved ? "auto-completed" : stage.status;
+    process.stdout.write(
+      `  ${marker} ${stage.phase.padEnd(9)} ${stage.name} ${dim(`(${label})`)}\n`,
+    );
   }
 }
 

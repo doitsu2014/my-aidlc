@@ -452,6 +452,7 @@ export function statusReport(root, methodology, config) {
       name: stage.name,
       phase: stage.phase,
       status: state.stages[stage.slug]?.status || "pending",
+      autoApproved: state.stages[stage.slug]?.autoApproved === true,
     })),
   };
 }

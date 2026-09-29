@@ -16,6 +16,7 @@ consumes:
   - artifact: source-changes
     required: true
 requires_stage:
+  - code-generation
   - code-review
 inputs: Review record, current code, test suite
 outputs: refactor-notes.md, refactored code

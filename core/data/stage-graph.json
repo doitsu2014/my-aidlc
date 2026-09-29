@@ -347,6 +347,7 @@
         }
       ],
       "requiresStage": [
+        "code-generation",
         "code-review"
       ]
     },
@@ -846,9 +847,9 @@
     "express": [
       "intent-capture",
       "requirements-analysis",
-      "refactor",
       "task-planning",
       "code-generation",
+      "refactor",
       "test-plan",
       "test-generation",
       "ci-pipeline",

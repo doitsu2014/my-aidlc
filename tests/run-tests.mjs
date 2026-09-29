@@ -2,6 +2,7 @@
 // tests/run-tests.mjs — smoke, unit, and integration tests for my-aidlc.
 
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -462,6 +463,11 @@ test("yolo mode skips questions and auto-approves gates, audibly", () => {
     const state = loadState(root);
     assert.equal(Object.values(state.stages).every((r) => r.status === "complete"), true);
     assert.equal(state.currentStage, null);
+
+    // status labels auto-approved stages as auto-completed.
+    const report = statusReport(root, m, config);
+    assert.equal(report.mode, "yolo");
+    assert.equal(report.stages.every((stage) => stage.autoApproved), true);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -483,6 +489,28 @@ test("normal mode still presents a gate after awaiting-approval", () => {
     assert.equal(gate.ask_type, "stage-approval");
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("help renders and documents modes, questions, and completion", () => {
+  const cli = join(repoRoot(), "core/tools/my-aidlc.mjs");
+  const out = execFileSync(process.execPath, [cli, "help"], { encoding: "utf8" });
+  assert.match(out, /COMMANDS/);
+  assert.match(out, /MODES/);
+  assert.match(out, /yolo/);
+  assert.match(out, /STAGE_AUTO_APPROVED/);
+  assert.match(out, /--mode/);
+  assert.match(out, /--questions-max/);
+  assert.match(out, /completion/);
+});
+
+test("completion output includes the mode flag and its values", () => {
+  const cli = join(repoRoot(), "core/tools/my-aidlc.mjs");
+  for (const shell of ["bash", "zsh", "fish", "powershell"]) {
+    const out = execFileSync(process.execPath, [cli, "completion", shell], { encoding: "utf8" });
+    assert.ok(out.length > 0, `${shell} completion is empty`);
+    assert.match(out, /mode/, `${shell} completion omits the mode flag`);
+    assert.match(out, /yolo/, `${shell} completion omits the yolo value`);
   }
 });
 
