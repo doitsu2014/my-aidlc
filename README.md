@@ -80,7 +80,9 @@ decisions, and stops at an approval gate before each stage is committed.
 - **15 agents** — domain experts, reviewers, and an adaptive composer
 - **7 workflow profiles** for features, bug fixes, MVPs, infrastructure,
   proof of concepts, express changes, and full lifecycle delivery
-- **Human approval gates** at every stage
+- **Human approval gates** at every stage (Normal mode), or an optional
+  **YOLO mode** that auto-picks recommended answers and auto-approves gates
+  while recording every auto-approval in the audit log
 - **Database skills** for PostgreSQL, MySQL, SQL Server, and MongoDB
 - **Audit trail** plus persistent project/team/org memory
 - **Shell completion** for bash, zsh, fish, and PowerShell

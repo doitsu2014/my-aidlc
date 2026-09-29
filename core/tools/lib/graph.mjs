@@ -121,6 +121,7 @@ export function loadMethodology(coreRoot) {
       sensors: data.sensors || "on",
       learnings: data.learnings || "on",
       summaryConfirmation: data.summary_confirmation || "off",
+      mode: typeof data.mode === "string" ? data.mode.trim().toLowerCase() : null,
       questionBudget: data.question_budget ?? null,
       phases: asArray(data.phases),
       include: asArray(data.include),

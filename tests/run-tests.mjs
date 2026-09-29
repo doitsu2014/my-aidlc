@@ -18,7 +18,14 @@ import {
 import { buildHarness, listHarnesses } from "../core/tools/lib/packager.mjs";
 import { runDoctor } from "../core/tools/lib/doctor.mjs";
 import { runNext, runReport, statusReport, parkDirective } from "../core/tools/lib/orchestrate.mjs";
-import { loadConfig, normalizeBudget, resolveQuestionBudget, saveConfig } from "../core/tools/lib/config.mjs";
+import {
+  loadConfig,
+  normalizeBudget,
+  normalizeMode,
+  resolveMode,
+  resolveQuestionBudget,
+  saveConfig,
+} from "../core/tools/lib/config.mjs";
 import { loadState, readAudit } from "../core/tools/lib/state.mjs";
 import {
   SUPPORTED_SHELLS,
@@ -401,6 +408,79 @@ test("project config persists the question budget", () => {
     // A later update is clamped and normalised by loadConfig.
     saveConfig(root, { questionBudget: { min: 5, max: 1 } });
     assert.deepEqual(loadConfig(root).questionBudget, { min: 5, max: 5 });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("execution mode resolves scope > project > default", () => {
+  assert.equal(normalizeMode("YOLO"), "yolo");
+  assert.equal(normalizeMode("nonsense"), "normal");
+  assert.deepEqual(resolveMode({}), { mode: "normal", source: "default" });
+  assert.deepEqual(resolveMode({ config: "yolo" }), { mode: "yolo", source: "project" });
+  assert.deepEqual(resolveMode({ scope: "normal", config: "yolo" }), {
+    mode: "normal",
+    source: "scope",
+  });
+});
+
+test("yolo mode skips questions and auto-approves gates, audibly", () => {
+  const root = tempProject();
+  try {
+    const m = loadMethodology(engineRoot());
+    const config = loadConfig(root);
+    config.mode = "yolo";
+
+    const first = runNext(root, m, config, { text: "build an inventory API" });
+    assert.equal(first.kind, "run-stage");
+    assert.equal(first.execution_mode, "yolo");
+    assert.equal(first.mode_source, "project");
+    assert.equal(first.auto_approve, true);
+    assert.equal(first.answer_policy, "recommended");
+    assert.deepEqual(first.question_budget, { min: 0, max: 0, source: "mode" });
+    assert.ok(!first.protocol_modules.includes("question-flow"));
+
+    let directive = first;
+    let guard = 0;
+    while (directive.kind !== "done" && guard < 100) {
+      guard += 1;
+      assert.notEqual(directive.kind, "ask", "yolo mode must never present a gate");
+      assert.equal(directive.kind, "run-stage");
+      // A conductor reports artifacts ready; the engine auto-approves and advances.
+      directive = runReport(root, m, config, {
+        stage: directive.stage,
+        result: "awaiting-approval",
+      });
+    }
+    assert.equal(directive.kind, "done");
+    assert.ok(guard < 100);
+
+    const audit = readAudit(root);
+    const auto = audit.filter((row) => row.event === "STAGE_AUTO_APPROVED");
+    assert.ok(auto.length > 0, "expected STAGE_AUTO_APPROVED audit rows");
+    assert.ok(!audit.some((row) => row.event === "STAGE_APPROVED"));
+    const state = loadState(root);
+    assert.equal(Object.values(state.stages).every((r) => r.status === "complete"), true);
+    assert.equal(state.currentStage, null);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("normal mode still presents a gate after awaiting-approval", () => {
+  const root = tempProject();
+  try {
+    const m = loadMethodology(engineRoot());
+    const config = loadConfig(root);
+    const first = runNext(root, m, config, { text: "build a feature" });
+    assert.equal(first.execution_mode, "normal");
+    assert.equal(first.auto_approve, false);
+    const gate = runReport(root, m, config, {
+      stage: first.stage,
+      result: "awaiting-approval",
+    });
+    assert.equal(gate.kind, "ask");
+    assert.equal(gate.ask_type, "stage-approval");
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

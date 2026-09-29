@@ -32,6 +32,7 @@ writes every row. Never hand-write or hand-edit audit rows.
 | `STAGE_REJECTED` | The human requested changes. |
 | `STAGE_REVISED` | The stage was revised after requested changes. |
 | `STAGE_APPROVED` | The human approved the stage. |
+| `STAGE_AUTO_APPROVED` | YOLO mode auto-satisfied the gate with the recommended answer. |
 | `STAGE_COMPLETED` | The stage completed without a human gate. |
 | `STAGE_SKIPPED` | A conditional stage did not apply. |
 | `CHANGE_NOTICE` | An input changed after approval. |

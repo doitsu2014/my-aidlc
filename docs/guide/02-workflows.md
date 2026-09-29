@@ -92,6 +92,30 @@ where relevant, **Skip**. On Request Changes you choose to Keep, Modify, or Redo
 the artifact. A conditional stage that does not apply reports a skip with a
 recorded reason.
 
+## Execution modes: normal and YOLO
+
+The project runs in one of two modes:
+
+| Mode | Questions | Approval gates | Use for |
+| --- | --- | --- | --- |
+| `normal` (default) | Asked (bounded by the question budget) | Presented to the human | Anything that ships |
+| `yolo` | Skipped; the recommended answer is chosen | Auto-satisfied | Demos, POCs, trusted automation |
+
+```bash
+my-aidlc config --mode yolo     # auto-pick answers, auto-approve gates
+my-aidlc config --mode normal   # back to human questions and gates
+my-aidlc config                 # show the current mode
+```
+
+YOLO does **not** skip any stage: every stage still runs and still writes its
+artifacts. It removes the human in the loop, not the work. Every auto-approval
+is recorded as `STAGE_AUTO_APPROVED` in `aidlc/audit.log`, so an unattended run
+stays auditable.
+
+The mode is resolved most-specific-first: scope `mode:` → project `mode` →
+`normal`. A scope can therefore pin itself, e.g. a throwaway POC scope could set
+`mode: yolo` while the project default stays `normal`.
+
 ## Question budget
 
 Each stage asks a bounded number of clarifying questions before its gate. The

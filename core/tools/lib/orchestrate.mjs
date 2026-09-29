@@ -30,7 +30,7 @@ import {
   stageRecord,
 } from "./state.mjs";
 import { detectScope, scopeByName, workflowForScope } from "./graph.mjs";
-import { resolveQuestionBudget } from "./config.mjs";
+import { resolveMode, resolveQuestionBudget } from "./config.mjs";
 import { engineRoot } from "./version.mjs";
 
 function recordDirRel(space, intentId) {
@@ -48,6 +48,11 @@ function scopeForState(methodology, state, config) {
 
 function currentWorkflow(methodology, state, config) {
   return workflowForScope(methodology, scopeForState(methodology, state, config));
+}
+
+/** Effective execution mode (scope > project > default). */
+function executionMode(scope, config) {
+  return resolveMode({ scope: scope ? scope.mode : null, config: config ? config.mode : null });
 }
 
 function firstIncomplete(state, workflow) {
@@ -133,11 +138,15 @@ export function buildRunDirective(root, methodology, config, state, stage) {
   }
 
   const protocolModules = ["stage-protocol"];
-  const questionBudget = resolveQuestionBudget({
-    stage: stage.questionBudget,
-    scope: scope.questionBudget,
-    config: config ? config.questionBudget : null,
-  });
+  const mode = executionMode(scope, config);
+  const yolo = mode.mode === "yolo";
+  const questionBudget = yolo
+    ? { min: 0, max: 0, source: "mode" }
+    : resolveQuestionBudget({
+        stage: stage.questionBudget,
+        scope: scope.questionBudget,
+        config: config ? config.questionBudget : null,
+      });
   if (questionBudget.max > 0) protocolModules.push("question-flow");
   if (scope.learnings === "on") protocolModules.push("learnings");
 
@@ -156,6 +165,10 @@ export function buildRunDirective(root, methodology, config, state, stage) {
     support_agents: stage.supportAgents,
     support_agent_files: stage.supportAgents.map((agent) => `${harnessDir}/agents/${agent}.md`),
     mode: stage.mode,
+    execution_mode: mode.mode,
+    mode_source: mode.source,
+    auto_approve: yolo,
+    answer_policy: yolo ? "recommended" : "human",
     reviewer: stage.reviewer,
     reviewer_file: stage.reviewer ? `${harnessDir}/agents/${stage.reviewer}.md` : null,
     gate: true,
@@ -209,6 +222,23 @@ export function currentDirective(root, methodology, config, state) {
   }
   const record = stageRecord(state, stage.slug);
   if (record.status === "awaiting-approval") {
+    const mode = executionMode(scopeForState(methodology, state, config), config);
+    if (mode.mode === "yolo") {
+      record.status = "complete";
+      record.autoApproved = true;
+      record.updatedAt = new Date().toISOString();
+      appendAudit(root, {
+        event: "STAGE_AUTO_APPROVED",
+        space: state.activeIntent.space || DEFAULT_SPACE,
+        intent: state.activeIntent.id,
+        phase: stage.phase,
+        stage: stage.slug,
+        reason: "yolo mode: gate auto-satisfied with the recommended answer",
+      });
+      advance(state, workflow);
+      saveState(root, state);
+      return currentDirective(root, methodology, config, state);
+    }
     return gateDirective(root, methodology, config, state, stage);
   }
   if (record.status === "pending") {
@@ -413,6 +443,7 @@ export function statusReport(root, methodology, config) {
   return {
     active: true,
     parked: state.parked,
+    mode: executionMode(scopeForState(methodology, state, config), config).mode,
     intent: state.activeIntent,
     currentStage: state.currentStage,
     scope: state.activeIntent.scope,

@@ -13,6 +13,7 @@ Configure the project for a harness.
 | Flag | Meaning |
 | --- | --- |
 | `--harness <name>` | `pi`, `claude`, or `codex` |
+| `--mode <normal\|yolo>` | Execution mode: `normal` asks questions and presents gates; `yolo` auto-picks recommended answers and auto-approves gates |
 | `--questions-min <n>` | Minimum clarifying questions per stage |
 | `--questions-max <n>` | Maximum clarifying questions per stage (`0` disables) |
 | `--project <dir>` | Project root (default: current directory) |

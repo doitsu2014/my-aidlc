@@ -16,7 +16,7 @@ import { fileURLToPath } from "node:url";
 import { bold, cyan, dim, green, heading, red, warn, yellow } from "./lib/color.mjs";
 import { loadMethodology, compileGraph, workflowForScope, scopeByName, detectScope } from "./lib/graph.mjs";
 import { configPath, detectHarness, memoryDir, workspaceRoot } from "./lib/paths.mjs";
-import { loadConfig, saveConfig } from "./lib/config.mjs";
+import { loadConfig, saveConfig, MODES } from "./lib/config.mjs";
 import { runDoctor } from "./lib/doctor.mjs";
 import {
   parkDirective,
@@ -102,7 +102,9 @@ function cmdHelp() {
     "",
     "COMMANDS",
     `  ${cyan("config")}    Configure the project for a harness (${listHarnesses(repoRoot()).join(", ")})`,
-  `               --questions-min <n> / --questions-max <n> set the per-stage question cap`,
+  `               --mode <normal|yolo> / --questions-min <n> / --questions-max <n>`,
+  `               normal asks questions and gates; yolo auto-picks recommended answers`,
+  `               and auto-approves gates (recorded in the audit log)`
     `  ${cyan("init")}      Create the aidlc/ workspace and memory files`,
     `  ${cyan("doctor")}    Validate the engine, workspace, and configuration`,
     `  ${cyan("status")}    Show the active intent, scope, and stage progress`,
@@ -140,29 +142,39 @@ function cmdConfig(flags) {
 
   const budgetTouched =
     flags["questions-min"] !== undefined || flags["questions-max"] !== undefined;
-  if (budgetTouched) {
-    const value = {
-      min:
-        flags["questions-min"] !== undefined
-          ? Number.parseInt(flags["questions-min"], 10)
-          : config.questionBudget.min,
-      max:
-        flags["questions-max"] !== undefined
-          ? Number.parseInt(flags["questions-max"], 10)
-          : config.questionBudget.max,
-    };
-    if (!Number.isInteger(value.min) || !Number.isInteger(value.max)) {
-      fail("--questions-min and --questions-max require an integer.");
+  const modeTouched = flags.mode !== undefined;
+  if (budgetTouched || modeTouched) {
+    const patch = {};
+    if (budgetTouched) {
+      const value = {
+        min:
+          flags["questions-min"] !== undefined
+            ? Number.parseInt(flags["questions-min"], 10)
+            : config.questionBudget.min,
+        max:
+          flags["questions-max"] !== undefined
+            ? Number.parseInt(flags["questions-max"], 10)
+            : config.questionBudget.max,
+      };
+      if (!Number.isInteger(value.min) || !Number.isInteger(value.max)) {
+        fail("--questions-min and --questions-max require an integer.");
+      }
+      patch.questionBudget = value;
     }
-    saveConfig(root, { questionBudget: value });
+    if (modeTouched) {
+      const mode = String(flags.mode).trim().toLowerCase();
+      if (!MODES.includes(mode)) fail(`--mode must be one of: ${MODES.join(", ")}.`);
+      patch.mode = mode;
+    }
+    saveConfig(root, patch);
     config = loadConfig(root);
     if (!harnessName) {
       if (flags.json) {
-        printJson({ questionBudget: config.questionBudget });
+        printJson({ mode: config.mode, questionBudget: config.questionBudget });
         return;
       }
       process.stdout.write(
-        `${green("PASS")} question budget set to min ${config.questionBudget.min}, max ${config.questionBudget.max}\n`,
+        `${green("PASS")} mode ${config.mode}; question budget min ${config.questionBudget.min}, max ${config.questionBudget.max}\n`,
       );
       return;
     }
@@ -173,6 +185,7 @@ function cmdConfig(flags) {
       printJson({
         harness: config.harness,
         defaultScope: config.defaultScope,
+        mode: config.mode,
         questionBudget: config.questionBudget,
         available: listHarnesses(repoRoot()),
       });
@@ -181,6 +194,7 @@ function cmdConfig(flags) {
     process.stdout.write(`${heading("my-aidlc config")}\n\n`);
     process.stdout.write(`  Harness:         ${config.harness || dim("(not set)")}\n`);
     process.stdout.write(`  Default scope:   ${config.defaultScope}\n`);
+    process.stdout.write(`  Mode:            ${config.mode}\n`);
     process.stdout.write(
       `  Question budget: min ${config.questionBudget.min}, max ${config.questionBudget.max}\n`,
     );
@@ -241,6 +255,7 @@ function cmdStatus(flags) {
   process.stdout.write(`${heading("Active workflow")}\n\n`);
   process.stdout.write(`  Intent:  ${bold(report.intent.id)}\n`);
   process.stdout.write(`  Scope:   ${report.scope}\n`);
+  process.stdout.write(`  Mode:    ${report.mode}\n`);
   process.stdout.write(`  Stage:   ${report.currentStage || dim("(complete)")}\n`);
   if (report.parked) process.stdout.write(`  ${yellow("Parked")}\n`);
   process.stdout.write("\n");

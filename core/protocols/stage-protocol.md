@@ -90,6 +90,37 @@ itself. These words stay internal: engine, directive, dispatch, conductor,
 harness, scope grid, steering. Report substance — questions, gates, artifacts,
 errors — and stay quiet between steps.
 
+## 6. Execution modes: normal and YOLO
+
+The project has one execution mode, resolved scope > project > default:
+
+| Mode | Questions | Approval gates | Use for |
+| --- | --- | --- | --- |
+| `normal` (default) | Asked, bounded by `question_budget` | Presented to the human | Anything that ships |
+| `yolo` | Skipped; pick the recommended answer | Auto-satisfied | Demos, POCs, trusted automation |
+
+Every `run-stage` directive carries `execution_mode`, `auto_approve`, and
+`answer_policy`.
+
+In YOLO mode:
+
+- `question_budget` is `{ min: 0, max: 0 }` and `question-flow` is not loaded.
+- `answer_policy` is `recommended`: where a stage would ask, pick the option the
+  artifact recommends (or the first listed option) and record it as a
+  `Recommendation` in the stage notes.
+- `auto_approve` is true: do **not** present the approval gate. Produce the
+  artifacts, report `awaiting-approval`, and the engine records
+  `STAGE_AUTO_APPROVED` and advances on its own.
+- Reviewers still run; apply their blocking findings before reporting.
+
+YOLO never skips stage work: every stage still runs and still writes its
+artifacts. It removes the human in the loop, not the work. The audit log records
+every auto-approval, so an unattended run remains auditable.
+
+> Governance note: YOLO trades the AIDLC rule "humans own merges" for speed.
+> Use it deliberately, on work you can afford to redo, and review the audit log
+> afterwards.
+
 ## 7. Context loading
 
 Before running a stage body:

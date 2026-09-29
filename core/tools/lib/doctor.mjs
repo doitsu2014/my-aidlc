@@ -80,6 +80,12 @@ export function runDoctor(root) {
 
   const config = loadConfig(root);
   add("pass", `Default scope: ${config.defaultScope}`);
+  add(
+    config.mode === "yolo" ? "warn" : "pass",
+    config.mode === "yolo"
+      ? "Execution mode: yolo (questions skipped and gates auto-approved; every auto-approval is recorded in the audit log)"
+      : `Execution mode: ${config.mode}`,
+  );
 
   const state = loadState(root);
   if (state) {

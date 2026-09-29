@@ -7,6 +7,7 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
+import { MODES } from "./config.mjs";
 
 export const SUPPORTED_SHELLS = ["bash", "zsh", "fish", "powershell"];
 
@@ -71,7 +72,7 @@ export function buildCompletionModel(methodology, harnesses = [], command = "my-
       completion: [...COMPLETION_ACTIONS],
     },
     options: {
-      config: ["--harness", "--project", "--json", "--questions-min", "--questions-max"],
+      config: ["--harness", "--project", "--json", "--mode", "--questions-min", "--questions-max"],
       next: ["--new-intent", "--scope", "--resume"],
       report: ["--stage", "--result", "--user-input", "--reason"],
       completion: ["--shell", "--dir", "--no-rc"],
@@ -79,6 +80,7 @@ export function buildCompletionModel(methodology, harnesses = [], command = "my-
     values: {
       "--harness": [...harnesses],
       "--shell": [...SUPPORTED_SHELLS],
+      "--mode": [...MODES],
       "--scope": scopes,
       "--stage": stages,
       "--result": [...REPORT_RESULTS],
@@ -131,10 +133,12 @@ ${name}() {
   local harnesses="${words(values["--harness"])}"
   local shells="${words(values["--shell"])}"
   local results="${words(values["--result"])}"
+  local modes="${words(values["--mode"])}"
 
   case "$prev" in
     --harness) COMPREPLY=($(compgen -W "$harnesses" -- "$cur")); return 0 ;;
     --shell) COMPREPLY=($(compgen -W "$shells" -- "$cur")); return 0 ;;
+    --mode) COMPREPLY=($(compgen -W "$modes" -- "$cur")); return 0 ;;
     --scope) COMPREPLY=($(compgen -W "$scopes" -- "$cur")); return 0 ;;
     --stage) COMPREPLY=($(compgen -W "$stages" -- "$cur")); return 0 ;;
     --result) COMPREPLY=($(compgen -W "$results" -- "$cur")); return 0 ;;
@@ -210,6 +214,7 @@ ${fn}() {
   harnesses=(${words(model.values["--harness"])})
   shells=(${words(model.values["--shell"])})
   results=(${words(model.values["--result"])})
+  modes=(${words(model.values["--mode"])})
 
   local prev cmd sub
   prev=\${words[CURRENT-1]}
@@ -222,6 +227,7 @@ ${fn}() {
     --scope) compadd -- $scopes; return ;;
     --stage) compadd -- $stages; return ;;
     --result) compadd -- $results; return ;;
+    --mode) compadd -- $modes; return ;;
     --project) _path_files -/; return ;;
   esac
 
@@ -294,6 +300,7 @@ function fishScript(model) {
   lines.push(`complete -c ${cmd} -l scope -x -a "${words(model.values["--scope"])}"`);
   lines.push(`complete -c ${cmd} -l stage -x -a "${words(model.values["--stage"])}"`);
   lines.push(`complete -c ${cmd} -l result -x -a "${words(model.values["--result"])}"`);
+  lines.push(`complete -c ${cmd} -l mode -x -a "${words(model.values["--mode"])}"`);
   lines.push(`complete -c ${cmd} -l shell -x -a "${words(model.values["--shell"])}"`);
   lines.push(`complete -c ${cmd} -l new-intent -d "Start a new intent"`);
   lines.push(`complete -c ${cmd} -l resume -d "Resume a parked workflow"`);
@@ -323,6 +330,7 @@ Register-ArgumentCompleter -Native -CommandName ${cmd} -ScriptBlock {
   $scopes = ${psArray(model.values["--scope"])}
   $stages = ${psArray(model.values["--stage"])}
   $results = ${psArray(model.values["--result"])}
+  $modes = ${psArray(model.values["--mode"])}
 
   $elements = @($commandAst.CommandElements | ForEach-Object { $_.ToString() })
   $positionals = @()
@@ -340,6 +348,7 @@ Register-ArgumentCompleter -Native -CommandName ${cmd} -ScriptBlock {
     '--scope' { $candidates = $scopes }
     '--stage' { $candidates = $stages }
     '--result' { $candidates = $results }
+    '--mode' { $candidates = $modes }
     default {
       $cmd = if ($positionals.Count -ge 2) { $positionals[1] } else { '' }
       $sub = if ($positionals.Count -ge 3) { $positionals[2] } else { '' }
@@ -357,7 +366,7 @@ Register-ArgumentCompleter -Native -CommandName ${cmd} -ScriptBlock {
         'stage' { $candidates = $stages + $globalFlags }
         'phase' { $candidates = $stages + $globalFlags }
         'scope' { $candidates = $scopes + $globalFlags }
-        'config' { $candidates = @('--harness', '--project', '--json', '--questions-min', '--questions-max') }
+        'config' { $candidates = @('--harness', '--project', '--json', '--mode', '--questions-min', '--questions-max') }
         default { $candidates = $globalFlags }
       }
     }

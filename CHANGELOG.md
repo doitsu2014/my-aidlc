@@ -18,6 +18,12 @@ All notable changes to my-aidlc are documented here. The format follows
 
 ### Added
 
+- Execution modes: `normal` (human questions and approval gates) and `yolo`
+  (skips questions by choosing the recommended answer and auto-approves gates,
+  recording `STAGE_AUTO_APPROVED` in the audit log). Configurable with
+  `my-aidlc config --mode normal|yolo` and overridable per scope.
+- A configurable question budget per stage (project, scope, or stage), with
+  `max: 0` disabling the question flow.
 - The five AIDLC phases — Analyze, Ideate, Develop, Launch, Curate — and 21
   stages with approval gates, derived from the
   [AIDLC cheatsheet](https://aidlc.io/cheatsheet/).

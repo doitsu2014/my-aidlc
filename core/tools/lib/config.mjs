@@ -13,6 +13,30 @@ import { readVersion } from "./version.mjs";
 /** Default number of clarifying questions a stage may ask before its gate. */
 export const DEFAULT_QUESTION_BUDGET = Object.freeze({ min: 0, max: 5 });
 
+/** Execution modes. `normal` keeps human questions and approval gates. */
+export const MODES = Object.freeze(["normal", "yolo"]);
+export const DEFAULT_MODE = "normal";
+
+export function normalizeMode(value, fallback = DEFAULT_MODE) {
+  if (typeof value !== "string") return fallback;
+  const mode = value.trim().toLowerCase();
+  return MODES.includes(mode) ? mode : fallback;
+}
+
+/**
+ * Resolve the execution mode with precedence scope > project > default.
+ * Returns { mode, source }.
+ */
+export function resolveMode({ scope, config } = {}) {
+  if (typeof scope === "string" && MODES.includes(scope.trim().toLowerCase())) {
+    return { mode: scope.trim().toLowerCase(), source: "scope" };
+  }
+  if (typeof config === "string" && MODES.includes(config.trim().toLowerCase())) {
+    return { mode: config.trim().toLowerCase(), source: "project" };
+  }
+  return { mode: DEFAULT_MODE, source: "default" };
+}
+
 /**
  * Normalise a question-budget value from anywhere it can be authored:
  *   - an object: { min, max }
@@ -77,6 +101,7 @@ export function loadConfig(root) {
     harness: merged.harness || null,
     defaultScope: merged.defaultScope || "classic",
     version: merged.version || readVersion(),
+    mode: normalizeMode(merged.mode),
     questionBudget: normalizeBudget(merged.questionBudget),
   };
 }
@@ -87,6 +112,9 @@ export function saveConfig(root, patch, { local = false } = {}) {
   const next = { ...current, ...patch, version: readVersion() };
   if (patch && "questionBudget" in patch) {
     next.questionBudget = normalizeBudget(patch.questionBudget);
+  }
+  if (patch && "mode" in patch) {
+    next.mode = normalizeMode(patch.mode, current.mode || DEFAULT_MODE);
   }
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${JSON.stringify(next, null, 2)}\n`, "utf8");

@@ -54,6 +54,7 @@ core/
 | `sensors` | `on` \| `off` | |
 | `learnings` | `on` \| `off` | |
 | `summary_confirmation` | `on` \| `off` |
+| `mode` | `normal` \| `yolo` | Optional autonomy override for this scope |
 | `question_budget` | `{ min, max }` | Optional per-scope question cap override | |
 
 ## Applicability
