@@ -1,0 +1,12 @@
+# dist/codex shipped config — project-scoped.
+#
+# Copy this file into .codex/config.toml of a trusted project. Do not merge it
+# into ~/.codex/config.toml: the instructions below are project-specific.
+#
+# Model/provider is intentionally omitted. The project inherits the provider,
+# authentication, and model selected in the user's Codex configuration.
+
+project_doc = "AGENTS.md"
+
+[sandbox_workspace_write]
+network_access = true

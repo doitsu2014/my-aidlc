@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Package distributions
+        run: node scripts/package.mjs
+
+      - name: Determinism guard
+        run: node scripts/package.mjs --check
+
+      - name: Lint methodology
+        run: node scripts/lint.mjs
+
+      - name: Tests
+        run: node tests/run-tests.mjs

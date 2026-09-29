@@ -1,0 +1,10 @@
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.gif binary
+
+dist/** linguist-generated=true
+core/data/stage-graph.json linguist-generated=true

@@ -1,0 +1,914 @@
+{
+  "phases": [
+    {
+      "slug": "analyze",
+      "name": "Analyze",
+      "order": 1,
+      "focus": "Requirements",
+      "aiRole": "Research assistant",
+      "output": "Specs, analysis docs"
+    },
+    {
+      "slug": "ideate",
+      "name": "Ideate",
+      "order": 2,
+      "focus": "Design",
+      "aiRole": "Architect partner",
+      "output": "Diagrams, specs"
+    },
+    {
+      "slug": "develop",
+      "name": "Develop",
+      "order": 3,
+      "focus": "Code",
+      "aiRole": "Coding agent",
+      "output": "Working code"
+    },
+    {
+      "slug": "launch",
+      "name": "Launch",
+      "order": 4,
+      "focus": "Deploy",
+      "aiRole": "QA engineer",
+      "output": "Tests, pipelines"
+    },
+    {
+      "slug": "curate",
+      "name": "Curate",
+      "order": 5,
+      "focus": "Maintain",
+      "aiRole": "SRE assistant",
+      "output": "Fixes, updates"
+    }
+  ],
+  "stages": [
+    {
+      "slug": "feasibility-assessment",
+      "name": "Feasibility Assessment",
+      "phase": "analyze",
+      "execution": "ALWAYS",
+      "leadAgent": "architect-agent",
+      "supportAgents": [
+        "product-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "feasibility-assessment",
+        "constraint-register"
+      ],
+      "consumes": [
+        {
+          "artifact": "intent-statement",
+          "required": true
+        },
+        {
+          "artifact": "requirements",
+          "required": true
+        },
+        {
+          "artifact": "research-report",
+          "required": false
+        }
+      ],
+      "requiresStage": [
+        "requirements-analysis",
+        "research-synthesis"
+      ]
+    },
+    {
+      "slug": "intent-capture",
+      "name": "Intent Capture",
+      "phase": "analyze",
+      "execution": "ALWAYS",
+      "leadAgent": "product-agent",
+      "supportAgents": [],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "intent-statement",
+        "intent-capture-questions"
+      ],
+      "consumes": [],
+      "requiresStage": []
+    },
+    {
+      "slug": "requirements-analysis",
+      "name": "Requirements Analysis",
+      "phase": "analyze",
+      "execution": "ALWAYS",
+      "leadAgent": "business-analyst-agent",
+      "supportAgents": [
+        "product-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "requirements",
+        "requirements-questions"
+      ],
+      "consumes": [
+        {
+          "artifact": "intent-statement",
+          "required": true
+        }
+      ],
+      "requiresStage": [
+        "intent-capture"
+      ]
+    },
+    {
+      "slug": "research-synthesis",
+      "name": "Research Synthesis",
+      "phase": "analyze",
+      "execution": "CONDITIONAL",
+      "leadAgent": "research-agent",
+      "supportAgents": [
+        "architect-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "research-report",
+        "competitive-analysis"
+      ],
+      "consumes": [
+        {
+          "artifact": "intent-statement",
+          "required": true
+        },
+        {
+          "artifact": "requirements",
+          "required": false
+        }
+      ],
+      "requiresStage": [
+        "intent-capture"
+      ]
+    },
+    {
+      "slug": "documentation-update",
+      "name": "Documentation Update",
+      "phase": "curate",
+      "execution": "ALWAYS",
+      "leadAgent": "tech-writer-agent",
+      "supportAgents": [
+        "developer-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "updated-docs"
+      ],
+      "consumes": [
+        {
+          "artifact": "source-changes",
+          "required": false
+        },
+        {
+          "artifact": "technical-spec",
+          "required": false
+        },
+        {
+          "artifact": "release-validation-report",
+          "required": false
+        }
+      ],
+      "requiresStage": [
+        "release-validation",
+        "observability-setup"
+      ]
+    },
+    {
+      "slug": "incident-analysis",
+      "name": "Incident Analysis",
+      "phase": "curate",
+      "execution": "CONDITIONAL",
+      "leadAgent": "sre-agent",
+      "supportAgents": [
+        "developer-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "incident-report"
+      ],
+      "consumes": [
+        {
+          "artifact": "observability-config",
+          "required": false
+        },
+        {
+          "artifact": "source-changes",
+          "required": false
+        }
+      ],
+      "requiresStage": [
+        "observability-setup"
+      ]
+    },
+    {
+      "slug": "observability-setup",
+      "name": "Observability Setup",
+      "phase": "curate",
+      "execution": "ALWAYS",
+      "leadAgent": "sre-agent",
+      "supportAgents": [
+        "devops-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "observability-config"
+      ],
+      "consumes": [
+        {
+          "artifact": "technical-spec",
+          "required": false
+        },
+        {
+          "artifact": "release-validation-report",
+          "required": true
+        }
+      ],
+      "requiresStage": [
+        "release-validation"
+      ]
+    },
+    {
+      "slug": "performance-optimization",
+      "name": "Performance Optimization",
+      "phase": "curate",
+      "execution": "CONDITIONAL",
+      "leadAgent": "performance-agent",
+      "supportAgents": [
+        "developer-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "performance-report"
+      ],
+      "consumes": [
+        {
+          "artifact": "observability-config",
+          "required": true
+        },
+        {
+          "artifact": "technical-spec",
+          "required": false
+        }
+      ],
+      "requiresStage": [
+        "observability-setup"
+      ]
+    },
+    {
+      "slug": "code-generation",
+      "name": "Code Generation",
+      "phase": "develop",
+      "execution": "ALWAYS",
+      "leadAgent": "developer-agent",
+      "supportAgents": [],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "source-changes",
+        "code-generation-notes"
+      ],
+      "consumes": [
+        {
+          "artifact": "implementation-plan",
+          "required": true
+        },
+        {
+          "artifact": "unit-breakdown",
+          "required": true
+        },
+        {
+          "artifact": "technical-spec",
+          "required": false
+        }
+      ],
+      "requiresStage": [
+        "task-planning"
+      ]
+    },
+    {
+      "slug": "code-review",
+      "name": "Code Review",
+      "phase": "develop",
+      "execution": "ALWAYS",
+      "leadAgent": "code-reviewer-agent",
+      "supportAgents": [
+        "security-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "review-record"
+      ],
+      "consumes": [
+        {
+          "artifact": "source-changes",
+          "required": true
+        },
+        {
+          "artifact": "implementation-plan",
+          "required": false
+        }
+      ],
+      "requiresStage": [
+        "code-generation"
+      ]
+    },
+    {
+      "slug": "refactor",
+      "name": "Refactoring",
+      "phase": "develop",
+      "execution": "CONDITIONAL",
+      "leadAgent": "developer-agent",
+      "supportAgents": [
+        "code-reviewer-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "refactor-notes"
+      ],
+      "consumes": [
+        {
+          "artifact": "review-record",
+          "required": true
+        },
+        {
+          "artifact": "source-changes",
+          "required": true
+        }
+      ],
+      "requiresStage": [
+        "code-review"
+      ]
+    },
+    {
+      "slug": "task-planning",
+      "name": "Task Planning",
+      "phase": "develop",
+      "execution": "ALWAYS",
+      "leadAgent": "delivery-agent",
+      "supportAgents": [
+        "developer-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "implementation-plan",
+        "unit-breakdown"
+      ],
+      "consumes": [
+        {
+          "artifact": "technical-spec",
+          "required": false
+        },
+        {
+          "artifact": "requirements",
+          "required": true
+        }
+      ],
+      "requiresStage": [
+        "feasibility-assessment"
+      ]
+    },
+    {
+      "slug": "api-contract",
+      "name": "API Contract Design",
+      "phase": "ideate",
+      "execution": "ALWAYS",
+      "leadAgent": "architect-agent",
+      "supportAgents": [
+        "developer-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "api-contract"
+      ],
+      "consumes": [
+        {
+          "artifact": "architecture-doc",
+          "required": true
+        },
+        {
+          "artifact": "requirements",
+          "required": true
+        }
+      ],
+      "requiresStage": [
+        "architecture-design"
+      ]
+    },
+    {
+      "slug": "architecture-design",
+      "name": "Architecture Design",
+      "phase": "ideate",
+      "execution": "ALWAYS",
+      "leadAgent": "architect-agent",
+      "supportAgents": [
+        "design-agent"
+      ],
+      "mode": "inline",
+      "reviewer": "security-agent",
+      "produces": [
+        "architecture-doc",
+        "architecture-questions"
+      ],
+      "consumes": [
+        {
+          "artifact": "requirements",
+          "required": true
+        },
+        {
+          "artifact": "feasibility-assessment",
+          "required": true
+        },
+        {
+          "artifact": "constraint-register",
+          "required": false
+        }
+      ],
+      "requiresStage": [
+        "feasibility-assessment"
+      ]
+    },
+    {
+      "slug": "design-patterns",
+      "name": "Design Pattern Selection",
+      "phase": "ideate",
+      "execution": "ALWAYS",
+      "leadAgent": "design-agent",
+      "supportAgents": [
+        "architect-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "design-decisions"
+      ],
+      "consumes": [
+        {
+          "artifact": "architecture-doc",
+          "required": true
+        },
+        {
+          "artifact": "requirements",
+          "required": true
+        }
+      ],
+      "requiresStage": [
+        "architecture-design"
+      ]
+    },
+    {
+      "slug": "technical-spec",
+      "name": "Technical Specification",
+      "phase": "ideate",
+      "execution": "ALWAYS",
+      "leadAgent": "design-agent",
+      "supportAgents": [
+        "architect-agent",
+        "developer-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "technical-spec"
+      ],
+      "consumes": [
+        {
+          "artifact": "architecture-doc",
+          "required": true
+        },
+        {
+          "artifact": "design-decisions",
+          "required": true
+        },
+        {
+          "artifact": "api-contract",
+          "required": false
+        },
+        {
+          "artifact": "requirements",
+          "required": true
+        }
+      ],
+      "requiresStage": [
+        "design-patterns",
+        "api-contract"
+      ]
+    },
+    {
+      "slug": "ci-pipeline",
+      "name": "CI Pipeline",
+      "phase": "launch",
+      "execution": "ALWAYS",
+      "leadAgent": "devops-agent",
+      "supportAgents": [
+        "qa-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "ci-config"
+      ],
+      "consumes": [
+        {
+          "artifact": "test-plan",
+          "required": true
+        },
+        {
+          "artifact": "test-suite",
+          "required": true
+        }
+      ],
+      "requiresStage": [
+        "test-generation"
+      ]
+    },
+    {
+      "slug": "deployment",
+      "name": "Deployment Automation",
+      "phase": "launch",
+      "execution": "ALWAYS",
+      "leadAgent": "devops-agent",
+      "supportAgents": [
+        "sre-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "deployment-runbook",
+        "deployment-scripts"
+      ],
+      "consumes": [
+        {
+          "artifact": "ci-config",
+          "required": true
+        },
+        {
+          "artifact": "technical-spec",
+          "required": false
+        }
+      ],
+      "requiresStage": [
+        "ci-pipeline"
+      ]
+    },
+    {
+      "slug": "release-validation",
+      "name": "Release Validation",
+      "phase": "launch",
+      "execution": "ALWAYS",
+      "leadAgent": "qa-agent",
+      "supportAgents": [
+        "product-agent",
+        "devops-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "release-validation-report"
+      ],
+      "consumes": [
+        {
+          "artifact": "requirements",
+          "required": true
+        },
+        {
+          "artifact": "test-suite",
+          "required": true
+        },
+        {
+          "artifact": "deployment-runbook",
+          "required": false
+        }
+      ],
+      "requiresStage": [
+        "test-generation",
+        "deployment"
+      ]
+    },
+    {
+      "slug": "test-generation",
+      "name": "Test Generation",
+      "phase": "launch",
+      "execution": "ALWAYS",
+      "leadAgent": "qa-agent",
+      "supportAgents": [
+        "developer-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "test-suite"
+      ],
+      "consumes": [
+        {
+          "artifact": "test-plan",
+          "required": true
+        },
+        {
+          "artifact": "source-changes",
+          "required": true
+        }
+      ],
+      "requiresStage": [
+        "test-plan"
+      ]
+    },
+    {
+      "slug": "test-plan",
+      "name": "Test Plan",
+      "phase": "launch",
+      "execution": "ALWAYS",
+      "leadAgent": "qa-agent",
+      "supportAgents": [
+        "developer-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "produces": [
+        "test-plan"
+      ],
+      "consumes": [
+        {
+          "artifact": "requirements",
+          "required": true
+        },
+        {
+          "artifact": "technical-spec",
+          "required": false
+        },
+        {
+          "artifact": "source-changes",
+          "required": false
+        }
+      ],
+      "requiresStage": [
+        "code-review"
+      ]
+    }
+  ],
+  "scopes": [
+    {
+      "name": "bugfix",
+      "depth": "Minimal",
+      "keywords": [
+        "bug",
+        "fix",
+        "regression",
+        "hotfix",
+        "defect",
+        "broken"
+      ],
+      "phases": [
+        "analyze",
+        "develop",
+        "launch"
+      ],
+      "skip": [
+        "research-synthesis",
+        "feasibility-assessment",
+        "task-planning",
+        "refactor",
+        "test-plan",
+        "deployment"
+      ]
+    },
+    {
+      "name": "classic",
+      "depth": "Standard",
+      "keywords": [],
+      "phases": [
+        "analyze",
+        "ideate",
+        "develop",
+        "launch",
+        "curate"
+      ],
+      "skip": []
+    },
+    {
+      "name": "express",
+      "depth": "Minimal",
+      "keywords": [
+        "express",
+        "quick",
+        "lightweight",
+        "small",
+        "tiny"
+      ],
+      "phases": [
+        "analyze",
+        "develop",
+        "launch"
+      ],
+      "skip": [
+        "research-synthesis",
+        "feasibility-assessment",
+        "code-review",
+        "release-validation"
+      ]
+    },
+    {
+      "name": "feature",
+      "depth": "Standard",
+      "keywords": [
+        "feature",
+        "add",
+        "enhance",
+        "capability",
+        "story"
+      ],
+      "phases": [
+        "analyze",
+        "ideate",
+        "develop",
+        "launch"
+      ],
+      "skip": [
+        "research-synthesis"
+      ]
+    },
+    {
+      "name": "infra",
+      "depth": "Standard",
+      "keywords": [
+        "infra",
+        "infrastructure",
+        "terraform",
+        "kubernetes",
+        "pipeline",
+        "platform",
+        "observability"
+      ],
+      "phases": [
+        "analyze",
+        "ideate",
+        "launch",
+        "curate"
+      ],
+      "skip": [
+        "research-synthesis",
+        "api-contract",
+        "code-review",
+        "refactor"
+      ]
+    },
+    {
+      "name": "mvp",
+      "depth": "Standard",
+      "keywords": [
+        "mvp",
+        "prototype",
+        "launch fast",
+        "ship fast",
+        "first version"
+      ],
+      "phases": [
+        "analyze",
+        "ideate",
+        "develop",
+        "launch"
+      ],
+      "skip": [
+        "design-patterns",
+        "api-contract",
+        "refactor",
+        "deployment"
+      ]
+    },
+    {
+      "name": "poc",
+      "depth": "Minimal",
+      "keywords": [
+        "poc",
+        "proof of concept",
+        "spike",
+        "experiment",
+        "prototype",
+        "validate idea"
+      ],
+      "phases": [
+        "analyze",
+        "develop"
+      ],
+      "skip": [
+        "research-synthesis",
+        "code-review",
+        "refactor",
+        "task-planning"
+      ]
+    }
+  ],
+  "scopeGrid": {
+    "bugfix": [
+      "intent-capture",
+      "requirements-analysis",
+      "code-generation",
+      "code-review",
+      "test-generation",
+      "ci-pipeline",
+      "release-validation"
+    ],
+    "classic": [
+      "intent-capture",
+      "requirements-analysis",
+      "research-synthesis",
+      "feasibility-assessment",
+      "architecture-design",
+      "api-contract",
+      "design-patterns",
+      "technical-spec",
+      "task-planning",
+      "code-generation",
+      "code-review",
+      "refactor",
+      "test-plan",
+      "test-generation",
+      "ci-pipeline",
+      "deployment",
+      "release-validation",
+      "observability-setup",
+      "documentation-update",
+      "incident-analysis",
+      "performance-optimization"
+    ],
+    "express": [
+      "intent-capture",
+      "requirements-analysis",
+      "refactor",
+      "task-planning",
+      "code-generation",
+      "test-plan",
+      "test-generation",
+      "ci-pipeline",
+      "deployment"
+    ],
+    "feature": [
+      "intent-capture",
+      "requirements-analysis",
+      "feasibility-assessment",
+      "architecture-design",
+      "api-contract",
+      "design-patterns",
+      "technical-spec",
+      "task-planning",
+      "code-generation",
+      "code-review",
+      "refactor",
+      "test-plan",
+      "test-generation",
+      "ci-pipeline",
+      "deployment",
+      "release-validation"
+    ],
+    "infra": [
+      "intent-capture",
+      "requirements-analysis",
+      "feasibility-assessment",
+      "architecture-design",
+      "design-patterns",
+      "technical-spec",
+      "test-plan",
+      "test-generation",
+      "ci-pipeline",
+      "deployment",
+      "release-validation",
+      "observability-setup",
+      "documentation-update",
+      "incident-analysis",
+      "performance-optimization"
+    ],
+    "mvp": [
+      "intent-capture",
+      "requirements-analysis",
+      "research-synthesis",
+      "feasibility-assessment",
+      "architecture-design",
+      "technical-spec",
+      "task-planning",
+      "code-generation",
+      "code-review",
+      "test-plan",
+      "test-generation",
+      "ci-pipeline",
+      "release-validation"
+    ],
+    "poc": [
+      "intent-capture",
+      "requirements-analysis",
+      "feasibility-assessment",
+      "code-generation"
+    ]
+  }
+}

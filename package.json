@@ -1,0 +1,33 @@
+{
+  "name": "my-aidlc",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "my-aidlc - an AI-Driven Development Life Cycle workflow engine (one core, many harnesses) built around the five AIDLC phases: Analyze, Ideate, Develop, Launch, Curate.",
+  "license": "MIT-0",
+  "bin": {
+    "my-aidlc": "core/tools/my-aidlc.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "package": "node scripts/package.mjs",
+    "package:check": "node scripts/package.mjs --check",
+    "test": "node tests/run-tests.mjs",
+    "lint": "node scripts/lint.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/doitsu2014/my-aidlc"
+  },
+  "keywords": [
+    "aidlc",
+    "ai-driven-development",
+    "workflow",
+    "agents",
+    "claude",
+    "codex",
+    "pi"
+  ]
+}
