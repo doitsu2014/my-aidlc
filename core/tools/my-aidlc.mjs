@@ -26,6 +26,14 @@ import {
 } from "./lib/orchestrate.mjs";
 import { loadState } from "./lib/state.mjs";
 import { buildHarness, applyDistribution, listHarnesses } from "./lib/packager.mjs";
+import {
+  SUPPORTED_SHELLS,
+  buildCompletionModel,
+  completionScript,
+  detectShell,
+  installCompletion,
+  uninstallCompletion,
+} from "./lib/completion.mjs";
 import { engineRoot, repoRoot, readVersion } from "./lib/version.mjs";
 
 // ---------------------------------------------------------------------------
@@ -101,6 +109,7 @@ function cmdHelp() {
     `  ${cyan("stage")}     Show one stage definition`,
     `  ${cyan("scope")}     Show one workflow profile`,
     `  ${cyan("graph")}     Print the compiled workflow graph (JSON)`,
+    `  ${cyan("completion")} Print or install shell completion (bash, zsh, fish, powershell)`,
     `  ${cyan("version")}   Print the framework version`,
     `  ${cyan("help")}      Print this help`,
     "",
@@ -108,6 +117,11 @@ function cmdHelp() {
     `  ${cyan("orchestrate next")} [--new-intent] [--scope <name>] [--resume] "<description>"`,
     `  ${cyan("orchestrate report")} --stage <slug> --result <outcome> [--user-input <text>] [--reason <text>]`,
     `  ${cyan("orchestrate park")}`,
+    "",
+    "COMPLETION",
+    `  ${cyan("completion <shell>")}          Print the completion script for a shell`,
+    `  ${cyan("completion install")} [--shell] Install completion and wire your shell rc`,
+    `  ${cyan("completion uninstall")} [--shell] Remove installed completion`,
     "",
     "ALIASES",
     "  --status  --doctor  --version  --help  --config",
@@ -288,6 +302,83 @@ function cmdGraph(flags) {
   }
 }
 
+function completionModel() {
+  return buildCompletionModel(methodology(), listHarnesses(repoRoot()));
+}
+
+function rcHint(shell, scriptPath) {
+  switch (shell) {
+    case "bash":
+    case "zsh":
+      return `source ${scriptPath}`;
+    case "powershell":
+      return `. ${scriptPath}`;
+    case "fish":
+      return "exec fish";
+    default:
+      return "restart your shell";
+  }
+}
+
+function cmdCompletion(positionals, flags) {
+  const model = completionModel();
+  const action = positionals[0];
+
+  if (!action || action === "list") {
+    const detected = detectShell();
+    if (flags.json) {
+      printJson({ supported: SUPPORTED_SHELLS, detected });
+      return;
+    }
+    process.stdout.write(`${heading("my-aidlc completion")}\n\n`);
+    process.stdout.write(`  Shells:   ${SUPPORTED_SHELLS.join(", ")}\n`);
+    process.stdout.write(`  Detected: ${detected || dim("(unknown)")}\n\n`);
+    process.stdout.write(`  Print a script:  my-aidlc completion <shell>\n`);
+    process.stdout.write(`  Install:         my-aidlc completion install [--shell <shell>]\n`);
+    process.stdout.write(`  Uninstall:       my-aidlc completion uninstall [--shell <shell>]\n`);
+    return;
+  }
+
+  if (action === "install" || action === "uninstall") {
+    const shell = (typeof flags.shell === "string" && flags.shell) || detectShell();
+    if (!shell) fail(`Could not detect the shell. Pass --shell <${SUPPORTED_SHELLS.join("|")}>.`);
+    if (!SUPPORTED_SHELLS.includes(shell)) {
+      fail(`Unsupported shell "${shell}". Use: ${SUPPORTED_SHELLS.join(", ")}.`);
+    }
+    const common = {
+      shell,
+      model,
+      dir: typeof flags.dir === "string" ? flags.dir : undefined,
+      noRc: flags["no-rc"] === true,
+    };
+    if (action === "install") {
+      const result = installCompletion(common);
+      if (flags.json) {
+        printJson(result);
+        return;
+      }
+      process.stdout.write(`${green("PASS")} installed ${shell} completion\n`);
+      process.stdout.write(`  Script: ${result.scriptPath}\n`);
+      if (result.rcPath && result.rcUpdated) process.stdout.write(`  Shell config: ${result.rcPath}\n`);
+      process.stdout.write(`  Activate now: ${rcHint(shell, result.scriptPath)}\n`);
+      return;
+    }
+    const result = uninstallCompletion(common);
+    if (flags.json) {
+      printJson(result);
+      return;
+    }
+    process.stdout.write(`${green("PASS")} removed ${shell} completion\n`);
+    return;
+  }
+
+  if (!SUPPORTED_SHELLS.includes(action)) {
+    fail(`Unsupported shell "${action}". Use: ${SUPPORTED_SHELLS.join(", ")}.`);
+  }
+  process.stdout.write(completionScript(action, model));
+  return undefined;
+}
+
 function cmdOrchestrate(positionals, flags) {
   const verb = positionals[0];
   const root = process.cwd();
@@ -380,6 +471,8 @@ async function main() {
     }
     case "graph":
       return cmdGraph(flags);
+    case "completion":
+      return cmdCompletion(positionals.slice(1), flags);
     case "orchestrate":
       return cmdOrchestrate(positionals.slice(1), flags);
     case undefined:

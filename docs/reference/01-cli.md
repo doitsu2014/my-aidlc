@@ -50,6 +50,34 @@ as JSON.
 
 Print the version or help.
 
+### `my-aidlc completion`
+
+Print or install shell completion for `bash`, `zsh`, `fish`, and
+`powershell`. The vocabulary is generated from the live methodology, so new
+stages, scopes, and agents appear automatically.
+
+| Command | Meaning |
+| --- | --- |
+| `my-aidlc completion` | Show supported shells and the detected one |
+| `my-aidlc completion <shell>` | Print the completion script to stdout |
+| `my-aidlc completion install [--shell <shell>] [--dir <dir>] [--no-rc]` | Write the script and wire it into your shell rc file |
+| `my-aidlc completion uninstall [--shell <shell>]` | Remove the script and its managed rc block |
+
+`--shell` defaults to the shell detected from `$SHELL`; pass it explicitly
+from scripts or on Windows. `--no-rc` writes only the script file and leaves
+your shell configuration untouched. The rc integration is idempotent and
+delimited by `# >>> my-aidlc completion >>>` / `# <<< my-aidlc completion <<<`
+markers.
+
+Install locations:
+
+| Shell | Script | Activation |
+| --- | --- | --- |
+| bash | `$XDG_DATA_HOME/my-aidlc/completions/my-aidlc.bash` | sourced from `~/.bashrc` |
+| zsh | `$XDG_DATA_HOME/my-aidlc/completions/_my-aidlc` | sourced from `~/.zshrc` |
+| fish | `$XDG_CONFIG_HOME/fish/completions/my-aidlc.fish` | autoloaded |
+| powershell | `$XDG_CONFIG_HOME/powershell/my-aidlc-completion.ps1` | dot-sourced from the PowerShell profile |
+
 Aliases: `--status`, `--doctor`, `--version`, `--help`, `--config`.
 
 ## Orchestration commands

@@ -2,7 +2,7 @@
 #
 # Usage:
 #   ./scripts/install.ps1 [-From <dir>] [-Prefix <dir>] [-BinDir <dir>]
-#                         [-Version <x.y.z>] [-Uninstall] [-Quiet]
+#                         [-Version <x.y.z>] [-Uninstall] [-NoCompletion] [-Quiet]
 
 param(
   [string]$From = "",
@@ -10,6 +10,7 @@ param(
   [string]$BinDir = "",
   [string]$Version = "",
   [switch]$Uninstall,
+  [switch]$NoCompletion,
   [switch]$Quiet
 )
 
@@ -28,6 +29,13 @@ if (-not $BinDir) {
 }
 
 if ($Uninstall) {
+  $engine = Join-Path $Prefix "core\tools\my-aidlc.mjs"
+  if (Test-Path $engine) {
+    try {
+      $env:MY_AIDLC_HOME = $Prefix
+      & node $engine completion uninstall --shell powershell 2>$null | Out-Null
+    } catch {}
+  }
   $launcher = Join-Path $BinDir "my-aidlc.cmd"
   if (Test-Path $launcher) { Remove-Item $launcher -Force }
   if (Test-Path $Prefix) { Remove-Item $Prefix -Recurse -Force }
@@ -76,4 +84,18 @@ if ($userPath -notlike "*$BinDir*") {
 
 $installed = (Get-Content (Join-Path $Prefix "package.json") | ConvertFrom-Json).version
 Say "PASS installed my-aidlc $installed"
+
+if (-not $NoCompletion) {
+  $engine = Join-Path $Prefix "core\tools\my-aidlc.mjs"
+  if (Test-Path $engine) {
+    try {
+      $env:MY_AIDLC_HOME = $Prefix
+      & node $engine completion install --shell powershell | Out-Null
+      Say "PASS installed PowerShell completion (restart your shell to activate)"
+    } catch {
+      Say "note: PowerShell completion was not installed; run 'my-aidlc completion install'"
+    }
+  }
+}
+
 Say "Next: my-aidlc config --harness pi"

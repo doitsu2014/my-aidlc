@@ -39,7 +39,10 @@ cd my-aidlc
 ./scripts/install.ps1 -From .
 ```
 
-The installer adds the `my-aidlc` command. Node.js 20+ is required.
+The installer adds the `my-aidlc` command and shell completion for your
+login shell. Node.js 20+ is required. To skip completion, pass
+`--no-completion` (or `-NoCompletion` on Windows); manage it later with
+`my-aidlc completion install|uninstall`.
 
 ### 2. Configure a project
 
@@ -80,6 +83,7 @@ decisions, and stops at an approval gate before each stage is committed.
 - **Human approval gates** at every stage
 - **Database skills** for PostgreSQL, MySQL, SQL Server, and MongoDB
 - **Audit trail** plus persistent project/team/org memory
+- **Shell completion** for bash, zsh, fish, and PowerShell
 - **One deterministic engine** across every supported harness
 
 ## Repository layout

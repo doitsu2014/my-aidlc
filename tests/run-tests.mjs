@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { spawnSync } from "node:child_process";
 
 import { parseFrontmatter } from "../core/tools/lib/frontmatter.mjs";
 import {
@@ -19,6 +20,14 @@ import { runDoctor } from "../core/tools/lib/doctor.mjs";
 import { runNext, runReport, statusReport, parkDirective } from "../core/tools/lib/orchestrate.mjs";
 import { loadConfig } from "../core/tools/lib/config.mjs";
 import { loadState, readAudit } from "../core/tools/lib/state.mjs";
+import {
+  SUPPORTED_SHELLS,
+  buildCompletionModel,
+  completionScript,
+  detectShell,
+  installCompletion,
+  uninstallCompletion,
+} from "../core/tools/lib/completion.mjs";
 import { engineRoot, repoRoot, readVersion } from "../core/tools/lib/version.mjs";
 
 const tests = [];
@@ -353,6 +362,76 @@ test("doctor passes on a configured project", async () => {
 
 test("version is a semver string", () => {
   assert.match(readVersion(), /^\d+\.\d+\.\d+/);
+});
+
+// ---------------------------------------------------------------------------
+// Unit: shell completion
+// ---------------------------------------------------------------------------
+
+test("completion model mirrors the live methodology", () => {
+  const m = loadMethodology(engineRoot());
+  const model = buildCompletionModel(m, ["pi", "claude", "codex"]);
+  assert.deepEqual(model.values["--scope"].slice().sort(), m.scopes.map((s) => s.name).sort());
+  assert.deepEqual(model.values["--stage"].slice().sort(), m.stages.map((s) => s.slug).sort());
+  assert.deepEqual(model.values["--harness"], ["pi", "claude", "codex"]);
+  assert.ok(model.commands.includes("orchestrate"));
+  assert.ok(model.groups.orchestrate.includes("next"));
+  assert.equal(detectShell({ SHELL: "/bin/zsh" }), "zsh");
+  assert.equal(detectShell({ SHELL: "/usr/bin/fish" }), "fish");
+  assert.equal(detectShell({ SHELL: "/bin/sh" }), null);
+});
+
+test("completion scripts are generated for every supported shell", () => {
+  const m = loadMethodology(engineRoot());
+  const model = buildCompletionModel(m, ["pi", "claude", "codex"]);
+  for (const shell of SUPPORTED_SHELLS) {
+    const script = completionScript(shell, model);
+    assert.ok(script.includes("my-aidlc"), `${shell} script names the command`);
+    assert.ok(script.includes("orchestrate"), `${shell} script lists orchestrate`);
+    assert.ok(script.includes(model.list.stages[0]), `${shell} script lists a stage`);
+  }
+  assert.throws(() => completionScript("tcsh", model), /Unsupported shell/);
+});
+
+test("completion install is idempotent and uninstall reverses it", () => {
+  const m = loadMethodology(engineRoot());
+  const model = buildCompletionModel(m, ["pi", "claude", "codex"]);
+  const home = tempProject();
+  try {
+    const first = installCompletion({ shell: "zsh", model, home });
+    assert.ok(existsSync(first.scriptPath));
+    const second = installCompletion({ shell: "zsh", model, home });
+    assert.equal(second.rcUpdated, false, "second install does not duplicate the rc block");
+    const rc = readFileSync(join(home, ".zshrc"), "utf8");
+    assert.equal(rc.split("# >>> my-aidlc completion >>>").length - 1, 1);
+    const removed = uninstallCompletion({ shell: "zsh", home });
+    assert.equal(removed.removedScript, true);
+    assert.equal(existsSync(first.scriptPath), false);
+    assert.equal(readFileSync(join(home, ".zshrc"), "utf8").includes("my-aidlc completion"), false);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("generated bash and zsh scripts pass a syntax check", () => {
+  const m = loadMethodology(engineRoot());
+  const model = buildCompletionModel(m, ["pi", "claude", "codex"]);
+  for (const [shell, binary] of [
+    ["bash", "bash"],
+    ["zsh", "zsh"],
+  ]) {
+    const probe = spawnSync(binary, ["--version"], { stdio: "ignore" });
+    if (probe.error) continue;
+    const dir = tempProject();
+    try {
+      const file = join(dir, shell === "bash" ? "my-aidlc.bash" : "_my-aidlc");
+      writeFileSync(file, completionScript(shell, model));
+      const result = spawnSync(binary, ["-n", file]);
+      assert.equal(result.status, 0, `${shell} syntax: ${result.stderr}`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
 });
 
 // ---------------------------------------------------------------------------

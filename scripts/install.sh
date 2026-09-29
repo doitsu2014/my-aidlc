@@ -3,7 +3,8 @@
 #
 # Usage:
 #   ./scripts/install.sh [--from <dir>] [--prefix <dir>] [--bin-dir <dir>]
-#                        [--version <x.y.z>] [--uninstall] [--quiet]
+#                        [--version <x.y.z>] [--uninstall] [--no-completion]
+#                        [--quiet]
 #
 # Environment:
 #   MY_AIDLC_INSTALL_ROOT  install root (default: $XDG_DATA_HOME/my-aidlc)
@@ -24,11 +25,12 @@ FROM=
 VERSION=
 UNINSTALL=0
 QUIET=0
+COMPLETION=1
 
 usage() {
   cat <<EOF
 Usage: install.sh [--from <dir>] [--prefix <dir>] [--bin-dir <dir>]
-                  [--version <x.y.z>] [--uninstall] [--quiet]
+                  [--version <x.y.z>] [--uninstall] [--no-completion] [--quiet]
 EOF
 }
 
@@ -39,6 +41,7 @@ while [ "$#" -gt 0 ]; do
     --bin-dir) BIN_DIR=$2; shift 2 ;;
     --version) VERSION=$2; shift 2 ;;
     --uninstall) UNINSTALL=1; shift ;;
+    --no-completion) COMPLETION=0; shift ;;
     --quiet) QUIET=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "unknown argument: $1" >&2; usage >&2; exit 2 ;;
@@ -48,9 +51,24 @@ done
 say() { [ "$QUIET" -eq 1 ] || printf '%s\n' "$*"; }
 die() { printf 'ERROR %s\n' "$*" >&2; exit 1; }
 
+detect_shell() {
+  case "${SHELL:-}" in
+    *zsh*) printf 'zsh' ;;
+    *bash*) printf 'bash' ;;
+    *fish*) printf 'fish' ;;
+    *pwsh*|*powershell*) printf 'powershell' ;;
+    *) printf '' ;;
+  esac
+}
+
 command -v node >/dev/null 2>&1 || die "Node.js 20+ is required but 'node' was not found."
 
 if [ "$UNINSTALL" -eq 1 ]; then
+  shell_name=$(detect_shell)
+  if [ -n "$shell_name" ] && [ -f "$INSTALL_ROOT/core/tools/my-aidlc.mjs" ]; then
+    MY_AIDLC_HOME="$INSTALL_ROOT" node "$INSTALL_ROOT/core/tools/my-aidlc.mjs" \
+      completion uninstall --shell "$shell_name" >/dev/null 2>&1 || true
+  fi
   rm -f "$BIN_DIR/my-aidlc"
   rm -rf "$INSTALL_ROOT"
   say "Removed my-aidlc from $INSTALL_ROOT and $BIN_DIR/my-aidlc"
@@ -108,6 +126,19 @@ chmod 755 "$BIN_DIR/my-aidlc"
 
 installed_version=$(node -e "process.stdout.write(require('$INSTALL_ROOT/package.json').version)" 2>/dev/null || echo "0.1.0")
 say "PASS installed my-aidlc $installed_version"
+
+if [ "$COMPLETION" -eq 1 ]; then
+  shell_name=$(detect_shell)
+  if [ -n "$shell_name" ]; then
+    if MY_AIDLC_HOME="$INSTALL_ROOT" node "$INSTALL_ROOT/core/tools/my-aidlc.mjs" \
+      completion install --shell "$shell_name" >/dev/null 2>&1; then
+      say "PASS installed $shell_name completion (restart your shell to activate)"
+    else
+      say "note: $shell_name completion was not installed; run 'my-aidlc completion install'"
+    fi
+  fi
+fi
+
 case ":$PATH:" in
   *":$BIN_DIR:"*) say "Next: my-aidlc config --harness pi" ;;
   *)

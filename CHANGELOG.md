@@ -4,6 +4,16 @@ All notable changes to my-aidlc are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Shell completion for `bash`, `zsh`, `fish`, and `powershell`, generated from
+  the live methodology. New `my-aidlc completion [<shell> | install | uninstall]`
+  command prints scripts or wires them into your shell rc file (idempotently).
+- The installers now install completion for the detected login shell; opt out
+  with `--no-completion` (`-NoCompletion` on Windows).
+
 ## [0.1.0] - Initial release
 
 ### Added
