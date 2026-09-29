@@ -33,7 +33,10 @@ prose. You own the quality of execution inside the move the engine names.
 
 ## 3. Question flow
 
-Use a file-backed question flow for any stage that needs input.
+Use a file-backed question flow for any stage that needs input. The stage's
+directive carries `question_budget: { min, max, source }`; ask no more than
+`max` and no fewer than `min` (see `question-flow.md`). When `max` is 0, skip
+questions and generate directly.
 
 1. Create `<record>/<phase>/<stage>/<stage>-questions.md`.
 2. Number the questions. Under each, provide lettered options `A`–`E` plus

@@ -13,6 +13,8 @@ Configure the project for a harness.
 | Flag | Meaning |
 | --- | --- |
 | `--harness <name>` | `pi`, `claude`, or `codex` |
+| `--questions-min <n>` | Minimum clarifying questions per stage |
+| `--questions-max <n>` | Maximum clarifying questions per stage (`0` disables) |
 | `--project <dir>` | Project root (default: current directory) |
 | `--json` | Machine-readable output |
 

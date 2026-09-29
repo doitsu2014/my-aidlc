@@ -71,7 +71,7 @@ export function buildCompletionModel(methodology, harnesses = [], command = "my-
       completion: [...COMPLETION_ACTIONS],
     },
     options: {
-      config: ["--harness", "--project", "--json"],
+      config: ["--harness", "--project", "--json", "--questions-min", "--questions-max"],
       next: ["--new-intent", "--scope", "--resume"],
       report: ["--stage", "--result", "--user-input", "--reason"],
       completion: ["--shell", "--dir", "--no-rc"],
@@ -357,7 +357,7 @@ Register-ArgumentCompleter -Native -CommandName ${cmd} -ScriptBlock {
         'stage' { $candidates = $stages + $globalFlags }
         'phase' { $candidates = $stages + $globalFlags }
         'scope' { $candidates = $scopes + $globalFlags }
-        'config' { $candidates = @('--harness', '--project', '--json') }
+        'config' { $candidates = @('--harness', '--project', '--json', '--questions-min', '--questions-max') }
         default { $candidates = $globalFlags }
       }
     }

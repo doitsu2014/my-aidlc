@@ -88,6 +88,7 @@ export function loadMethodology(coreRoot) {
         reviewClass: data.review_class || (data.reviewer ? "adversarial" : null),
         forEach: data.for_each || null,
         workspaceRequires: data.workspace_requires === true,
+        questionBudget: data.question_budget ?? null,
         produces: asArray(data.produces),
         consumes: asArray(data.consumes).map((entry) => ({
           artifact: entry.artifact,
@@ -120,6 +121,7 @@ export function loadMethodology(coreRoot) {
       sensors: data.sensors || "on",
       learnings: data.learnings || "on",
       summaryConfirmation: data.summary_confirmation || "off",
+      questionBudget: data.question_budget ?? null,
       phases: asArray(data.phases),
       include: asArray(data.include),
       skip: asArray(data.skip),

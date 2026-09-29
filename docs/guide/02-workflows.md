@@ -92,6 +92,28 @@ where relevant, **Skip**. On Request Changes you choose to Keep, Modify, or Redo
 the artifact. A conditional stage that does not apply reports a skip with a
 recorded reason.
 
+## Question budget
+
+Each stage asks a bounded number of clarifying questions before its gate. The
+effective budget is resolved most-specific-first:
+
+1. stage frontmatter `question_budget`
+2. scope frontmatter `question_budget`
+3. project config `questionBudget`
+4. the built-in default (`min: 0`, `max: 5`)
+
+Set the project default with `my-aidlc config`:
+
+```bash
+my-aidlc config --questions-min 1 --questions-max 3   # tighter
+my-aidlc config --questions-max 0                     # skip questions entirely
+my-aidlc config                                       # show the current budget
+```
+
+`max: 0` disables the question flow for a stage; the conductor then generates
+the artifacts directly. The budget never applies to the approval gate itself,
+which is always exactly one decision.
+
 ## The ten rules
 
 The AIDLC operating model, from the cheatsheet:

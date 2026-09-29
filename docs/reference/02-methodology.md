@@ -35,6 +35,7 @@ core/
 | `consumes` | object[] | `{ artifact, required }` |
 | `requires_stage` | string[] | Ordering / dependency edges |
 | `workspace_requires` | boolean | Stage writes code, not just docs |
+| `question_budget` | `{ min, max }` | Optional per-stage question cap override |
 | `inputs` / `outputs` | string | Human-facing prose |
 
 ## Scope frontmatter
@@ -52,7 +53,8 @@ core/
 | `guard_policy` | `strict` \| `relaxed` \| `off` | |
 | `sensors` | `on` \| `off` | |
 | `learnings` | `on` \| `off` | |
-| `summary_confirmation` | `on` \| `off` | |
+| `summary_confirmation` | `on` \| `off` |
+| `question_budget` | `{ min, max }` | Optional per-scope question cap override | |
 
 ## Applicability
 

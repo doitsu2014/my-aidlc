@@ -18,7 +18,7 @@ import {
 import { buildHarness, listHarnesses } from "../core/tools/lib/packager.mjs";
 import { runDoctor } from "../core/tools/lib/doctor.mjs";
 import { runNext, runReport, statusReport, parkDirective } from "../core/tools/lib/orchestrate.mjs";
-import { loadConfig } from "../core/tools/lib/config.mjs";
+import { loadConfig, normalizeBudget, resolveQuestionBudget, saveConfig } from "../core/tools/lib/config.mjs";
 import { loadState, readAudit } from "../core/tools/lib/state.mjs";
 import {
   SUPPORTED_SHELLS,
@@ -332,6 +332,79 @@ function skillsDirFor(outDir, manifest) {
   if (dir) return join(outDir, manifest.harnessDir, dir.dst);
   throw new Error(`harness ${manifest.name} ships no skills directory`);
 }
+
+test("question budget resolves with stage > scope > project > default precedence", () => {
+  assert.deepEqual(normalizeBudget(undefined), { min: 0, max: 5 });
+  assert.deepEqual(normalizeBudget(3), { min: 0, max: 3 });
+  assert.deepEqual(normalizeBudget("off"), { min: 0, max: 0 });
+  assert.deepEqual(normalizeBudget({ min: 4, max: 2 }), { min: 4, max: 4 });
+  assert.deepEqual(normalizeBudget({ max: 4 }), { min: 0, max: 4 });
+
+  const scope = { min: 0, max: 3 };
+  const config = { min: 1, max: 9 };
+  assert.equal(resolveQuestionBudget({}).source, "default");
+  assert.equal(resolveQuestionBudget({ config }).source, "project");
+  assert.equal(resolveQuestionBudget({ scope, config }).source, "scope");
+  assert.equal(
+    resolveQuestionBudget({ stage: { max: 2 }, scope, config }).source,
+    "stage",
+  );
+  assert.deepEqual(resolveQuestionBudget({ stage: { max: 2 }, scope, config }), {
+    min: 0,
+    max: 2,
+    source: "stage",
+  });
+});
+
+test("run-stage directives carry the effective question budget", () => {
+  const m = loadMethodology(engineRoot());
+
+  const expressRoot = tempProject();
+  const classicRoot = tempProject();
+  const offRoot = tempProject();
+  try {
+    // Scope-level budget (express sets min 0, max 3).
+    const express = runNext(expressRoot, m, loadConfig(expressRoot), {
+      text: "express change",
+      scope: "express",
+    });
+    assert.equal(express.kind, "run-stage");
+    assert.deepEqual(express.question_budget, { min: 0, max: 3, source: "scope" });
+    assert.ok(express.protocol_modules.includes("question-flow"));
+
+    // Project-level budget on a scope without its own.
+    const classicConfig = loadConfig(classicRoot);
+    classicConfig.questionBudget = { min: 2, max: 4 };
+    const classic = runNext(classicRoot, m, classicConfig, { text: "build a feature" });
+    assert.deepEqual(classic.question_budget, { min: 2, max: 4, source: "project" });
+
+    // max 0 disables the question flow module.
+    const offConfig = loadConfig(offRoot);
+    offConfig.questionBudget = { min: 0, max: 0 };
+    const off = runNext(offRoot, m, offConfig, { text: "build a feature" });
+    assert.deepEqual(off.question_budget, { min: 0, max: 0, source: "project" });
+    assert.ok(!off.protocol_modules.includes("question-flow"));
+  } finally {
+    for (const root of [expressRoot, classicRoot, offRoot]) {
+      rmSync(root, { recursive: true, force: true });
+    }
+  }
+});
+
+test("project config persists the question budget", () => {
+  const root = tempProject();
+  try {
+    // Mirrors `my-aidlc config --questions-min 1 --questions-max 3`.
+    saveConfig(root, { questionBudget: { min: 1, max: 3 } });
+    const config = loadConfig(root);
+    assert.deepEqual(config.questionBudget, { min: 1, max: 3 });
+    // A later update is clamped and normalised by loadConfig.
+    saveConfig(root, { questionBudget: { min: 5, max: 1 } });
+    assert.deepEqual(loadConfig(root).questionBudget, { min: 5, max: 5 });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test("doctor passes on a configured project", async () => {
   const root = tempProject();

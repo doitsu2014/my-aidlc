@@ -14,6 +14,9 @@ guard_policy: off
 sensors: off
 learnings: off
 summary_confirmation: off
+question_budget:
+  min: 0
+  max: 3
 phases:
   - analyze
   - develop

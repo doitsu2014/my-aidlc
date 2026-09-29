@@ -32,6 +32,39 @@ X. Other (describe)
 - If an answer is ambiguous or contradicts an earlier answer, ask a follow-up
   and record both the question and the resolution.
 
+## Question budget
+
+Every `run-stage` directive carries `question_budget: { min, max, source }`. The
+conductor must honour it:
+
+- Ask **at most `max`** clarifying questions. Combine closely related prompts.
+- Ask **at least `min`** questions unless the stage genuinely needs none and
+  `min` is 0. Reserve the minimum for decisions that change the artifact.
+- When `max` is `0`, ask no questions and generate the artifacts directly. The
+  directive then omits the `question-flow` module.
+- The budget applies to the stage's clarifying questions, never to the approval
+  gate, which is always exactly one decision.
+
+Precedence, most specific first: **stage** `question_budget` → **scope**
+`question_budget` → project config `questionBudget` → built-in default
+(`min: 0, max: 5`). The `source` field says which layer won.
+
+Configure the project default:
+
+```bash
+my-aidlc config --questions-min 1 --questions-max 3   # tighter
+my-aidlc config --questions-max 0                     # skip questions entirely
+my-aidlc config                                       # show the current budget
+```
+
+Override per scope or per stage in frontmatter:
+
+```yaml
+question_budget:
+  min: 0
+  max: 3
+```
+
 ## Modes
 
 | Mode | How it works |

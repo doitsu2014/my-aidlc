@@ -30,6 +30,7 @@ import {
   stageRecord,
 } from "./state.mjs";
 import { detectScope, scopeByName, workflowForScope } from "./graph.mjs";
+import { resolveQuestionBudget } from "./config.mjs";
 import { engineRoot } from "./version.mjs";
 
 function recordDirRel(space, intentId) {
@@ -131,7 +132,13 @@ export function buildRunDirective(root, methodology, config, state, stage) {
     }
   }
 
-  const protocolModules = ["stage-protocol", "question-flow"];
+  const protocolModules = ["stage-protocol"];
+  const questionBudget = resolveQuestionBudget({
+    stage: stage.questionBudget,
+    scope: scope.questionBudget,
+    config: config ? config.questionBudget : null,
+  });
+  if (questionBudget.max > 0) protocolModules.push("question-flow");
   if (scope.learnings === "on") protocolModules.push("learnings");
 
   const stageIndex = workflow.findIndex((s) => s.slug === stage.slug) + 1;
@@ -153,6 +160,7 @@ export function buildRunDirective(root, methodology, config, state, stage) {
     reviewer_file: stage.reviewer ? `${harnessDir}/agents/${stage.reviewer}.md` : null,
     gate: true,
     workspace_requires: stage.workspaceRequires,
+    question_budget: questionBudget,
     produces: stage.produces,
     produce_paths: producePaths,
     consumes,

@@ -102,6 +102,7 @@ function cmdHelp() {
     "",
     "COMMANDS",
     `  ${cyan("config")}    Configure the project for a harness (${listHarnesses(repoRoot()).join(", ")})`,
+  `               --questions-min <n> / --questions-max <n> set the per-stage question cap`,
     `  ${cyan("init")}      Create the aidlc/ workspace and memory files`,
     `  ${cyan("doctor")}    Validate the engine, workspace, and configuration`,
     `  ${cyan("status")}    Show the active intent, scope, and stage progress`,
@@ -135,17 +136,55 @@ function cmdHelp() {
 function cmdConfig(flags) {
   const root = resolve(flags.project || process.cwd());
   const harnessName = flags.harness;
-  const config = loadConfig(root);
+  let config = loadConfig(root);
+
+  const budgetTouched =
+    flags["questions-min"] !== undefined || flags["questions-max"] !== undefined;
+  if (budgetTouched) {
+    const value = {
+      min:
+        flags["questions-min"] !== undefined
+          ? Number.parseInt(flags["questions-min"], 10)
+          : config.questionBudget.min,
+      max:
+        flags["questions-max"] !== undefined
+          ? Number.parseInt(flags["questions-max"], 10)
+          : config.questionBudget.max,
+    };
+    if (!Number.isInteger(value.min) || !Number.isInteger(value.max)) {
+      fail("--questions-min and --questions-max require an integer.");
+    }
+    saveConfig(root, { questionBudget: value });
+    config = loadConfig(root);
+    if (!harnessName) {
+      if (flags.json) {
+        printJson({ questionBudget: config.questionBudget });
+        return;
+      }
+      process.stdout.write(
+        `${green("PASS")} question budget set to min ${config.questionBudget.min}, max ${config.questionBudget.max}\n`,
+      );
+      return;
+    }
+  }
 
   if (!harnessName) {
     if (flags.json) {
-      printJson({ harness: config.harness, defaultScope: config.defaultScope, available: listHarnesses(repoRoot()) });
+      printJson({
+        harness: config.harness,
+        defaultScope: config.defaultScope,
+        questionBudget: config.questionBudget,
+        available: listHarnesses(repoRoot()),
+      });
       return;
     }
     process.stdout.write(`${heading("my-aidlc config")}\n\n`);
-    process.stdout.write(`  Harness:       ${config.harness || dim("(not set)")}\n`);
-    process.stdout.write(`  Default scope: ${config.defaultScope}\n`);
-    process.stdout.write(`  Available:     ${listHarnesses(repoRoot()).join(", ")}\n\n`);
+    process.stdout.write(`  Harness:         ${config.harness || dim("(not set)")}\n`);
+    process.stdout.write(`  Default scope:   ${config.defaultScope}\n`);
+    process.stdout.write(
+      `  Question budget: min ${config.questionBudget.min}, max ${config.questionBudget.max}\n`,
+    );
+    process.stdout.write(`  Available:       ${listHarnesses(repoRoot()).join(", ")}\n\n`);
     process.stdout.write(`Run: my-aidlc config --harness <name>\n`);
     return;
   }
