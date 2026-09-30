@@ -37,6 +37,33 @@ export function resolveMode({ scope, config } = {}) {
   return { mode: DEFAULT_MODE, source: "default" };
 }
 
+/** Global phase-review toggle. `reviewRequired: true` gates every phase. */
+export const DEFAULT_REVIEW_REQUIRED = false;
+
+/** Coerce a review toggle from config, CLI, or frontmatter into a boolean. */
+export function normalizeReviewRequired(value, fallback = DEFAULT_REVIEW_REQUIRED) {
+  if (value === undefined || value === null) return fallback;
+  if (value === true || value === 1) return true;
+  if (value === false || value === 0) return false;
+  if (typeof value === "string") {
+    const text = value.trim().toLowerCase();
+    if (["true", "on", "yes", "1"].includes(text)) return true;
+    if (["false", "off", "no", "0", ""].includes(text)) return false;
+  }
+  return fallback;
+}
+
+/** Resolve the global phase-review toggle with precedence scope > project > default. */
+export function resolveReviewRequired({ scope, config } = {}) {
+  if (scope !== undefined && scope !== null) {
+    return { required: normalizeReviewRequired(scope), source: "scope" };
+  }
+  if (config !== undefined && config !== null) {
+    return { required: normalizeReviewRequired(config), source: "project" };
+  }
+  return { required: DEFAULT_REVIEW_REQUIRED, source: "default" };
+}
+
 /**
  * Normalise a question-budget value from anywhere it can be authored:
  *   - an object: { min, max }
@@ -102,6 +129,7 @@ export function loadConfig(root) {
     defaultScope: merged.defaultScope || "classic",
     version: merged.version || readVersion(),
     mode: normalizeMode(merged.mode),
+    reviewRequired: normalizeReviewRequired(merged.reviewRequired),
     questionBudget: normalizeBudget(merged.questionBudget),
   };
 }
@@ -115,6 +143,9 @@ export function saveConfig(root, patch, { local = false } = {}) {
   }
   if (patch && "mode" in patch) {
     next.mode = normalizeMode(patch.mode, current.mode || DEFAULT_MODE);
+  }
+  if (patch && "reviewRequired" in patch) {
+    next.reviewRequired = normalizeReviewRequired(patch.reviewRequired);
   }
   mkdirSync(dirname(path), { recursive: true });
   writeFileSync(path, `${JSON.stringify(next, null, 2)}\n`, "utf8");

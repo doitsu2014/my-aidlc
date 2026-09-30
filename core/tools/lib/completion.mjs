@@ -72,17 +72,19 @@ export function buildCompletionModel(methodology, harnesses = [], command = "my-
       completion: [...COMPLETION_ACTIONS],
     },
     options: {
-      config: ["--harness", "--project", "--json", "--mode", "--questions-min", "--questions-max"],
+      config: ["--harness", "--project", "--json", "--mode", "--review-required", "--questions-min", "--questions-max"],
       next: ["--new-intent", "--scope", "--resume"],
-      report: ["--stage", "--result", "--user-input", "--reason"],
+      report: ["--stage", "--phase", "--result", "--user-input", "--reason"],
       completion: ["--shell", "--dir", "--no-rc"],
     },
     values: {
       "--harness": [...harnesses],
       "--shell": [...SUPPORTED_SHELLS],
       "--mode": [...MODES],
+      "--review-required": ["true", "false"],
       "--scope": scopes,
       "--stage": stages,
+      "--phase": phases,
       "--result": [...REPORT_RESULTS],
     },
     list: { phases, stages, scopes, agents },
@@ -134,13 +136,16 @@ ${name}() {
   local shells="${words(values["--shell"])}"
   local results="${words(values["--result"])}"
   local modes="${words(values["--mode"])}"
+  local reviews="${words(values["--review-required"])}"
 
   case "$prev" in
     --harness) COMPREPLY=($(compgen -W "$harnesses" -- "$cur")); return 0 ;;
     --shell) COMPREPLY=($(compgen -W "$shells" -- "$cur")); return 0 ;;
     --mode) COMPREPLY=($(compgen -W "$modes" -- "$cur")); return 0 ;;
+    --review-required) COMPREPLY=($(compgen -W "$reviews" -- "$cur")); return 0 ;;
     --scope) COMPREPLY=($(compgen -W "$scopes" -- "$cur")); return 0 ;;
     --stage) COMPREPLY=($(compgen -W "$stages" -- "$cur")); return 0 ;;
+    --phase) COMPREPLY=($(compgen -W "$phases" -- "$cur")); return 0 ;;
     --result) COMPREPLY=($(compgen -W "$results" -- "$cur")); return 0 ;;
     --project) COMPREPLY=($(compgen -d -- "$cur")); return 0 ;;
   esac
@@ -215,6 +220,7 @@ ${fn}() {
   shells=(${words(model.values["--shell"])})
   results=(${words(model.values["--result"])})
   modes=(${words(model.values["--mode"])})
+  reviews=(${words(model.values["--review-required"])})
 
   local prev cmd sub
   prev=\${words[CURRENT-1]}
@@ -226,8 +232,10 @@ ${fn}() {
     --shell) compadd -- $shells; return ;;
     --scope) compadd -- $scopes; return ;;
     --stage) compadd -- $stages; return ;;
+    --phase) compadd -- $phases; return ;;
     --result) compadd -- $results; return ;;
     --mode) compadd -- $modes; return ;;
+    --review-required) compadd -- $reviews; return ;;
     --project) _path_files -/; return ;;
   esac
 
@@ -299,8 +307,10 @@ function fishScript(model) {
   lines.push(`complete -c ${cmd} -l harness -x -a "${words(model.values["--harness"])}"`);
   lines.push(`complete -c ${cmd} -l scope -x -a "${words(model.values["--scope"])}"`);
   lines.push(`complete -c ${cmd} -l stage -x -a "${words(model.values["--stage"])}"`);
+  lines.push(`complete -c ${cmd} -l phase -x -a "${words(model.list.phases)}"`);
   lines.push(`complete -c ${cmd} -l result -x -a "${words(model.values["--result"])}"`);
   lines.push(`complete -c ${cmd} -l mode -x -a "${words(model.values["--mode"])}"`);
+  lines.push(`complete -c ${cmd} -l review-required -x -a "true false"`);
   lines.push(`complete -c ${cmd} -l shell -x -a "${words(model.values["--shell"])}"`);
   lines.push(`complete -c ${cmd} -l new-intent -d "Start a new intent"`);
   lines.push(`complete -c ${cmd} -l resume -d "Resume a parked workflow"`);
@@ -329,8 +339,10 @@ Register-ArgumentCompleter -Native -CommandName ${cmd} -ScriptBlock {
   $shells = ${psArray(model.values["--shell"])}
   $scopes = ${psArray(model.values["--scope"])}
   $stages = ${psArray(model.values["--stage"])}
+  $phases = ${psArray(model.list.phases)}
   $results = ${psArray(model.values["--result"])}
   $modes = ${psArray(model.values["--mode"])}
+  $reviews = ${psArray(model.values["--review-required"])}
 
   $elements = @($commandAst.CommandElements | ForEach-Object { $_.ToString() })
   $positionals = @()
@@ -347,8 +359,10 @@ Register-ArgumentCompleter -Native -CommandName ${cmd} -ScriptBlock {
     '--shell' { $candidates = $shells }
     '--scope' { $candidates = $scopes }
     '--stage' { $candidates = $stages }
+    '--phase' { $candidates = $phases }
     '--result' { $candidates = $results }
     '--mode' { $candidates = $modes }
+    '--review-required' { $candidates = $reviews }
     default {
       $cmd = if ($positionals.Count -ge 2) { $positionals[1] } else { '' }
       $sub = if ($positionals.Count -ge 3) { $positionals[2] } else { '' }

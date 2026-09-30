@@ -14,6 +14,7 @@ Configure the project for a harness.
 | --- | --- |
 | `--harness <name>` | `pi`, `claude`, or `codex` |
 | `--mode <normal\|yolo>` | Execution mode: `normal` asks questions and presents gates; `yolo` auto-picks recommended answers and auto-approves gates |
+| `--review-required <true\|false>` | Gate before leaving every phase, in either mode (default `false`) |
 | `--questions-min <n>` | Minimum clarifying questions per stage |
 | `--questions-max <n>` | Maximum clarifying questions per stage (`0` disables) |
 | `--project <dir>` | Project root (default: current directory) |
@@ -131,7 +132,14 @@ A directive is a JSON object with a `kind`:
 A `run-stage` directive carries `stage_file`, `lead_agent_file`, `produces`,
 `produce_paths`, `consumes`, `consumes_absent`, `memory_path`,
 `protocol_modules`, `record_dir`, `narration`, `execution_mode`,
-`auto_approve`, `answer_policy`, `question_budget`, and `workflow`.
+`auto_approve`, `review_required`, `answer_policy`, `question_budget`, and
+`workflow`.
+
+An `ask` gate directive carries `question`, `options`, `route`, `produces`,
+`produce_paths`, and `review_required`, so a review checkpoint hands the human
+the artifacts to inspect. A phase review uses `ask_type: "phase-review"`,
+`route: "report-phase"`, and lists `stages` plus their artifacts; decide it with
+`orchestrate report --phase <phase> --result approved|rejected`.
 
 ## Shell completion
 

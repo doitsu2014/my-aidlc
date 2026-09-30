@@ -30,7 +30,7 @@ import {
   stageRecord,
 } from "./state.mjs";
 import { detectScope, scopeByName, workflowForScope } from "./graph.mjs";
-import { resolveMode, resolveQuestionBudget } from "./config.mjs";
+import { resolveMode, resolveQuestionBudget, resolveReviewRequired } from "./config.mjs";
 import { engineRoot } from "./version.mjs";
 
 function recordDirRel(space, intentId) {
@@ -55,17 +55,85 @@ function executionMode(scope, config) {
   return resolveMode({ scope: scope ? scope.mode : null, config: config ? config.mode : null });
 }
 
+/**
+ * A stage that requires review always presents a human gate, even under YOLO.
+ * Set `review: required` in the stage frontmatter.
+ */
+export function stageReviewRequired(stage) {
+  return stage?.review === "required";
+}
+
+function producePathsFor(relDir, stage) {
+  return stage.produces.map(
+    (artifact) => `${relDir}/${stage.phase}/${stage.slug}/${artifact}.md`,
+  );
+}
+
 function firstIncomplete(state, workflow) {
   return workflow.find((stage) => !isStageComplete(state, stage.slug)) || null;
 }
 
-function advance(state, workflow) {
+/** The global phase-review toggle, resolved from scope > project config. */
+function globalPhaseReview(methodology, state, config) {
+  const scope = scopeForState(methodology, state, config);
+  return resolveReviewRequired({
+    scope: scope ? scope.reviewRequired : null,
+    config: config ? config.reviewRequired : null,
+  }).required;
+}
+
+/**
+ * A phase gates before the workflow leaves it when its frontmatter says
+ * `review: required`, or when the global review toggle is on.
+ */
+export function phaseReviewRequired(methodology, phaseSlug, globalRequired = false) {
+  const phase = methodology.phases.find((p) => p.slug === phaseSlug);
+  if (phase?.review === "required") return true;
+  return globalRequired === true;
+}
+
+function stagesInPhase(workflow, phaseSlug) {
+  return workflow.filter((stage) => stage.phase === phaseSlug);
+}
+
+function phaseReviewApproved(state, phaseSlug) {
+  return state.phaseReviews?.[phaseSlug]?.status === "approved";
+}
+
+/** True when every applicable stage of the phase is done and it still needs a review. */
+function phaseNeedsReview(state, workflow, methodology, phaseSlug, globalRequired) {
+  if (!phaseReviewRequired(methodology, phaseSlug, globalRequired)) return false;
+  if (phaseReviewApproved(state, phaseSlug)) return false;
+  const stages = stagesInPhase(workflow, phaseSlug);
+  if (stages.length === 0) return false;
+  return stages.every((stage) => isStageComplete(state, stage.slug));
+}
+
+/**
+ * Move to the next incomplete stage. When the finished stage closes a phase
+ * that requires review, pause on a phase-review gate instead of crossing the
+ * phase boundary.
+ */
+function advance(state, workflow, methodology, globalRequired = false) {
   const index = workflow.findIndex((stage) => stage.slug === state.currentStage);
+  const finished = index >= 0 ? workflow[index] : null;
   for (let i = index + 1; i < workflow.length; i += 1) {
-    if (!isStageComplete(state, workflow[i].slug)) {
-      state.currentStage = workflow[i].slug;
+    const stage = workflow[i];
+    if (isStageComplete(state, stage.slug)) continue;
+    if (
+      finished &&
+      finished.phase !== stage.phase &&
+      phaseNeedsReview(state, workflow, methodology, finished.phase, globalRequired)
+    ) {
+      state.pendingPhaseReview = finished.phase;
       return state.currentStage;
     }
+    state.currentStage = stage.slug;
+    return state.currentStage;
+  }
+  if (finished && phaseNeedsReview(state, workflow, methodology, finished.phase, globalRequired)) {
+    state.pendingPhaseReview = finished.phase;
+    return state.currentStage;
   }
   state.currentStage = null;
   return null;
@@ -114,9 +182,7 @@ export function buildRunDirective(root, methodology, config, state, stage) {
   const intentId = state.activeIntent.id;
   const relDir = recordDirRel(space, intentId);
 
-  const producePaths = stage.produces.map(
-    (artifact) => `${relDir}/${stage.phase}/${stage.slug}/${artifact}.md`,
-  );
+  const producePaths = producePathsFor(relDir, stage);
 
   const consumes = [];
   const consumesAbsent = [];
@@ -140,6 +206,7 @@ export function buildRunDirective(root, methodology, config, state, stage) {
   const protocolModules = ["stage-protocol"];
   const mode = executionMode(scope, config);
   const yolo = mode.mode === "yolo";
+  const reviewRequired = stageReviewRequired(stage);
   const questionBudget = yolo
     ? { min: 0, max: 0, source: "mode" }
     : resolveQuestionBudget({
@@ -167,8 +234,10 @@ export function buildRunDirective(root, methodology, config, state, stage) {
     mode: stage.mode,
     execution_mode: mode.mode,
     mode_source: mode.source,
-    auto_approve: yolo,
+    auto_approve: yolo && !reviewRequired,
     answer_policy: yolo ? "recommended" : "human",
+    review: stage.review,
+    review_required: reviewRequired,
     reviewer: stage.reviewer,
     reviewer_file: stage.reviewer ? `${harnessDir}/agents/${stage.reviewer}.md` : null,
     gate: true,
@@ -189,6 +258,11 @@ export function buildRunDirective(root, methodology, config, state, stage) {
 }
 
 function gateDirective(root, methodology, config, state, stage) {
+  const reviewRequired = stageReviewRequired(stage);
+  const relDir = recordDirRel(
+    state.activeIntent.space || DEFAULT_SPACE,
+    state.activeIntent.id,
+  );
   return {
     kind: "ask",
     ask_type: "stage-approval",
@@ -196,18 +270,67 @@ function gateDirective(root, methodology, config, state, stage) {
     stage_name: stage.name,
     phase: stage.phase,
     scope: state.activeIntent.scope,
-    question: `Approve ${stage.name}?`,
+    question: reviewRequired
+      ? `Review and approve ${stage.name}?`
+      : `Approve ${stage.name}?`,
     options: ["Approve", "Request Changes"],
     route: "report",
-    record_dir: recordDirRel(
-      state.activeIntent.space || DEFAULT_SPACE,
-      state.activeIntent.id,
-    ),
+    review: stage.review,
+    review_required: reviewRequired,
+    produces: stage.produces,
+    produce_paths: producePathsFor(relDir, stage),
+    record_dir: relDir,
+  };
+}
+
+function phaseGateDirective(root, methodology, config, state, workflow, phaseSlug) {
+  const phase = methodology.phases.find((p) => p.slug === phaseSlug);
+  const space = state.activeIntent.space || DEFAULT_SPACE;
+  const relDir = recordDirRel(space, state.activeIntent.id);
+  const stages = stagesInPhase(workflow, phaseSlug);
+
+  state.phaseReviews = state.phaseReviews || {};
+  const entry = state.phaseReviews[phaseSlug] || (state.phaseReviews[phaseSlug] = { status: "pending" });
+  if (!entry.requested) {
+    entry.requested = true;
+    entry.updatedAt = new Date().toISOString();
+    appendAudit(root, {
+      event: "PHASE_AWAITING_APPROVAL",
+      space,
+      intent: state.activeIntent.id,
+      phase: phaseSlug,
+    });
+    saveState(root, state);
+  }
+
+  return {
+    kind: "ask",
+    ask_type: "phase-review",
+    phase: phaseSlug,
+    phase_name: phase ? phase.name : phaseSlug,
+    scope: state.activeIntent.scope,
+    question: `Review the ${phase ? phase.name : phaseSlug} phase?`,
+    options: ["Approve phase", "Request Changes"],
+    route: "report-phase",
+    stages: stages.map((stage) => stage.slug),
+    produces: stages.flatMap((stage) => stage.produces),
+    produce_paths: stages.flatMap((stage) => producePathsFor(relDir, stage)),
+    record_dir: relDir,
   };
 }
 
 export function currentDirective(root, methodology, config, state) {
   const workflow = currentWorkflow(methodology, state, config);
+  const globalRequired = globalPhaseReview(methodology, state, config);
+  if (state.pendingPhaseReview) {
+    const phaseSlug = state.pendingPhaseReview;
+    if (phaseNeedsReview(state, workflow, methodology, phaseSlug, globalRequired)) {
+      return phaseGateDirective(root, methodology, config, state, workflow, phaseSlug);
+    }
+    state.pendingPhaseReview = null;
+    advance(state, workflow, methodology, globalRequired);
+    saveState(root, state);
+  }
   if (!state.currentStage) {
     const next = firstIncomplete(state, workflow);
     if (!next) return doneDirective(state, workflow);
@@ -223,7 +346,7 @@ export function currentDirective(root, methodology, config, state) {
   const record = stageRecord(state, stage.slug);
   if (record.status === "awaiting-approval") {
     const mode = executionMode(scopeForState(methodology, state, config), config);
-    if (mode.mode === "yolo") {
+    if (mode.mode === "yolo" && !stageReviewRequired(stage)) {
       record.status = "complete";
       record.autoApproved = true;
       record.updatedAt = new Date().toISOString();
@@ -235,7 +358,7 @@ export function currentDirective(root, methodology, config, state) {
         stage: stage.slug,
         reason: "yolo mode: gate auto-satisfied with the recommended answer",
       });
-      advance(state, workflow);
+      advance(state, workflow, methodology, globalRequired);
       saveState(root, state);
       return currentDirective(root, methodology, config, state);
     }
@@ -353,11 +476,91 @@ export function runNext(root, methodology, config, options = {}) {
   return currentDirective(root, methodology, config, state);
 }
 
+/** Handle a phase-level review decision (`orchestrate report --phase`). */
+function runPhaseReport(root, methodology, config, state, options) {
+  const phaseSlug = options.phase;
+  const phase = methodology.phases.find((p) => p.slug === phaseSlug);
+  if (!phase) {
+    return { kind: "error", message: `Unknown phase "${phaseSlug}".` };
+  }
+  const workflow = currentWorkflow(methodology, state, config);
+  const globalRequired = globalPhaseReview(methodology, state, config);
+  const stages = stagesInPhase(workflow, phaseSlug);
+  if (stages.length === 0) {
+    return {
+      kind: "error",
+      message: `Phase "${phaseSlug}" is not in the "${state.activeIntent.scope}" workflow.`,
+    };
+  }
+  if (state.pendingPhaseReview !== phaseSlug) {
+    return { kind: "error", message: `Phase "${phaseSlug}" is not awaiting review.` };
+  }
+
+  const result = options.result;
+  const space = state.activeIntent.space || DEFAULT_SPACE;
+  const baseAudit = {
+    space,
+    intent: state.activeIntent.id,
+    phase: phaseSlug,
+    result,
+    userInput: options.userInput || null,
+    reason: options.reason || null,
+  };
+
+  state.phaseReviews = state.phaseReviews || {};
+  const entry =
+    state.phaseReviews[phaseSlug] ||
+    (state.phaseReviews[phaseSlug] = { status: "pending" });
+
+  if (result === "approved") {
+    entry.status = "approved";
+    entry.requested = false;
+    entry.updatedAt = new Date().toISOString();
+    state.pendingPhaseReview = null;
+    appendAudit(root, { ...baseAudit, event: "PHASE_APPROVED" });
+    advance(state, workflow, methodology, globalRequired);
+    saveState(root, state);
+    const directive = currentDirective(root, methodology, config, state);
+    if (directive.kind === "done") {
+      appendAudit(root, { event: "WORKFLOW_COMPLETED", space, intent: state.activeIntent.id });
+    }
+    return directive;
+  }
+
+  if (result === "rejected") {
+    entry.status = "pending";
+    entry.requested = false;
+    entry.feedback = entry.feedback || [];
+    entry.feedback.push({ at: new Date().toISOString(), reason: options.reason || "" });
+    entry.updatedAt = new Date().toISOString();
+    state.pendingPhaseReview = null;
+    // Re-open the phase so the conductor redoes it with the feedback, then gates again.
+    for (const stage of stages) {
+      const record = stageRecord(state, stage.slug);
+      record.status = "pending";
+      record.autoApproved = false;
+      record.updatedAt = new Date().toISOString();
+    }
+    state.currentStage = stages[0].slug;
+    appendAudit(root, { ...baseAudit, event: "PHASE_REJECTED" });
+    saveState(root, state);
+    return currentDirective(root, methodology, config, state);
+  }
+
+  return {
+    kind: "error",
+    message: `Unknown phase report result "${result}". Valid: approved, rejected.`,
+  };
+}
+
 /** Handle `orchestrate report`. */
 export function runReport(root, methodology, config, options = {}) {
   const state = loadState(root);
   if (!state) {
     return { kind: "error", message: "No active workflow to report against." };
+  }
+  if (options.phase) {
+    return runPhaseReport(root, methodology, config, state, options);
   }
   const slug = options.stage || state.currentStage;
   const stage = methodology.stages.find((s) => s.slug === slug);
@@ -365,6 +568,7 @@ export function runReport(root, methodology, config, options = {}) {
     return { kind: "error", message: `Unknown stage "${slug}".` };
   }
   const workflow = currentWorkflow(methodology, state, config);
+  const globalRequired = globalPhaseReview(methodology, state, config);
   if (!workflow.some((s) => s.slug === slug)) {
     return { kind: "error", message: `Stage "${slug}" is not in the "${state.activeIntent.scope}" workflow.` };
   }
@@ -392,12 +596,12 @@ export function runReport(root, methodology, config, options = {}) {
     case "approved":
       record.status = "complete";
       appendAudit(root, { ...baseAudit, event: "STAGE_APPROVED" });
-      advance(state, workflow);
+      advance(state, workflow, methodology, globalRequired);
       break;
     case "completed":
       record.status = "complete";
       appendAudit(root, { ...baseAudit, event: "STAGE_COMPLETED" });
-      advance(state, workflow);
+      advance(state, workflow, methodology, globalRequired);
       break;
     case "rejected":
       record.status = "active";
@@ -415,7 +619,7 @@ export function runReport(root, methodology, config, options = {}) {
       }
       record.status = "skipped";
       appendAudit(root, { ...baseAudit, event: "STAGE_SKIPPED" });
-      advance(state, workflow);
+      advance(state, workflow, methodology, globalRequired);
       break;
     default:
       return {
@@ -440,19 +644,27 @@ export function statusReport(root, methodology, config) {
     return { active: false, message: "No active workflow." };
   }
   const workflow = currentWorkflow(methodology, state, config);
+  const globalRequired = globalPhaseReview(methodology, state, config);
   return {
     active: true,
     parked: state.parked,
     mode: executionMode(scopeForState(methodology, state, config), config).mode,
     intent: state.activeIntent,
     currentStage: state.currentStage,
+    pendingPhaseReview: state.pendingPhaseReview || null,
     scope: state.activeIntent.scope,
+    phaseReviews: [...new Set(workflow.map((stage) => stage.phase))].map((phaseSlug) => ({
+      phase: phaseSlug,
+      reviewRequired: phaseReviewRequired(methodology, phaseSlug, globalRequired),
+      status: state.phaseReviews?.[phaseSlug]?.status || "pending",
+    })),
     stages: workflow.map((stage) => ({
       slug: stage.slug,
       name: stage.name,
       phase: stage.phase,
       status: state.stages[stage.slug]?.status || "pending",
       autoApproved: state.stages[stage.slug]?.autoApproved === true,
+      reviewRequired: stageReviewRequired(stage),
     })),
   };
 }

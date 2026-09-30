@@ -23,6 +23,9 @@ for (const phase of methodology.phases) {
   if (!existsSync(join(coreRoot, "phases", phase.slug, "phase.md"))) {
     note(`phase ${phase.slug} has no phase.md`);
   }
+  if (!["auto", "required"].includes(phase.review)) {
+    note(`phase ${phase.slug} has unknown review value "${phase.review}" (use auto or required)`);
+  }
 }
 
 for (const stage of methodology.stages) {
@@ -35,6 +38,9 @@ for (const stage of methodology.stages) {
   }
   if (stage.reviewer && !agentSlugs.has(stage.reviewer)) {
     note(`stage ${stage.slug} has unknown reviewer ${stage.reviewer}`);
+  }
+  if (!["auto", "required"].includes(stage.review)) {
+    note(`stage ${stage.slug} has unknown review value "${stage.review}" (use auto or required)`);
   }
   for (const consume of stage.consumes) {
     if (!produced.has(consume.artifact)) {

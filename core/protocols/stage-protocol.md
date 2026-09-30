@@ -108,10 +108,43 @@ In YOLO mode:
 - `answer_policy` is `recommended`: where a stage would ask, pick the option the
   artifact recommends (or the first listed option) and record it as a
   `Recommendation` in the stage notes.
-- `auto_approve` is true: do **not** present the approval gate. Produce the
-  artifacts, report `awaiting-approval`, and the engine records
-  `STAGE_AUTO_APPROVED` and advances on its own.
+- `auto_approve` is true unless the stage requires review: do **not** present
+  the approval gate. Produce the artifacts, report `awaiting-approval`, and the
+  engine records `STAGE_AUTO_APPROVED` and advances on its own.
 - Reviewers still run; apply their blocking findings before reporting.
+
+### Review checkpoints
+
+A stage can opt out of auto-approval with `review: required` in its
+frontmatter. Such a stage always presents the human approval gate, even in
+YOLO mode: the directive sets `auto_approve` to `false` and
+`review_required` to `true`. Keep auto-picking recommended answers where the
+stage asks, but stop at the gate and present the artifacts it names. The
+checkpoint covers one stage; every other stage still auto-approves.
+
+### Phase review
+
+A phase can require a review of its whole output. Set `review: required` in
+`core/phases/<phase>/phase.md`. When the last applicable stage of that phase
+completes, the engine does not cross into the next phase. It returns an `ask`
+directive with `ask_type: "phase-review"` and `route: "report-phase"` that
+lists every stage and artifact in the phase.
+
+Present the phase artifacts, then:
+
+- **Approve phase** →
+  `my-aidlc orchestrate report --phase <phase> --result approved`. The engine
+  records `PHASE_APPROVED` and continues into the next phase.
+- **Request Changes** →
+  `my-aidlc orchestrate report --phase <phase> --result rejected --reason "<feedback>"`.
+  The engine records `PHASE_REJECTED`, re-opens every stage in the phase, and
+  restarts it. Run the phase again with the feedback; it gates again when the
+  phase completes.
+
+Phase reviews apply in both normal and YOLO mode. A project can also gate every
+phase with the `reviewRequired` toggle (`my-aidlc config --review-required true`),
+and a scope can override it with `review_required:`. `my-aidlc status` marks the
+phase awaiting review.
 
 YOLO never skips stage work: every stage still runs and still writes its
 artifacts. It removes the human in the loop, not the work. The audit log records

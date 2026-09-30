@@ -103,7 +103,8 @@ function cmdHelp() {
     "",
     "COMMANDS",
     `  ${cyan("config")}    Configure the project for a harness (${listHarnesses(repoRoot()).join(", ")})`,
-    `               --mode <normal|yolo>  --questions-min <n>  --questions-max <n>`,
+    `               --mode <normal|yolo>  --review-required <true|false>`,
+    `               --questions-min <n>  --questions-max <n>`,
     `  ${cyan("init")}      Create the aidlc/ workspace and memory files`,
     `  ${cyan("doctor")}    Validate the engine, workspace, and configuration`,
     `  ${cyan("status")}    Show the active intent, scope, and stage progress`,
@@ -118,7 +119,7 @@ function cmdHelp() {
     "",
     "ORCHESTRATION",
     `  ${cyan("orchestrate next")} [--new-intent] [--scope <name>] [--resume] "<description>"`,
-    `  ${cyan("orchestrate report")} --stage <slug> --result <outcome> [--user-input <text>] [--reason <text>]`,
+    `  ${cyan("orchestrate report")} [--stage <slug>] [--phase <slug>] --result <outcome> [--user-input <text>] [--reason <text>]`,
     `  ${cyan("orchestrate park")}`,
     "",
     "COMPLETION",
@@ -132,6 +133,10 @@ function cmdHelp() {
     "  normal  (default) human questions and approval gates",
     "  yolo              skip questions, auto-pick recommended answers, and",
     "                    auto-approve gates (each recorded as STAGE_AUTO_APPROVED)",
+    "",
+    "  A phase with `review: required` always stops for a phase review before",
+    "  the workflow leaves it. A stage with `review: required` always stops at",
+    "  its own gate. Both work in normal and yolo mode.",
     "",
     "ALIASES",
     "  --status  --doctor  --version  --help  --config",
@@ -150,7 +155,8 @@ function cmdConfig(flags) {
   const budgetTouched =
     flags["questions-min"] !== undefined || flags["questions-max"] !== undefined;
   const modeTouched = flags.mode !== undefined;
-  if (budgetTouched || modeTouched) {
+  const reviewTouched = flags["review-required"] !== undefined;
+  if (budgetTouched || modeTouched || reviewTouched) {
     const patch = {};
     if (budgetTouched) {
       const value = {
@@ -173,15 +179,25 @@ function cmdConfig(flags) {
       if (!MODES.includes(mode)) fail(`--mode must be one of: ${MODES.join(", ")}.`);
       patch.mode = mode;
     }
+    if (reviewTouched) {
+      const text = String(flags["review-required"]).trim().toLowerCase();
+      if (["true", "on", "yes", "1"].includes(text)) patch.reviewRequired = true;
+      else if (["false", "off", "no", "0"].includes(text)) patch.reviewRequired = false;
+      else fail("--review-required must be true or false.");
+    }
     saveConfig(root, patch);
     config = loadConfig(root);
     if (!harnessName) {
       if (flags.json) {
-        printJson({ mode: config.mode, questionBudget: config.questionBudget });
+        printJson({
+          mode: config.mode,
+          reviewRequired: config.reviewRequired,
+          questionBudget: config.questionBudget,
+        });
         return;
       }
       process.stdout.write(
-        `${green("PASS")} mode ${config.mode}; question budget min ${config.questionBudget.min}, max ${config.questionBudget.max}\n`,
+        `${green("PASS")} mode ${config.mode}; phase review ${config.reviewRequired ? "on" : "off"}; question budget min ${config.questionBudget.min}, max ${config.questionBudget.max}\n`,
       );
       return;
     }
@@ -193,6 +209,7 @@ function cmdConfig(flags) {
         harness: config.harness,
         defaultScope: config.defaultScope,
         mode: config.mode,
+        reviewRequired: config.reviewRequired,
         questionBudget: config.questionBudget,
         available: listHarnesses(repoRoot()),
       });
@@ -202,6 +219,9 @@ function cmdConfig(flags) {
     process.stdout.write(`  Harness:         ${config.harness || dim("(not set)")}\n`);
     process.stdout.write(`  Default scope:   ${config.defaultScope}\n`);
     process.stdout.write(`  Mode:            ${config.mode}\n`);
+    process.stdout.write(
+      `  Phase review:    ${config.reviewRequired ? "on" : "off"}\n`,
+    );
     process.stdout.write(
       `  Question budget: min ${config.questionBudget.min}, max ${config.questionBudget.max}\n`,
     );
@@ -264,6 +284,9 @@ function cmdStatus(flags) {
   process.stdout.write(`  Scope:   ${report.scope}\n`);
   process.stdout.write(`  Mode:    ${report.mode}\n`);
   process.stdout.write(`  Stage:   ${report.currentStage || dim("(complete)")}\n`);
+  if (report.pendingPhaseReview) {
+    process.stdout.write(`  Review:  ${yellow(report.pendingPhaseReview)} (awaiting your approval)\n`);
+  }
   if (report.parked) process.stdout.write(`  ${yellow("Parked")}\n`);
   process.stdout.write("\n");
   for (const stage of report.stages) {
@@ -275,8 +298,9 @@ function cmdStatus(flags) {
           : dim("·");
     const label =
       stage.status === "complete" && stage.autoApproved ? "auto-completed" : stage.status;
+    const reviewTag = stage.reviewRequired ? ` ${yellow("review")}` : "";
     process.stdout.write(
-      `  ${marker} ${stage.phase.padEnd(9)} ${stage.name} ${dim(`(${label})`)}\n`,
+      `  ${marker} ${stage.phase.padEnd(9)} ${stage.name} ${dim(`(${label})`)}${reviewTag}\n`,
     );
   }
 }
@@ -288,13 +312,14 @@ function cmdList(positionals, flags) {
     what === "phases"
       ? m.phases.map(({ slug, name, order, focus, aiRole }) => ({ slug, name, order, focus, aiRole }))
       : what === "stages"
-        ? m.stages.map(({ slug, name, phase, execution, leadAgent, produces }) => ({
+        ? m.stages.map(({ slug, name, phase, execution, leadAgent, produces, review }) => ({
             slug,
             name,
             phase,
             execution,
             leadAgent,
             produces,
+            review,
           }))
         : what === "scopes"
           ? m.scopes.map(({ name, depth, description, phases }) => ({ name, depth, description, phases }))
@@ -491,6 +516,7 @@ function cmdOrchestrate(positionals, flags) {
   if (verb === "report") {
     const directive = runReport(root, m, config, {
       stage: typeof flags.stage === "string" ? flags.stage : undefined,
+      phase: typeof flags.phase === "string" ? flags.phase : undefined,
       result: typeof flags.result === "string" ? flags.result : undefined,
       userInput: typeof flags["user-input"] === "string" ? flags["user-input"] : undefined,
       reason: typeof flags.reason === "string" ? flags.reason : undefined,

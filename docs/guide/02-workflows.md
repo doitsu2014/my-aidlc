@@ -112,6 +112,55 @@ artifacts. It removes the human in the loop, not the work. Every auto-approval
 is recorded as `STAGE_AUTO_APPROVED` in `aidlc/audit.log`, so an unattended run
 stays auditable.
 
+### Review checkpoints
+
+YOLO does not have to run blind. Mark a stage with `review: required` in its
+frontmatter to keep one human gate while every other stage auto-approves:
+
+```yaml
+---
+slug: code-generation
+review: required
+---
+```
+
+The stage still runs with YOLO's recommended answers, then stops and presents
+the approval gate with its produced artifacts. The engine reports it exactly
+like a normal gate (`STAGE_AWAITING_APPROVAL`, then `STAGE_APPROVED` or
+`STAGE_REJECTED`), so you can approve, request changes, or redo before the
+workflow continues. `my-aidlc status` marks such stages with `reviewRequired`.
+
+The default is `review: auto`, which follows the execution mode.
+
+### Phase review
+
+To review a whole phase instead of a single step, set `review: required` on the
+phase:
+
+```yaml
+# core/phases/develop/phase.md
+---
+slug: develop
+review: required
+---
+```
+
+When the last stage of that phase finishes, the workflow pauses and presents
+all the phase's stages and artifacts. Approve it to move on, or request changes
+to re-open the whole phase, apply your feedback, and re-run it; it gates again
+when the phase completes. Phase review works in both normal and YOLO mode, and
+`my-aidlc status` shows the phase awaiting review.
+
+To gate *every* phase with one switch instead of editing each phase file:
+
+```bash
+my-aidlc config --review-required true    # gate before leaving each phase
+my-aidlc config --review-required false   # off (default)
+```
+
+The toggle resolves scope `review_required:` → project `reviewRequired` → off,
+and is independent of the execution mode.
+
 The mode is resolved most-specific-first: scope `mode:` → project `mode` →
 `normal`. A scope can therefore pin itself, e.g. a throwaway POC scope could set
 `mode: yolo` while the project default stays `normal`.

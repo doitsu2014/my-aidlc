@@ -62,6 +62,10 @@ export function loadMethodology(coreRoot) {
       description: data.description || "",
       keyActivities: asArray(data.key_activities),
       examplePrompts: asArray(data.example_prompts),
+      review:
+        data.review === undefined || data.review === null
+          ? "auto"
+          : String(data.review).trim().toLowerCase(),
       file: phaseFile,
     });
 
@@ -86,6 +90,10 @@ export function loadMethodology(coreRoot) {
         mode: data.mode || "inline",
         reviewer: data.reviewer || null,
         reviewClass: data.review_class || (data.reviewer ? "adversarial" : null),
+        review:
+          data.review === undefined || data.review === null
+            ? "auto"
+            : String(data.review).trim().toLowerCase(),
         forEach: data.for_each || null,
         workspaceRequires: data.workspace_requires === true,
         questionBudget: data.question_budget ?? null,
@@ -122,6 +130,7 @@ export function loadMethodology(coreRoot) {
       learnings: data.learnings || "on",
       summaryConfirmation: data.summary_confirmation || "off",
       mode: typeof data.mode === "string" ? data.mode.trim().toLowerCase() : null,
+      reviewRequired: data.review_required ?? null,
       questionBudget: data.question_budget ?? null,
       phases: asArray(data.phases),
       include: asArray(data.include),
@@ -256,6 +265,7 @@ export function compileGraph(coreRoot) {
       focus: phase.focus,
       aiRole: phase.aiRole,
       output: phase.output,
+      review: phase.review,
     })),
     stages: methodology.stages.map((stage) => ({
       slug: stage.slug,
@@ -266,6 +276,7 @@ export function compileGraph(coreRoot) {
       supportAgents: stage.supportAgents,
       mode: stage.mode,
       reviewer: stage.reviewer,
+      review: stage.review,
       produces: stage.produces,
       consumes: stage.consumes,
       requiresStage: stage.requiresStage,

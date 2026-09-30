@@ -17,6 +17,16 @@ core/
   memory/{org,team,project}.md     # memory templates
 ```
 
+## Phase frontmatter
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `slug` | string | One of the five phase slugs |
+| `name` | string | Display name |
+| `order` | number | Sort order across phases |
+| `focus` / `ai_role` / `output` | string | Human-facing metadata |
+| `review` | `auto` \| `required` | Default `auto`. `required` stops for a phase review before the workflow leaves the phase |
+
 ## Stage frontmatter
 
 | Field | Type | Notes |
@@ -31,6 +41,7 @@ core/
 | `mode` | `inline` \| `subagent` \| `pipeline` \| `mob` | Default `inline` |
 | `reviewer` | string | Optional reviewer agent |
 | `review_class` | `adversarial` \| `advisory` | |
+| `review` | `auto` \| `required` | Default `auto`. `required` always presents the human gate, even in YOLO mode |
 | `produces` | string[] | Artifact names |
 | `consumes` | object[] | `{ artifact, required }` |
 | `requires_stage` | string[] | Ordering / dependency edges |
@@ -55,6 +66,7 @@ core/
 | `learnings` | `on` \| `off` | |
 | `summary_confirmation` | `on` \| `off` |
 | `mode` | `normal` \| `yolo` | Optional autonomy override for this scope |
+| `review_required` | boolean | Optional phase-review override for this scope |
 | `question_budget` | `{ min, max }` | Optional per-scope question cap override | |
 
 ## Applicability

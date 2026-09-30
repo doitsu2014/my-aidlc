@@ -23,8 +23,10 @@ import {
   loadConfig,
   normalizeBudget,
   normalizeMode,
+  normalizeReviewRequired,
   resolveMode,
   resolveQuestionBudget,
+  resolveReviewRequired,
   saveConfig,
 } from "../core/tools/lib/config.mjs";
 import { loadState, readAudit } from "../core/tools/lib/state.mjs";
@@ -43,6 +45,124 @@ const test = (name, fn) => tests.push({ name, fn });
 
 function tempProject() {
   return mkdtempSync(join(tmpdir(), "my-aidlc-test-"));
+}
+
+// A two-phase workflow where `analyze` requires a phase review and `develop` does not.
+function phaseReviewMethodology() {
+  const stage = (overrides) => ({
+    slug: "stage",
+    name: "Stage",
+    phase: "develop",
+    execution: "ALWAYS",
+    condition: "",
+    leadAgent: null,
+    supportAgents: [],
+    mode: "inline",
+    reviewer: null,
+    review: "auto",
+    forEach: null,
+    workspaceRequires: false,
+    questionBudget: null,
+    produces: [],
+    consumes: [],
+    requiresStage: [],
+    scopes: [],
+    inputs: "",
+    outputs: "",
+    file: "",
+    body: "",
+    ...overrides,
+  });
+  return {
+    phases: [
+      { slug: "analyze", name: "Analyze", order: 1, review: "required" },
+      { slug: "develop", name: "Develop", order: 2, review: "auto" },
+    ],
+    stages: [
+      stage({ slug: "a1", name: "A1", phase: "analyze", produces: ["a1-art"] }),
+      stage({ slug: "a2", name: "A2", phase: "analyze", requiresStage: ["a1"], produces: ["a2-art"] }),
+      stage({ slug: "d1", name: "D1", phase: "develop", requiresStage: ["a2"], produces: ["d1-art"] }),
+    ],
+    scopes: [
+      {
+        name: "classic",
+        depth: "Standard",
+        keywords: [],
+        description: "",
+        skeleton: "off",
+        reviewCap: "advisory",
+        guardPolicy: "relaxed",
+        sensors: "on",
+        learnings: "on",
+        summaryConfirmation: "off",
+        mode: null,
+        questionBudget: null,
+        phases: ["analyze", "develop"],
+        include: [],
+        skip: [],
+        file: "",
+        body: "",
+      },
+    ],
+    agents: [],
+  };
+}
+
+// A minimal two-stage workflow: `reviewed` requires a human gate, `auto` does not.
+function reviewMethodology() {
+  const stage = (overrides) => ({
+    slug: "stage",
+    name: "Stage",
+    phase: "develop",
+    execution: "ALWAYS",
+    condition: "",
+    leadAgent: null,
+    supportAgents: [],
+    mode: "inline",
+    reviewer: null,
+    review: "auto",
+    forEach: null,
+    workspaceRequires: false,
+    questionBudget: null,
+    produces: [],
+    consumes: [],
+    requiresStage: [],
+    scopes: [],
+    inputs: "",
+    outputs: "",
+    file: "",
+    body: "",
+    ...overrides,
+  });
+  return {
+    phases: [{ slug: "develop", name: "Develop", order: 1 }],
+    stages: [
+      stage({ slug: "reviewed", name: "Reviewed Stage", review: "required", produces: ["reviewed-artifact"] }),
+      stage({ slug: "auto", name: "Auto Stage", requiresStage: ["reviewed"], produces: ["auto-artifact"] }),
+    ],
+    scopes: [
+      {
+        name: "classic",
+        depth: "Standard",
+        keywords: [],
+        description: "",
+        skeleton: "off",
+        reviewCap: "advisory",
+        guardPolicy: "relaxed",
+        sensors: "on",
+        learnings: "on",
+        summaryConfirmation: "off",
+        mode: null,
+        questionBudget: null,
+        phases: ["develop"],
+        include: [],
+        skip: [],
+        file: "",
+        body: "",
+      },
+    ],
+    agents: [],
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -112,6 +232,160 @@ test("every stage references known agents", () => {
     for (const ref of refs) {
       assert.ok(known.has(ref), `stage ${stage.slug} references unknown agent ${ref}`);
     }
+  }
+});
+
+test("a review phase gates at the phase boundary under yolo", () => {
+  const root = tempProject();
+  try {
+    const m = phaseReviewMethodology();
+    const config = loadConfig(root);
+    config.mode = "yolo";
+
+    const first = runNext(root, m, config, { text: "build a widget" });
+    assert.equal(first.stage, "a1");
+    assert.equal(first.auto_approve, true);
+    const second = runReport(root, m, config, { stage: "a1", result: "awaiting-approval" });
+    assert.equal(second.stage, "a2");
+    assert.equal(second.auto_approve, true);
+
+    // a2 closes Analyze: the next directive is a phase review, not Develop.
+    const gate = runReport(root, m, config, { stage: "a2", result: "awaiting-approval" });
+    assert.equal(gate.kind, "ask");
+    assert.equal(gate.ask_type, "phase-review");
+    assert.equal(gate.phase, "analyze");
+    assert.deepEqual(gate.stages, ["a1", "a2"]);
+    assert.equal(gate.produce_paths.length, 2);
+    assert.ok(readAudit(root).some((row) => row.event === "PHASE_AWAITING_APPROVAL"));
+
+    // Approving the phase continues into Develop.
+    const next = runReport(root, m, config, { phase: "analyze", result: "approved" });
+    assert.equal(next.kind, "run-stage");
+    assert.equal(next.stage, "d1");
+    assert.equal(next.auto_approve, true);
+
+    const done = runReport(root, m, config, { stage: "d1", result: "awaiting-approval" });
+    assert.equal(done.kind, "done");
+    const audit = readAudit(root);
+    assert.ok(audit.some((row) => row.event === "PHASE_APPROVED"));
+    assert.ok(audit.some((row) => row.event === "WORKFLOW_COMPLETED"));
+    assert.ok(!audit.some((row) => row.event === "PHASE_REJECTED"));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("requesting changes on a phase review re-opens the phase", () => {
+  const root = tempProject();
+  try {
+    const m = phaseReviewMethodology();
+    const config = loadConfig(root);
+    config.mode = "yolo";
+    runNext(root, m, config, { text: "build a widget" });
+    runReport(root, m, config, { stage: "a1", result: "awaiting-approval" });
+    const gate = runReport(root, m, config, { stage: "a2", result: "awaiting-approval" });
+    assert.equal(gate.ask_type, "phase-review");
+
+    const reopened = runReport(root, m, config, {
+      phase: "analyze",
+      result: "rejected",
+      reason: "requirements are vague",
+    });
+    assert.equal(reopened.kind, "run-stage");
+    assert.equal(reopened.stage, "a1");
+    const state = loadState(root);
+    assert.equal(state.stages.a1.status, "active");
+    assert.equal(state.stages.a2.status, "pending");
+    assert.equal(state.stages.d1, undefined);
+    const rejected = readAudit(root).find((row) => row.event === "PHASE_REJECTED");
+    assert.equal(rejected.reason, "requirements are vague");
+
+    // Re-running the phase reaches the gate again.
+    runReport(root, m, config, { stage: "a1", result: "awaiting-approval" });
+    const again = runReport(root, m, config, { stage: "a2", result: "awaiting-approval" });
+    assert.equal(again.ask_type, "phase-review");
+    assert.equal(again.phase, "analyze");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("phase review also gates in normal mode", () => {
+  const root = tempProject();
+  try {
+    const m = phaseReviewMethodology();
+    const config = loadConfig(root);
+    const first = runNext(root, m, config, { text: "build a widget" });
+    assert.equal(first.execution_mode, "normal");
+    const stageGate = runReport(root, m, config, {
+      stage: "a1",
+      result: "awaiting-approval",
+    });
+    assert.equal(stageGate.ask_type, "stage-approval");
+    const second = runReport(root, m, config, { stage: "a1", result: "approved" });
+    assert.equal(second.stage, "a2");
+    const stageGate2 = runReport(root, m, config, {
+      stage: "a2",
+      result: "awaiting-approval",
+    });
+    assert.equal(stageGate2.ask_type, "stage-approval");
+    const phaseGate = runReport(root, m, config, { stage: "a2", result: "approved" });
+    assert.equal(phaseGate.ask_type, "phase-review");
+    assert.equal(phaseGate.phase, "analyze");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a project-wide review toggle gates every phase", () => {
+  const root = tempProject();
+  try {
+    const m = phaseReviewMethodology();
+    m.phases.forEach((phase) => {
+      phase.review = "auto";
+    });
+    const config = loadConfig(root);
+    config.mode = "yolo";
+    config.reviewRequired = true;
+
+    const first = runNext(root, m, config, { text: "build a widget" });
+    assert.equal(first.stage, "a1");
+    const second = runReport(root, m, config, { stage: "a1", result: "awaiting-approval" });
+    assert.equal(second.stage, "a2");
+    const gate = runReport(root, m, config, { stage: "a2", result: "awaiting-approval" });
+    assert.equal(gate.ask_type, "phase-review");
+    assert.equal(gate.phase, "analyze");
+
+    // The toggle also gates Develop, the phase with no frontmatter flag.
+    const next = runReport(root, m, config, { phase: "analyze", result: "approved" });
+    assert.equal(next.stage, "d1");
+    const doneGate = runReport(root, m, config, { stage: "d1", result: "awaiting-approval" });
+    assert.equal(doneGate.ask_type, "phase-review");
+    assert.equal(doneGate.phase, "develop");
+    const done = runReport(root, m, config, { phase: "develop", result: "approved" });
+    assert.equal(done.kind, "done");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("every stage resolves a review policy", () => {
+  const m = loadMethodology(engineRoot());
+  for (const stage of m.stages) {
+    assert.ok(
+      ["auto", "required"].includes(stage.review),
+      `stage ${stage.slug} has review=${stage.review}`,
+    );
+  }
+});
+
+test("every phase resolves a review policy", () => {
+  const m = loadMethodology(engineRoot());
+  for (const phase of m.phases) {
+    assert.ok(
+      ["auto", "required"].includes(phase.review),
+      `phase ${phase.slug} has review=${phase.review}`,
+    );
   }
 });
 
@@ -425,6 +699,36 @@ test("execution mode resolves scope > project > default", () => {
   });
 });
 
+test("the phase-review toggle resolves scope > project > default", () => {
+  assert.equal(normalizeReviewRequired(undefined), false);
+  assert.equal(normalizeReviewRequired("on"), true);
+  assert.equal(normalizeReviewRequired("off"), false);
+  assert.equal(normalizeReviewRequired(true), true);
+  assert.equal(normalizeReviewRequired("banana"), false);
+  assert.deepEqual(resolveReviewRequired({}), { required: false, source: "default" });
+  assert.deepEqual(resolveReviewRequired({ config: true }), {
+    required: true,
+    source: "project",
+  });
+  assert.deepEqual(resolveReviewRequired({ scope: false, config: true }), {
+    required: false,
+    source: "scope",
+  });
+});
+
+test("project config persists the phase-review toggle", () => {
+  const root = tempProject();
+  try {
+    assert.equal(loadConfig(root).reviewRequired, false);
+    saveConfig(root, { reviewRequired: true });
+    assert.equal(loadConfig(root).reviewRequired, true);
+    saveConfig(root, { reviewRequired: "off" });
+    assert.equal(loadConfig(root).reviewRequired, false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("yolo mode skips questions and auto-approves gates, audibly", () => {
   const root = tempProject();
   try {
@@ -468,6 +772,54 @@ test("yolo mode skips questions and auto-approves gates, audibly", () => {
     const report = statusReport(root, m, config);
     assert.equal(report.mode, "yolo");
     assert.equal(report.stages.every((stage) => stage.autoApproved), true);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a review stage still gates under yolo while other stages auto-approve", () => {
+  const root = tempProject();
+  try {
+    const m = reviewMethodology();
+    const config = loadConfig(root);
+    config.mode = "yolo";
+
+    // The review stage keeps its gate even though the project is in yolo mode.
+    const first = runNext(root, m, config, { text: "build a widget" });
+    assert.equal(first.kind, "run-stage");
+    assert.equal(first.stage, "reviewed");
+    assert.equal(first.execution_mode, "yolo");
+    assert.equal(first.review_required, true);
+    assert.equal(first.auto_approve, false);
+
+    const gate = runReport(root, m, config, {
+      stage: first.stage,
+      result: "awaiting-approval",
+    });
+    assert.equal(gate.kind, "ask");
+    assert.equal(gate.ask_type, "stage-approval");
+    assert.equal(gate.review_required, true);
+    assert.match(gate.question, /Review and approve/);
+    assert.deepEqual(gate.produce_paths, [
+      `${first.record_dir}/develop/reviewed/reviewed-artifact.md`,
+    ]);
+    assert.ok(
+      !readAudit(root).some((row) => row.event === "STAGE_AUTO_APPROVED"),
+      "the review stage must not be auto-approved",
+    );
+
+    // Approving advances to the next stage, which yolo auto-approves as usual.
+    const second = runReport(root, m, config, { stage: first.stage, result: "approved" });
+    assert.equal(second.kind, "run-stage");
+    assert.equal(second.stage, "auto");
+    assert.equal(second.review_required, false);
+    assert.equal(second.auto_approve, true);
+    const done = runReport(root, m, config, { stage: second.stage, result: "awaiting-approval" });
+    assert.equal(done.kind, "done");
+
+    const audit = readAudit(root);
+    assert.ok(audit.some((row) => row.event === "STAGE_APPROVED"));
+    assert.ok(audit.some((row) => row.event === "STAGE_AUTO_APPROVED"));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

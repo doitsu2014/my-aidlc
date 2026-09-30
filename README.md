@@ -128,7 +128,22 @@ my-aidlc config --mode normal     # back to human questions and gates
 YOLO does **not** skip any stage: every stage still runs and still writes its
 artifacts. It removes the human in the loop, not the work. Every auto-approval
 is recorded as `STAGE_AUTO_APPROVED` in `aidlc/audit.log`, so an unattended run
-stays auditable.
+stays auditable. To keep a human gate in an otherwise unattended run, mark a
+stage or phase `review: required`; it always stops at its approval gate.
+
+### Phase review
+
+Stop and review after every phase with one project-wide toggle:
+
+```bash
+my-aidlc config --review-required true    # gate before leaving each phase
+my-aidlc config --review-required false   # back to stage-only gates (default)
+```
+
+It applies in both normal and YOLO mode and is independent of the execution
+mode. Individual phases can still opt in with `review: required` in
+`core/phases/<phase>/phase.md`, and a scope can override the toggle with
+`review_required:` in its frontmatter.
 
 ### Question budget
 
@@ -190,6 +205,8 @@ my-aidlc doctor           # validate the engine, workspace, and configuration
 - **Human approval gates** at every stage (Normal mode), or an optional
   **YOLO mode** that auto-picks recommended answers and auto-approves gates
   while recording every auto-approval in the audit log
+- **Review checkpoints** — mark a stage, or a whole phase, `review: required`
+  to keep a human gate even under YOLO
 - **Database skills** for PostgreSQL, MySQL, SQL Server, and MongoDB
 - **Audit trail** plus persistent project/team/org memory
 - **Shell completion** for bash, zsh, fish, and PowerShell

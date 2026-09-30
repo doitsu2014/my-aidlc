@@ -35,6 +35,9 @@ writes every row. Never hand-write or hand-edit audit rows.
 | `STAGE_AUTO_APPROVED` | YOLO mode auto-satisfied the gate with the recommended answer. |
 | `STAGE_COMPLETED` | The stage completed without a human gate. |
 | `STAGE_SKIPPED` | A conditional stage did not apply. |
+| `PHASE_AWAITING_APPROVAL` | A phase that requires review reached its last stage and is presented for review. |
+| `PHASE_APPROVED` | The human approved the phase review. |
+| `PHASE_REJECTED` | The human requested changes to the phase. |
 | `CHANGE_NOTICE` | An input changed after approval. |
 | `WORKFLOW_PARKED` | The workflow was parked. |
 | `WORKFLOW_COMPLETED` | The workflow reached its end. |

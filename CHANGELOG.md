@@ -13,6 +13,12 @@ All notable changes to my-aidlc are documented here. The format follows
   command prints scripts or wires them into your shell rc file (idempotently).
 - The installers now install completion for the detected login shell; opt out
   with `--no-completion` (`-NoCompletion` on Windows).
+- Per-stage and per-phase review checkpoints. A stage with `review: required`
+  always presents its gate; a phase with `review: required`, or the project
+  toggle `my-aidlc config --review-required true`, pauses the workflow at the
+  phase boundary. Approving continues; requesting changes re-opens the phase
+  and re-gates. Recorded as `PHASE_AWAITING_APPROVAL`, `PHASE_APPROVED`, and
+  `PHASE_REJECTED`.
 
 ## [0.1.0] - Initial release
 

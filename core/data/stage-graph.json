@@ -6,7 +6,8 @@
       "order": 1,
       "focus": "Requirements",
       "aiRole": "Research assistant",
-      "output": "Specs, analysis docs"
+      "output": "Specs, analysis docs",
+      "review": "auto"
     },
     {
       "slug": "ideate",
@@ -14,7 +15,8 @@
       "order": 2,
       "focus": "Design",
       "aiRole": "Architect partner",
-      "output": "Diagrams, specs"
+      "output": "Diagrams, specs",
+      "review": "auto"
     },
     {
       "slug": "develop",
@@ -22,7 +24,8 @@
       "order": 3,
       "focus": "Code",
       "aiRole": "Coding agent",
-      "output": "Working code"
+      "output": "Working code",
+      "review": "auto"
     },
     {
       "slug": "launch",
@@ -30,7 +33,8 @@
       "order": 4,
       "focus": "Deploy",
       "aiRole": "QA engineer",
-      "output": "Tests, pipelines"
+      "output": "Tests, pipelines",
+      "review": "auto"
     },
     {
       "slug": "curate",
@@ -38,7 +42,8 @@
       "order": 5,
       "focus": "Maintain",
       "aiRole": "SRE assistant",
-      "output": "Fixes, updates"
+      "output": "Fixes, updates",
+      "review": "auto"
     }
   ],
   "stages": [
@@ -53,6 +58,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "feasibility-assessment",
         "constraint-register"
@@ -85,6 +91,7 @@
       "supportAgents": [],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "intent-statement",
         "intent-capture-questions"
@@ -103,6 +110,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "requirements",
         "requirements-questions"
@@ -128,6 +136,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "research-report",
         "competitive-analysis"
@@ -157,6 +166,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "updated-docs"
       ],
@@ -190,6 +200,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "incident-report"
       ],
@@ -218,6 +229,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "observability-config"
       ],
@@ -246,6 +258,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "performance-report"
       ],
@@ -272,6 +285,7 @@
       "supportAgents": [],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "source-changes",
         "code-generation-notes"
@@ -305,6 +319,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "review-record"
       ],
@@ -333,6 +348,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "refactor-notes"
       ],
@@ -362,6 +378,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "implementation-plan",
         "unit-breakdown"
@@ -391,6 +408,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "api-contract"
       ],
@@ -419,6 +437,7 @@
       ],
       "mode": "inline",
       "reviewer": "security-agent",
+      "review": "auto",
       "produces": [
         "architecture-doc",
         "architecture-questions"
@@ -452,6 +471,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "design-decisions"
       ],
@@ -481,6 +501,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "technical-spec"
       ],
@@ -518,6 +539,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "ci-config"
       ],
@@ -546,6 +568,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "deployment-runbook",
         "deployment-scripts"
@@ -576,6 +599,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "release-validation-report"
       ],
@@ -609,6 +633,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "test-suite"
       ],
@@ -637,6 +662,7 @@
       ],
       "mode": "inline",
       "reviewer": null,
+      "review": "auto",
       "produces": [
         "test-plan"
       ],
