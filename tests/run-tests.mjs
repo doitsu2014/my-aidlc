@@ -949,6 +949,11 @@ test("completion scripts are generated for every supported shell", () => {
     assert.ok(script.includes("my-aidlc"), `${shell} script names the command`);
     assert.ok(script.includes("orchestrate"), `${shell} script lists orchestrate`);
     assert.ok(script.includes(model.list.stages[0]), `${shell} script lists a stage`);
+    // Every config flag must reach every shell (fish renders long flags as `-l name`).
+    for (const flag of model.options.config) {
+      const rendered = shell === "fish" ? `-l ${flag.slice(2)}` : flag;
+      assert.ok(script.includes(rendered), `${shell} script omits ${flag}`);
+    }
   }
   assert.throws(() => completionScript("tcsh", model), /Unsupported shell/);
 });

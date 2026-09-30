@@ -317,6 +317,8 @@ function fishScript(model) {
   lines.push(`complete -c ${cmd} -l user-input -x -d "Human input to record"`);
   lines.push(`complete -c ${cmd} -l reason -x -d "Reason for the report"`);
   lines.push(`complete -c ${cmd} -l project -x -a "(__fish_complete_directories)"`);
+  lines.push(`complete -c ${cmd} -l questions-min -x -d "Minimum clarifying questions per stage"`);
+  lines.push(`complete -c ${cmd} -l questions-max -x -d "Maximum clarifying questions per stage"`);
   lines.push("");
   return lines.join("\n");
 }
@@ -380,7 +382,7 @@ Register-ArgumentCompleter -Native -CommandName ${cmd} -ScriptBlock {
         'stage' { $candidates = $stages + $globalFlags }
         'phase' { $candidates = $stages + $globalFlags }
         'scope' { $candidates = $scopes + $globalFlags }
-        'config' { $candidates = @('--harness', '--project', '--json', '--mode', '--questions-min', '--questions-max') }
+        'config' { $candidates = ${psArray(model.options.config)} }
         default { $candidates = $globalFlags }
       }
     }

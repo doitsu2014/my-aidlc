@@ -160,4 +160,5 @@ completion is not visible until it reloads.
 
 Completion covers the command surface from the live methodology: commands,
 subcommands, stage/scope/phase/agent names, `--harness`, `--shell`, `--scope`,
-`--stage`, `--result`, and `--mode` (with its `normal`/`yolo` values).
+`--stage`, `--phase`, `--result`, `--mode` (with its `normal`/`yolo` values),
+and `--review-required` (with its `true`/`false` values).
