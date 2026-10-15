@@ -14,9 +14,10 @@ const manifest = {
 
   coreDirs: [
     { src: "tools", dst: "tools" },
-    { src: "phases", dst: "phases" },
-    { src: "agents", dst: "agents" },
-    { src: "scopes", dst: "scopes" },
+    // The methodology: native AWS AI-DLC, fetched by `my-aidlc update`.
+    { src: "native", dst: "native" },
+    // Space-scope seeds copied into aidlc/spaces/<space>/scopes/ on config.
+    { src: "templates/scopes", dst: "templates/scopes" },
     { src: "protocols", dst: "protocols" },
     { src: "knowledge", dst: "knowledge" },
     // Native skill directory: the orchestrator skill and the database skills.

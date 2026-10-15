@@ -14,10 +14,11 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 
 import { bold, cyan, dim, green, heading, red, warn, yellow } from "./lib/color.mjs";
-import { loadMethodology, compileGraph, workflowForScope, scopeByName, detectScope } from "./lib/graph.mjs";
-import { configPath, detectHarness, memoryDir, workspaceRoot } from "./lib/paths.mjs";
+import { loadMethodology, compileGraph, workflowForScope, scopeByName, detectScope, readNativeLock } from "./lib/graph.mjs";
+import { configPath, detectHarness, memoryDir, spaceScopesDir, workspaceRoot } from "./lib/paths.mjs";
 import { loadConfig, saveConfig, MODES } from "./lib/config.mjs";
 import { runDoctor } from "./lib/doctor.mjs";
+import { readPin, updateSnapshot, verifySnapshot } from "./lib/native.mjs";
 import {
   parkDirective,
   runNext,
@@ -86,8 +87,12 @@ function fail(message, code = 1) {
 // Commands
 // ---------------------------------------------------------------------------
 
-function methodology() {
-  return loadMethodology(engineRoot());
+/**
+ * Load the methodology for a project, layering that project's space scopes
+ * over the native baseline that ships in the engine.
+ */
+function methodology(root = process.cwd()) {
+  return loadMethodology(engineRoot(), { spaceScopesDir: spaceScopesDir(root) });
 }
 
 function cmdVersion() {
@@ -105,17 +110,30 @@ function cmdHelp() {
     `  ${cyan("config")}    Configure the project for a harness (${listHarnesses(repoRoot()).join(", ")})`,
     `               --mode <normal|yolo>  --review-required <true|false>`,
     `               --questions-min <n>  --questions-max <n>`,
-    `  ${cyan("init")}      Create the aidlc/ workspace and memory files`,
+    `  ${cyan("update")}    Fetch the pinned AI-DLC release and rewrite the methodology`,
+    `               --check  Verify the snapshot against its lock (no network)`,
+    `  ${cyan("init")}      Create the aidlc/ workspace, memory files, and space scopes`,
     `  ${cyan("doctor")}    Validate the engine, workspace, and configuration`,
     `  ${cyan("status")}    Show the active intent, scope, and stage progress`,
     `  ${cyan("list")}      List phases, stages, scopes, or agents`,
     `  ${cyan("stage")}     Show one stage definition`,
-    `  ${cyan("scope")}     Show one workflow profile`,
+    `  ${cyan("scope")}     List workflow scopes, or show one in full`,
     `  ${cyan("phase")}     Show one phase`,
     `  ${cyan("graph")}     Print the compiled workflow graph (JSON)`,
     `  ${cyan("completion")} Print or install shell completion (bash, zsh, fish, powershell)`,
     `  ${cyan("version")}   Print the framework version`,
     `  ${cyan("help")}      Print this help`,
+    "",
+    "METHODOLOGY",
+    "  The 5 phases, 33 stages, and 14 agents are the native AWS AI-DLC",
+    "  (awslabs/aidlc-workflows), pinned in aidlc-version.json and fetched by",
+    "  `update` into core/native/. Do not hand-edit that tree.",
+    "",
+    "WORKFLOW SCOPES",
+    `  Your workflow profiles live in the space: ${cyan("aidlc/spaces/<space>/scopes/")}`,
+    "  A space scope layers over the native baseline of the same name and states",
+    "  its complete stage list in `include`, so the workflow is yours to define.",
+    "  Seed or restore them with `my-aidlc init`; they are never overwritten.",
     "",
     "ORCHESTRATION",
     `  ${cyan("orchestrate next")} [--new-intent] [--scope <name>] [--resume] "<description>"`,
@@ -139,7 +157,7 @@ function cmdHelp() {
     "  its own gate. Both work in normal and yolo mode.",
     "",
     "ALIASES",
-    "  --status  --doctor  --version  --help  --config",
+    "  --status  --doctor  --config  --update  --version  --help",
     "",
     "The orchestrate commands are what a harness conductor calls. Humans usually",
     "use config, doctor, status, and list.",
@@ -239,7 +257,7 @@ function cmdConfig(flags) {
   return buildHarness({ repoRoot: repoRoot(), harnessName, outDir }).then(({ manifest }) => {
     const written = applyDistribution({ distributionDir: outDir, projectRoot: root, manifest });
     saveConfig(root, { harness: harnessName });
-    scaffoldMemory(root);
+    scaffoldSpace(root);
     if (flags.json) {
       printJson({ harness: harnessName, projectRoot: root, written, nextStep: manifest.configNextStep });
       return;
@@ -250,20 +268,34 @@ function cmdConfig(flags) {
   });
 }
 
-function scaffoldMemory(root) {
-  const source = join(engineRoot(), "memory");
-  if (!existsSync(source)) return;
-  mkdirSync(memoryDir(root), { recursive: true });
-  for (const file of readdirSync(source)) {
-    const target = join(memoryDir(root), file);
-    if (file.endsWith(".md") && !existsSync(target)) copyFileSync(join(source, file), target);
+/**
+ * Seed a project's space: memory files and the team's workflow scopes.
+ * Existing files are never overwritten, so re-running `config` is safe.
+ */
+function scaffoldSpace(root) {
+  const memorySource = join(engineRoot(), "memory");
+  if (existsSync(memorySource)) {
+    mkdirSync(memoryDir(root), { recursive: true });
+    for (const file of readdirSync(memorySource)) {
+      const target = join(memoryDir(root), file);
+      if (file.endsWith(".md") && !existsSync(target)) copyFileSync(join(memorySource, file), target);
+    }
+  }
+  const scopeSource = join(engineRoot(), "templates", "scopes");
+  if (existsSync(scopeSource)) {
+    const target = spaceScopesDir(root);
+    mkdirSync(target, { recursive: true });
+    for (const file of readdirSync(scopeSource)) {
+      const dest = join(target, file);
+      if (file.endsWith(".md") && !existsSync(dest)) copyFileSync(join(scopeSource, file), dest);
+    }
   }
 }
 
 function cmdInit(flags) {
   const root = resolve(flags.project || process.cwd());
   mkdirSync(workspaceRoot(root), { recursive: true });
-  scaffoldMemory(root);
+  scaffoldSpace(root);
   if (!existsSync(configPath(root))) saveConfig(root, { harness: detectHarness(root) });
   process.stdout.write(`${green("PASS")} workspace ready at ${workspaceRoot(root)}\n`);
 }
@@ -367,10 +399,30 @@ function cmdScope(positionals, flags) {
   if (!name) {
     const m = methodology();
     if (flags.json) {
-      printJson(m.scopes.map(({ name: n, depth, description }) => ({ name: n, depth, description })));
+      printJson(
+        m.scopes.map(({ name: n, depth, description, source, include, skip }) => ({
+          name: n,
+          depth,
+          description,
+          source,
+          stages: source === "space" ? include.length : undefined,
+          skipped: source === "space" ? skip.length : undefined,
+        })),
+      );
       return;
     }
-    for (const scope of m.scopes) process.stdout.write(`${scope.name.padEnd(10)} ${scope.description}\n`);
+    process.stdout.write(
+      `${heading("Workflow scopes")}\n\n`,
+    );
+    for (const scope of m.scopes) {
+      const origin = scope.source === "space" ? cyan("space ") : dim("native");
+      const size = scope.include.length > 0 ? `${String(scope.include.length).padStart(2)} stages` : "baseline ";
+      process.stdout.write(`  ${origin} ${scope.name.padEnd(16)} ${dim(size)}  ${scope.description}\n`);
+    }
+    process.stdout.write(
+      `\n  ${dim("space")}  authored in ${spaceScopesDir(process.cwd())}\n` +
+        `  ${dim("native")} baseline shipped by AI-DLC; read with "my-aidlc scope <name>"\n`,
+    );
     return;
   }
   const scope = scopeByName(methodology(), name);
@@ -380,13 +432,19 @@ function cmdScope(positionals, flags) {
     printJson({ ...scope, workflow: workflow.map((s) => s.slug) });
     return;
   }
-  process.stdout.write(`${heading(scope.name)} ${dim(scope.depth)}\n`);
+  process.stdout.write(
+    `${heading(scope.name)} ${dim(scope.depth)} ${dim(`(${scope.source})`)}\n`,
+  );
   process.stdout.write(`  ${scope.description}\n\n`);
   process.stdout.write(`  Stages (${workflow.length}): ${workflow.map((s) => s.slug).join(", ")}\n`);
+  if (scope.skip.length) {
+    process.stdout.write(`  Skipped (${scope.skip.length}): ${scope.skip.join(", ")}\n`);
+  }
+  process.stdout.write(`  File: ${scope.file}\n`);
 }
 
 function cmdGraph(flags) {
-  const graph = compileGraph(engineRoot());
+  const graph = compileGraph(engineRoot(), { spaceScopesDir: spaceScopesDir(process.cwd()) });
   if (flags.json !== false) {
     printJson(graph);
   }
@@ -534,6 +592,68 @@ function cmdOrchestrate(positionals, flags) {
   return 1;
 }
 
+/**
+ * `my-aidlc update` — refresh the methodology from the pinned AWS AI-DLC
+ * release. This is the only thing that writes `core/native/`; everything else
+ * reads it.
+ */
+async function cmdUpdate(flags) {
+  const repo = repoRoot();
+  const pinFile = join(repo, "aidlc-version.json");
+  if (!existsSync(pinFile)) {
+    const lock = readNativeLock(engineRoot());
+    const from = lock ? `${lock.repository} ${lock.tag}` : "an unknown release";
+    fail(
+      `my-aidlc update refreshes the methodology from a my-aidlc checkout.\n` +
+        `  This project's engine was built from ${from}.\n` +
+        `  Update the checkout, run "my-aidlc update" there, then re-run ` +
+        `"my-aidlc config --harness <name>" to re-project this project.`,
+    );
+  }
+
+  const pin = readPin(repo);
+
+  if (flags.check) {
+    const result = verifySnapshot(repo, pin);
+    if (flags.json) {
+      printJson({ pin: { version: pin.version, tag: pin.tag, repository: pin.repository }, ...result });
+      process.exit(result.ok ? 0 : 1);
+    }
+    if (!result.ok) {
+      for (const entry of result.drift) {
+        process.stderr.write(`${red("FAIL")} ${entry.kind} ${entry.path}\n`);
+      }
+      fail(
+        result.reason === "missing"
+          ? `No snapshot at ${pin.snapshotDir}/. Run: my-aidlc update`
+          : `${result.drift.length} file(s) drifted from the snapshot lock. Run: my-aidlc update`,
+      );
+    }
+    process.stdout.write(
+      `${green("PASS")} AI-DLC ${result.lock.version}: ${result.lock.stages} stages, ` +
+        `${result.lock.agents} agents, ${result.lock.scopes} scopes ` +
+        `(${result.lock.archiveVerified ? "archive sha256 verified" : "content verified"})\n`,
+    );
+    return undefined;
+  }
+
+  const { lock } = await updateSnapshot(repo, pin, {
+    log: (message) => process.stdout.write(`  ${dim(message)}\n`),
+  });
+  if (flags.json) {
+    printJson({ version: lock.version, tag: lock.tag, stages: lock.stages, agents: lock.agents, scopes: lock.scopes });
+    return undefined;
+  }
+  process.stdout.write(
+    `${green("PASS")} ${lock.repository} ${lock.tag}: ${lock.stages} stages, ${lock.agents} agents, ` +
+      `${lock.scopes} scopes, ${lock.protocols} protocols\n`,
+  );
+  process.stdout.write(
+    `  Next: run "my-aidlc config --harness <name>" to re-project the engine into a project.\n`,
+  );
+  return undefined;
+}
+
 function cmdDoctor(flags) {
   const report = runDoctor(process.cwd());
   if (flags.json) {
@@ -557,21 +677,21 @@ function cmdDoctor(flags) {
 async function main() {
   const argv = process.argv.slice(2);
   const { flags, positionals } = parseArgs(argv);
-  let command = positionals[0];
+  const command = positionals[0];
 
-  // Top-level aliases.
+  // Top-level aliases. These run before the "no command" fallback, so
+  // `my-aidlc --status` behaves like `my-aidlc status`.
   if (flags.version || command === "version") return cmdVersion();
-  if (flags.help || command === "help" || command === undefined) return cmdHelp();
-  if (flags.status || command === "--status") return cmdStatus(flags);
+  if (flags.help || command === "help") return cmdHelp();
+  if (flags.update || command === "update") return cmdUpdate(flags);
+  if (flags.status || command === "status") return cmdStatus(flags);
   if (flags.doctor || command === "doctor") return cmdDoctor(flags);
+  if (flags.config || command === "config") return cmdConfig(flags);
+  if (command === undefined) return cmdHelp();
 
   switch (command) {
-    case "config":
-      return cmdConfig(flags);
     case "init":
       return cmdInit(flags);
-    case "status":
-      return cmdStatus(flags);
     case "list":
       return cmdList(positionals.slice(1), flags);
     case "stage":
@@ -593,8 +713,6 @@ async function main() {
       return cmdCompletion(positionals.slice(1), flags);
     case "orchestrate":
       return cmdOrchestrate(positionals.slice(1), flags);
-    case undefined:
-      return cmdHelp();
     default:
       fail(`Unknown command "${command}". Run "my-aidlc help".`);
   }

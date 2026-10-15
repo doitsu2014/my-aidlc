@@ -1,8 +1,14 @@
 # my-aidlc for PI Agent
 
 This project uses **my-aidlc**, an AI-Driven Development Life Cycle workflow
-engine built around five phases: **Analyze → Ideate → Develop → Launch →
-Curate**.
+engine built on the native AWS AI-DLC methodology: five phases
+**Initialization, Ideation, Inception, Construction, Operation**. The
+methodology is fetched, not authored here. `my-aidlc update` snapshots it from
+`awslabs/aidlc-workflows` at the version pinned in `aidlc-version.json` into
+`{{HARNESS_DIR}}/native/`, and `my-aidlc doctor` fails when it drifts from the
+pin. Treat `native/` as read-only.
+
+The invocation in this harness is `{{INVOKE}}`.
 
 ## Start a workflow
 
@@ -14,6 +20,12 @@ Type `/aidlc` followed by what you want to build:
 
 The workflow profile is detected from the request. You can name one explicitly:
 `classic`, `express`, `feature`, `bugfix`, `mvp`, `poc`, `infra`.
+
+Profiles are the team's own. They live in the space at
+`aidlc/spaces/<space>/scopes/<name>.md`, seeded from
+`{{HARNESS_DIR}}/templates/scopes/` by `my-aidlc config` and never
+overwritten. Each profile states its complete stage set in `include`, so edit
+one to change which native stages that workflow runs.
 
 Force the skill when needed: `/skill:aidlc`.
 
@@ -31,13 +43,14 @@ On the command line the same operations are available as
 
 ## What was installed
 
-- `{{HARNESS_DIR}}/skills/aidlc/` — the orchestrator skill (PI loads it on demand)
-- `{{HARNESS_DIR}}/prompts/aidlc.md` — the `/aidlc` prompt template
-- `{{HARNESS_DIR}}/agents/` — the 15 agent personas
-- `{{HARNESS_DIR}}/phases/` — the five phases and their stages
-- `{{HARNESS_DIR}}/scopes/` — the workflow profiles
-- `{{HARNESS_DIR}}/protocols/` — stage, question, recovery, and learnings protocols
-- `{{HARNESS_DIR}}/tools/` — the deterministic engine
+- `{{HARNESS_DIR}}/skills/aidlc/` - the orchestrator skill, loaded on demand
+- `{{HARNESS_DIR}}/prompts/aidlc.md` - the `/aidlc` prompt template
+- `{{HARNESS_DIR}}/native/` - the fetched AI-DLC methodology: 5 phases, 33
+  stages, and 14 agents
+- `{{HARNESS_DIR}}/templates/scopes/` - the space-scope profile seeds
+- `{{HARNESS_DIR}}/protocols/` - stage, question, recovery, and learnings
+  protocols
+- `{{HARNESS_DIR}}/tools/` - the deterministic engine
 
 ## Workspace
 

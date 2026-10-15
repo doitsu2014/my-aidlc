@@ -20,10 +20,12 @@ design, migrations, queries, transactions, performance, or tests.
 
 ## When this skill applies
 
-- Ideate: choosing MySQL/MariaDB, designing the schema, or defining the contract.
-- Develop: writing queries, repositories, migrations, or seed data.
-- Launch: containerised test databases, CI migration runs, fixtures.
-- Curate: index and query-plan review, slow-query triage, replication health.
+- Inception: choosing MySQL/MariaDB, designing the schema, or defining the
+  contract.
+- Construction: writing queries, repositories, migrations, or seed data.
+- Construction: containerised test databases, CI migration runs, fixtures.
+- Operation: index and query-plan review, slow-query triage, replication
+  health.
 
 ## Configuration and secrets
 
@@ -47,7 +49,8 @@ design, migrations, queries, transactions, performance, or tests.
 | Go | `go-sql-driver/mysql` | sqlc, GORM, Ent |
 | .NET | `MySqlConnector` | EF Core, Dapper |
 
-Record the driver, version, and pooling strategy in the technical spec.
+Record the driver and version in `construction/nfr-requirements`, and the
+pooling strategy in `construction/nfr-design`.
 
 ## Schema and data modelling
 
@@ -157,11 +160,13 @@ Rules:
 
 ## How this skill plugs into my-aidlc
 
-- Ideate: record engine/version (MySQL vs MariaDB), driver/ORM, migration tool,
-  and pooling in `technical-spec`.
-- Develop: every schema change is a migration under `develop/code-generation`;
-  note the tool and commands in `code-generation-notes`.
-- Launch: integration tests use Testcontainers; CI runs migrations before
-  `launch/test-generation`.
-- Curate: use slow-query and `EXPLAIN` evidence in
-  `curate/performance-optimization`.
+- Construction: record the engine/version (MySQL vs MariaDB), driver/ORM, and
+  migration tool as tech-stack decisions in `construction/nfr-requirements`;
+  record the pooling strategy in `construction/nfr-design`.
+- Construction: every schema change is a migration under
+  `construction/code-generation`; note the tool and commands in
+  `code-generation-plan`.
+- Construction: integration tests use Testcontainers; CI runs migrations
+  before `construction/build-and-test`.
+- Operation: use slow-query and `EXPLAIN` evidence in
+  `operation/performance-validation`.

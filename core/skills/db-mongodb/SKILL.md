@@ -20,10 +20,11 @@ queries and aggregation, transactions, performance, or tests.
 
 ## When this skill applies
 
-- Ideate: choosing MongoDB, modelling documents, or defining the contract.
-- Develop: writing queries, aggregation pipelines, repositories, migrations.
-- Launch: containerised/replica-set tests, CI, fixtures.
-- Curate: index and aggregation review, slow-query triage, sharding.
+- Inception: choosing MongoDB, modelling documents, or defining the contract.
+- Construction: writing queries, aggregation pipelines, repositories,
+  migrations.
+- Construction: containerised/replica-set tests, CI, fixtures.
+- Operation: index and aggregation review, slow-query triage, sharding.
 
 ## Configuration and secrets
 
@@ -50,7 +51,8 @@ queries and aggregation, transactions, performance, or tests.
 | Go | `mongo-go-driver` | — (native) |
 | .NET | `MongoDB.Driver` | — (native) |
 
-Record the driver/ODM, version, and pooling strategy in the technical spec.
+Record the driver/ODM and version in `construction/nfr-requirements`, and the
+pooling strategy in `construction/nfr-design`.
 
 ## Document schema design
 
@@ -171,12 +173,15 @@ Record the driver/ODM, version, and pooling strategy in the technical spec.
 
 ## How this skill plugs into my-aidlc
 
-- Ideate: record deployment topology (standalone/replica set/sharded),
-  driver/ODM, read/write concerns, and validation rules in `technical-spec`.
-- Develop: document the reading path, backfill, and cleanup order for shape
-  changes under `develop/code-generation`; note commands in
-  `code-generation-notes`.
-- Launch: integration tests use a replica set via Testcontainers; CI runs
-  migrations before `launch/test-generation`.
-- Curate: use `explain("executionStats")` and profiler evidence in
-  `curate/performance-optimization`.
+- Inception: record validation rules in `inception/domain-design`.
+- Construction: record the deployment topology (standalone/replica set/sharded)
+  in `construction/infrastructure-design`; record the driver/ODM as a
+  tech-stack decision in `construction/nfr-requirements`, and the read/write
+  concerns in `construction/nfr-design`.
+- Construction: document the reading path, backfill, and cleanup order for
+  shape changes under `construction/code-generation`; note commands in
+  `code-generation-plan`.
+- Construction: integration tests use a replica set via Testcontainers; CI
+  runs migrations before `construction/build-and-test`.
+- Operation: use `explain("executionStats")` and profiler evidence in
+  `operation/performance-validation`.

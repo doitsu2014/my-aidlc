@@ -16,37 +16,48 @@ node tests/run-tests.mjs
 ## The development loop
 
 ```bash
-node scripts/package.mjs          # regenerate dist/
-node scripts/package.mjs --check  # confirm dist/ matches core/ + harness/
-node scripts/lint.mjs             # methodology integrity
-node tests/run-tests.mjs          # tests
+node scripts/fetch-native.mjs --check  # the native snapshot matches the pin
+node scripts/package.mjs               # regenerate dist/
+node scripts/package.mjs --check       # confirm dist/ matches core/ + harness/
+node scripts/lint.mjs                  # methodology integrity
+node tests/run-tests.mjs               # tests
 ```
 
-All four must pass. `--check` fails if `dist/` is stale, so commit regenerated
-`dist/` (or leave it out of the repository if you choose to build on install —
-this repository commits it for convenience).
+All five must pass. `--check` fails if `dist/` is stale. `dist/` is generated and
+gitignored, so build it locally. `core/native/` is generated but **is**
+committed: it is what lets a clone build, lint, and test with no network.
 
 ## What to change, where
 
 | Change | Where |
 | --- | --- |
-| A phase, stage, or scope | `core/phases/`, `core/scopes/` |
-| An agent persona | `core/agents/` |
-| A protocol | `core/protocols/` |
+| A workflow profile the team owns | `core/templates/scopes/` (seeded into each space) |
+| The pinned AI-DLC version | `aidlc-version.json` |
 | Engine behaviour | `core/tools/` |
+| How native methodology is normalised | `core/data/native-phases.mjs`, `scripts/fetch-native.mjs` |
+| A protocol | `core/protocols/` |
 | A harness projection | `harness/<name>/` |
 | Packaging or install | `scripts/` |
 | Docs | `docs/` |
 
-Never edit `dist/` by hand.
+Never edit `dist/` by hand, and never edit `core/native/` by hand.
+
+## Phases, stages, and agents are upstream
+
+The five phases, 33 stages, and 14 agents are native AWS AI-DLC. They are not
+authored here: `scripts/fetch-native.mjs` downloads the release pinned in
+`aidlc-version.json`, verifies it, and normalises it into `core/native/`. To
+change which stages run, edit a space scope's `include` list. To move to a newer
+upstream release, update the pin and re-run the fetch; never patch a stage file.
 
 ## Pull request checklist
 
-- [ ] `node scripts/package.mjs` run and `dist/` updated
+- [ ] `node scripts/fetch-native.mjs --check` passes
+- [ ] `node scripts/package.mjs` run
 - [ ] `node scripts/package.mjs --check` passes
 - [ ] `node scripts/lint.mjs` passes
 - [ ] `node tests/run-tests.mjs` passes
-- [ ] New stages have a `condition` when conditional and reference known agents
+- [ ] A new space scope names a complete, disjoint partition of the 33 stages
 - [ ] New behavior is covered by a test
 - [ ] Docs updated when commands or methodology change
 

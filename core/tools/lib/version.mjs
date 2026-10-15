@@ -20,7 +20,7 @@ export function engineRoot() {
   if (process.env.MY_AIDLC_HOME) {
     const core = join(process.env.MY_AIDLC_HOME, "core");
     if (existsSync(core)) return core;
-    if (existsSync(join(process.env.MY_AIDLC_HOME, "phases"))) return process.env.MY_AIDLC_HOME;
+    if (existsSync(join(process.env.MY_AIDLC_HOME, "native"))) return process.env.MY_AIDLC_HOME;
   }
   return join(moduleHere(), "..", "..");
 }

@@ -12,12 +12,15 @@ import {
 import { join } from "node:path";
 import {
   DEFAULT_SPACE,
+  activeSpace,
   artifactDir,
   configPath,
   detectHarness,
+  harnessDir,
   intentDir,
   intentsDir,
   memoryDir,
+  spaceScopesDir,
 } from "./paths.mjs";
 import {
   appendAudit,
@@ -36,6 +39,12 @@ import { engineRoot } from "./version.mjs";
 function recordDirRel(space, intentId) {
   return `aidlc/spaces/${space}/intents/${intentId}`;
 }
+
+/**
+ * Initialization stages are led by the engine's own conductor rather than by an
+ * agent persona, so this slug has no agent file.
+ */
+const RESERVED_LEAD_AGENTS = new Set(["orchestrator"]);
 
 function scopeForState(methodology, state, config) {
   const name = state.activeIntent?.scope || config.defaultScope || "classic";
@@ -63,10 +72,17 @@ export function stageReviewRequired(stage) {
   return stage?.review === "required";
 }
 
+function artifactPath(relDir, stage, artifact) {
+  return `${relDir}/${stage.phase}/${stage.slug}/${artifact}.md`;
+}
+
 function producePathsFor(relDir, stage) {
-  return stage.produces.map(
-    (artifact) => `${relDir}/${stage.phase}/${stage.slug}/${artifact}.md`,
-  );
+  return stage.produces.map((artifact) => artifactPath(relDir, stage, artifact));
+}
+
+/** Artifacts the stage writes only when its condition selects that output. */
+function optionalProducePathsFor(relDir, stage) {
+  return (stage.optionalProduces || []).map((artifact) => artifactPath(relDir, stage, artifact));
 }
 
 function firstIncomplete(state, workflow) {
@@ -140,14 +156,27 @@ function advance(state, workflow, methodology, globalRequired = false) {
 }
 
 function scaffoldWorkspace(root, methodology) {
-  mkdirSync(memoryDir(root, DEFAULT_SPACE), { recursive: true });
+  const space = activeSpace(root);
+  mkdirSync(memoryDir(root, space), { recursive: true });
   const coreRoot = engineRoot();
   const memorySource = join(coreRoot, "memory");
   if (existsSync(memorySource)) {
     for (const file of readdirSync(memorySource)) {
       if (!file.endsWith(".md")) continue;
-      const target = join(memoryDir(root, DEFAULT_SPACE), file);
+      const target = join(memoryDir(root, space), file);
       if (!existsSync(target)) copyFileSync(join(memorySource, file), target);
+    }
+  }
+  // Seed the team's workflow scopes into this space. They layer over the native
+  // baseline, and an existing file is never overwritten.
+  const scopeSource = join(coreRoot, "templates", "scopes");
+  if (existsSync(scopeSource)) {
+    const target = spaceScopesDir(root, space);
+    mkdirSync(target, { recursive: true });
+    for (const file of readdirSync(scopeSource)) {
+      if (!file.endsWith(".md")) continue;
+      const dest = join(target, file);
+      if (!existsSync(dest)) copyFileSync(join(scopeSource, file), dest);
     }
   }
   if (!existsSync(configPath(root))) {
@@ -177,7 +206,7 @@ export function buildRunDirective(root, methodology, config, state, stage) {
   const scope = scopeForState(methodology, state, config);
   const workflow = currentWorkflow(methodology, state, config);
   const harness = detectHarness(root);
-  const harnessDir = harness === "claude" ? ".claude" : harness === "codex" ? ".codex" : ".pi";
+  const dir = harnessDir(root, harness);
   const space = state.activeIntent.space || DEFAULT_SPACE;
   const intentId = state.activeIntent.id;
   const relDir = recordDirRel(space, intentId);
@@ -226,11 +255,14 @@ export function buildRunDirective(root, methodology, config, state, stage) {
     phase: stage.phase,
     phase_name: phase ? phase.name : stage.phase,
     scope: scope.name,
-    stage_file: `${harnessDir}/phases/${stage.phase}/stages/${stage.slug}.md`,
+    stage_file: `${dir}/native/stages/${stage.phase}/${stage.slug}.md`,
     lead_agent: stage.leadAgent,
-    lead_agent_file: stage.leadAgent ? `${harnessDir}/agents/${stage.leadAgent}.md` : null,
+    lead_agent_file:
+      stage.leadAgent && !RESERVED_LEAD_AGENTS.has(stage.leadAgent)
+        ? `${dir}/native/agents/${stage.leadAgent}.md`
+        : null,
     support_agents: stage.supportAgents,
-    support_agent_files: stage.supportAgents.map((agent) => `${harnessDir}/agents/${agent}.md`),
+    support_agent_files: stage.supportAgents.map((agent) => `${dir}/native/agents/${agent}.md`),
     mode: stage.mode,
     execution_mode: mode.mode,
     mode_source: mode.source,
@@ -239,12 +271,14 @@ export function buildRunDirective(root, methodology, config, state, stage) {
     review: stage.review,
     review_required: reviewRequired,
     reviewer: stage.reviewer,
-    reviewer_file: stage.reviewer ? `${harnessDir}/agents/${stage.reviewer}.md` : null,
+    reviewer_file: stage.reviewer ? `${dir}/native/agents/${stage.reviewer}.md` : null,
     gate: true,
     workspace_requires: stage.workspaceRequires,
     question_budget: questionBudget,
     produces: stage.produces,
     produce_paths: producePaths,
+    optional_produces: stage.optionalProduces || [],
+    optional_produce_paths: optionalProducePathsFor(relDir, stage),
     consumes,
     consumes_absent: consumesAbsent,
     memory_path: scope.learnings === "on"

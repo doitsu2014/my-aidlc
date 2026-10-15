@@ -12,8 +12,8 @@ writes every row. Never hand-write or hand-edit audit rows.
   "event": "STAGE_APPROVED",
   "space": "default",
   "intent": "240101-inventory-api",
-  "phase": "analyze",
-  "stage": "intent-capture",
+  "phase": "initialization",
+  "stage": "workspace-scaffold",
   "result": "approved",
   "userInput": "Approve",
   "reason": null

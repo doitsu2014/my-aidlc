@@ -1,336 +1,173 @@
 {
+  "native": {
+    "repository": "awslabs/aidlc-workflows",
+    "version": "2.11.0",
+    "tag": "v2.11.0",
+    "commit": "6a378b53c0a4fe0641ed7d8de8dfff94264d5b6a",
+    "archiveVerified": true,
+    "stages": 33,
+    "agents": 14,
+    "scopes": 11,
+    "protocols": 9
+  },
   "phases": [
     {
-      "slug": "analyze",
-      "name": "Analyze",
+      "slug": "initialization",
+      "name": "Initialization",
       "order": 1,
-      "focus": "Requirements",
-      "aiRole": "Research assistant",
-      "output": "Specs, analysis docs",
+      "focus": "Setup",
+      "aiRole": "Workspace orchestrator",
+      "output": "Intent and record dir",
       "review": "auto"
     },
     {
-      "slug": "ideate",
-      "name": "Ideate",
+      "slug": "ideation",
+      "name": "Ideation",
       "order": 2,
+      "focus": "Intent",
+      "aiRole": "Product partner",
+      "output": "Brief, scope, approval",
+      "review": "auto"
+    },
+    {
+      "slug": "inception",
+      "name": "Inception",
+      "order": 3,
       "focus": "Design",
       "aiRole": "Architect partner",
-      "output": "Diagrams, specs",
+      "output": "Requirements, stories, architecture, units",
       "review": "auto"
     },
     {
-      "slug": "develop",
-      "name": "Develop",
-      "order": 3,
+      "slug": "construction",
+      "name": "Construction",
+      "order": 4,
       "focus": "Code",
       "aiRole": "Coding agent",
       "output": "Working code",
       "review": "auto"
     },
     {
-      "slug": "launch",
-      "name": "Launch",
-      "order": 4,
-      "focus": "Deploy",
-      "aiRole": "QA engineer",
-      "output": "Tests, pipelines",
-      "review": "auto"
-    },
-    {
-      "slug": "curate",
-      "name": "Curate",
+      "slug": "operation",
+      "name": "Operation",
       "order": 5,
-      "focus": "Maintain",
-      "aiRole": "SRE assistant",
-      "output": "Fixes, updates",
+      "focus": "Run",
+      "aiRole": "Operations assistant",
+      "output": "Deployments, observability",
       "review": "auto"
     }
   ],
   "stages": [
     {
-      "slug": "feasibility-assessment",
-      "name": "Feasibility Assessment",
-      "phase": "analyze",
+      "slug": "approval-handoff",
+      "name": "Approval & Handoff",
+      "phase": "ideation",
       "execution": "ALWAYS",
-      "leadAgent": "architect-agent",
+      "leadAgent": "aidlc-delivery-agent",
       "supportAgents": [
-        "product-agent"
+        "aidlc-product-agent"
       ],
       "mode": "inline",
       "reviewer": null,
       "review": "auto",
       "produces": [
-        "feasibility-assessment",
-        "constraint-register"
+        "initiative-brief",
+        "decision-log",
+        "approval-handoff-questions"
       ],
+      "optionalProduces": [],
       "consumes": [
         {
           "artifact": "intent-statement",
-          "required": true
+          "required": true,
+          "conditionalOn": null
         },
         {
-          "artifact": "requirements",
-          "required": true
+          "artifact": "stakeholder-map",
+          "required": true,
+          "conditionalOn": null
         },
         {
-          "artifact": "research-report",
-          "required": false
+          "artifact": "scope-document",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "intent-backlog",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "competitive-analysis",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "feasibility-assessment",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "constraint-register",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "team-assessment",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "wireframes",
+          "required": false,
+          "conditionalOn": null
         }
       ],
       "requiresStage": [
-        "requirements-analysis",
-        "research-synthesis"
+        "intent-capture",
+        "feasibility",
+        "scope-definition",
+        "team-formation",
+        "rough-mockups"
       ]
     },
     {
-      "slug": "intent-capture",
-      "name": "Intent Capture",
-      "phase": "analyze",
+      "slug": "build-and-test",
+      "name": "Build and Test",
+      "phase": "construction",
       "execution": "ALWAYS",
-      "leadAgent": "product-agent",
-      "supportAgents": [],
-      "mode": "inline",
-      "reviewer": null,
-      "review": "auto",
-      "produces": [
-        "intent-statement",
-        "intent-capture-questions"
-      ],
-      "consumes": [],
-      "requiresStage": []
-    },
-    {
-      "slug": "requirements-analysis",
-      "name": "Requirements Analysis",
-      "phase": "analyze",
-      "execution": "ALWAYS",
-      "leadAgent": "business-analyst-agent",
+      "leadAgent": "aidlc-quality-agent",
       "supportAgents": [
-        "product-agent"
+        "aidlc-devsecops-agent"
       ],
       "mode": "inline",
       "reviewer": null,
       "review": "auto",
       "produces": [
-        "requirements",
-        "requirements-questions"
+        "build-instructions",
+        "integration-test-instructions",
+        "performance-test-instructions",
+        "security-test-instructions",
+        "build-and-test-summary",
+        "build-test-results",
+        "cross-unit-traceability"
       ],
+      "optionalProduces": [],
       "consumes": [
         {
-          "artifact": "intent-statement",
-          "required": true
-        }
-      ],
-      "requiresStage": [
-        "intent-capture"
-      ]
-    },
-    {
-      "slug": "research-synthesis",
-      "name": "Research Synthesis",
-      "phase": "analyze",
-      "execution": "CONDITIONAL",
-      "leadAgent": "research-agent",
-      "supportAgents": [
-        "architect-agent"
-      ],
-      "mode": "inline",
-      "reviewer": null,
-      "review": "auto",
-      "produces": [
-        "research-report",
-        "competitive-analysis"
-      ],
-      "consumes": [
-        {
-          "artifact": "intent-statement",
-          "required": true
+          "artifact": "code-generation-plan",
+          "required": true,
+          "conditionalOn": null
         },
         {
-          "artifact": "requirements",
-          "required": false
-        }
-      ],
-      "requiresStage": [
-        "intent-capture"
-      ]
-    },
-    {
-      "slug": "documentation-update",
-      "name": "Documentation Update",
-      "phase": "curate",
-      "execution": "ALWAYS",
-      "leadAgent": "tech-writer-agent",
-      "supportAgents": [
-        "developer-agent"
-      ],
-      "mode": "inline",
-      "reviewer": null,
-      "review": "auto",
-      "produces": [
-        "updated-docs"
-      ],
-      "consumes": [
-        {
-          "artifact": "source-changes",
-          "required": false
+          "artifact": "unit-test-instructions",
+          "required": true,
+          "conditionalOn": null
         },
         {
-          "artifact": "technical-spec",
-          "required": false
-        },
-        {
-          "artifact": "release-validation-report",
-          "required": false
-        }
-      ],
-      "requiresStage": [
-        "release-validation",
-        "observability-setup"
-      ]
-    },
-    {
-      "slug": "incident-analysis",
-      "name": "Incident Analysis",
-      "phase": "curate",
-      "execution": "CONDITIONAL",
-      "leadAgent": "sre-agent",
-      "supportAgents": [
-        "developer-agent"
-      ],
-      "mode": "inline",
-      "reviewer": null,
-      "review": "auto",
-      "produces": [
-        "incident-report"
-      ],
-      "consumes": [
-        {
-          "artifact": "observability-config",
-          "required": false
-        },
-        {
-          "artifact": "source-changes",
-          "required": false
-        }
-      ],
-      "requiresStage": [
-        "observability-setup"
-      ]
-    },
-    {
-      "slug": "observability-setup",
-      "name": "Observability Setup",
-      "phase": "curate",
-      "execution": "ALWAYS",
-      "leadAgent": "sre-agent",
-      "supportAgents": [
-        "devops-agent"
-      ],
-      "mode": "inline",
-      "reviewer": null,
-      "review": "auto",
-      "produces": [
-        "observability-config"
-      ],
-      "consumes": [
-        {
-          "artifact": "technical-spec",
-          "required": false
-        },
-        {
-          "artifact": "release-validation-report",
-          "required": true
-        }
-      ],
-      "requiresStage": [
-        "release-validation"
-      ]
-    },
-    {
-      "slug": "performance-optimization",
-      "name": "Performance Optimization",
-      "phase": "curate",
-      "execution": "CONDITIONAL",
-      "leadAgent": "performance-agent",
-      "supportAgents": [
-        "developer-agent"
-      ],
-      "mode": "inline",
-      "reviewer": null,
-      "review": "auto",
-      "produces": [
-        "performance-report"
-      ],
-      "consumes": [
-        {
-          "artifact": "observability-config",
-          "required": true
-        },
-        {
-          "artifact": "technical-spec",
-          "required": false
-        }
-      ],
-      "requiresStage": [
-        "observability-setup"
-      ]
-    },
-    {
-      "slug": "code-generation",
-      "name": "Code Generation",
-      "phase": "develop",
-      "execution": "ALWAYS",
-      "leadAgent": "developer-agent",
-      "supportAgents": [],
-      "mode": "inline",
-      "reviewer": null,
-      "review": "auto",
-      "produces": [
-        "source-changes",
-        "code-generation-notes"
-      ],
-      "consumes": [
-        {
-          "artifact": "implementation-plan",
-          "required": true
-        },
-        {
-          "artifact": "unit-breakdown",
-          "required": true
-        },
-        {
-          "artifact": "technical-spec",
-          "required": false
-        }
-      ],
-      "requiresStage": [
-        "task-planning"
-      ]
-    },
-    {
-      "slug": "code-review",
-      "name": "Code Review",
-      "phase": "develop",
-      "execution": "ALWAYS",
-      "leadAgent": "code-reviewer-agent",
-      "supportAgents": [
-        "security-agent"
-      ],
-      "mode": "inline",
-      "reviewer": null,
-      "review": "auto",
-      "produces": [
-        "review-record"
-      ],
-      "consumes": [
-        {
-          "artifact": "source-changes",
-          "required": true
-        },
-        {
-          "artifact": "implementation-plan",
-          "required": false
+          "artifact": "code-summary",
+          "required": true,
+          "conditionalOn": null
         }
       ],
       "requiresStage": [
@@ -338,604 +175,1759 @@
       ]
     },
     {
-      "slug": "refactor",
-      "name": "Refactoring",
-      "phase": "develop",
-      "execution": "CONDITIONAL",
-      "leadAgent": "developer-agent",
-      "supportAgents": [
-        "code-reviewer-agent"
-      ],
-      "mode": "inline",
-      "reviewer": null,
-      "review": "auto",
-      "produces": [
-        "refactor-notes"
-      ],
-      "consumes": [
-        {
-          "artifact": "review-record",
-          "required": true
-        },
-        {
-          "artifact": "source-changes",
-          "required": true
-        }
-      ],
-      "requiresStage": [
-        "code-generation",
-        "code-review"
-      ]
-    },
-    {
-      "slug": "task-planning",
-      "name": "Task Planning",
-      "phase": "develop",
-      "execution": "ALWAYS",
-      "leadAgent": "delivery-agent",
-      "supportAgents": [
-        "developer-agent"
-      ],
-      "mode": "inline",
-      "reviewer": null,
-      "review": "auto",
-      "produces": [
-        "implementation-plan",
-        "unit-breakdown"
-      ],
-      "consumes": [
-        {
-          "artifact": "technical-spec",
-          "required": false
-        },
-        {
-          "artifact": "requirements",
-          "required": true
-        }
-      ],
-      "requiresStage": [
-        "feasibility-assessment"
-      ]
-    },
-    {
-      "slug": "api-contract",
-      "name": "API Contract Design",
-      "phase": "ideate",
-      "execution": "ALWAYS",
-      "leadAgent": "architect-agent",
-      "supportAgents": [
-        "developer-agent"
-      ],
-      "mode": "inline",
-      "reviewer": null,
-      "review": "auto",
-      "produces": [
-        "api-contract"
-      ],
-      "consumes": [
-        {
-          "artifact": "architecture-doc",
-          "required": true
-        },
-        {
-          "artifact": "requirements",
-          "required": true
-        }
-      ],
-      "requiresStage": [
-        "architecture-design"
-      ]
-    },
-    {
-      "slug": "architecture-design",
-      "name": "Architecture Design",
-      "phase": "ideate",
-      "execution": "ALWAYS",
-      "leadAgent": "architect-agent",
-      "supportAgents": [
-        "design-agent"
-      ],
-      "mode": "inline",
-      "reviewer": "security-agent",
-      "review": "auto",
-      "produces": [
-        "architecture-doc",
-        "architecture-questions"
-      ],
-      "consumes": [
-        {
-          "artifact": "requirements",
-          "required": true
-        },
-        {
-          "artifact": "feasibility-assessment",
-          "required": true
-        },
-        {
-          "artifact": "constraint-register",
-          "required": false
-        }
-      ],
-      "requiresStage": [
-        "feasibility-assessment"
-      ]
-    },
-    {
-      "slug": "design-patterns",
-      "name": "Design Pattern Selection",
-      "phase": "ideate",
-      "execution": "ALWAYS",
-      "leadAgent": "design-agent",
-      "supportAgents": [
-        "architect-agent"
-      ],
-      "mode": "inline",
-      "reviewer": null,
-      "review": "auto",
-      "produces": [
-        "design-decisions"
-      ],
-      "consumes": [
-        {
-          "artifact": "architecture-doc",
-          "required": true
-        },
-        {
-          "artifact": "requirements",
-          "required": true
-        }
-      ],
-      "requiresStage": [
-        "architecture-design"
-      ]
-    },
-    {
-      "slug": "technical-spec",
-      "name": "Technical Specification",
-      "phase": "ideate",
-      "execution": "ALWAYS",
-      "leadAgent": "design-agent",
-      "supportAgents": [
-        "architect-agent",
-        "developer-agent"
-      ],
-      "mode": "inline",
-      "reviewer": null,
-      "review": "auto",
-      "produces": [
-        "technical-spec"
-      ],
-      "consumes": [
-        {
-          "artifact": "architecture-doc",
-          "required": true
-        },
-        {
-          "artifact": "design-decisions",
-          "required": true
-        },
-        {
-          "artifact": "api-contract",
-          "required": false
-        },
-        {
-          "artifact": "requirements",
-          "required": true
-        }
-      ],
-      "requiresStage": [
-        "design-patterns",
-        "api-contract"
-      ]
-    },
-    {
       "slug": "ci-pipeline",
       "name": "CI Pipeline",
-      "phase": "launch",
-      "execution": "ALWAYS",
-      "leadAgent": "devops-agent",
-      "supportAgents": [
-        "qa-agent"
-      ],
+      "phase": "construction",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-pipeline-deploy-agent",
+      "supportAgents": [],
       "mode": "inline",
       "reviewer": null,
       "review": "auto",
       "produces": [
-        "ci-config"
+        "ci-config",
+        "quality-gates",
+        "ci-pipeline-questions"
       ],
+      "optionalProduces": [],
       "consumes": [
         {
-          "artifact": "test-plan",
-          "required": true
+          "artifact": "code-summary",
+          "required": true,
+          "conditionalOn": null
         },
         {
-          "artifact": "test-suite",
-          "required": true
+          "artifact": "build-and-test-summary",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "build-test-results",
+          "required": true,
+          "conditionalOn": null
         }
       ],
       "requiresStage": [
-        "test-generation"
+        "build-and-test"
       ]
     },
     {
-      "slug": "deployment",
-      "name": "Deployment Automation",
-      "phase": "launch",
+      "slug": "code-generation",
+      "name": "Code Generation",
+      "phase": "construction",
       "execution": "ALWAYS",
-      "leadAgent": "devops-agent",
+      "leadAgent": "aidlc-developer-agent",
+      "supportAgents": [],
+      "mode": "subagent",
+      "reviewer": "aidlc-architecture-reviewer-agent",
+      "review": "auto",
+      "produces": [
+        "code-generation-plan",
+        "unit-test-instructions",
+        "code-summary",
+        "traceability"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "functional-spec",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "rules",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "entities",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "contract-summary",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "performance-design",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "security-design",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "infrastructure-specification",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "unit-of-work",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "requirements",
+          "required": true,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "units-generation",
+        "functional-design",
+        "nfr-requirements",
+        "nfr-design",
+        "infrastructure-design"
+      ]
+    },
+    {
+      "slug": "contract-design",
+      "name": "Contract Design",
+      "phase": "inception",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-architect-agent",
       "supportAgents": [
-        "sre-agent"
+        "aidlc-aws-platform-agent"
+      ],
+      "mode": "inline",
+      "reviewer": "aidlc-architecture-reviewer-agent",
+      "review": "auto",
+      "produces": [
+        "contract-summary"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "unit-of-work",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "unit-of-work-dependency",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "components",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "requirements",
+          "required": false,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "units-generation"
+      ]
+    },
+    {
+      "slug": "delivery-planning",
+      "name": "Delivery Planning",
+      "phase": "inception",
+      "execution": "ALWAYS",
+      "leadAgent": "aidlc-delivery-agent",
+      "supportAgents": [
+        "aidlc-architect-agent"
       ],
       "mode": "inline",
       "reviewer": null,
       "review": "auto",
       "produces": [
-        "deployment-runbook",
-        "deployment-scripts"
+        "bolt-plan",
+        "team-allocation",
+        "risk-and-sequencing-rationale",
+        "external-dependency-map",
+        "delivery-planning-questions"
       ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "requirements",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "stories",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "mockups",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "components",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "unit-of-work",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "unit-of-work-dependency",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "unit-of-work-story-map",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "contract-summary",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "team-practices",
+          "required": false,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "units-generation"
+      ]
+    },
+    {
+      "slug": "deployment-execution",
+      "name": "Deployment Execution",
+      "phase": "operation",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-pipeline-deploy-agent",
+      "supportAgents": [
+        "aidlc-developer-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [
+        "deployment-log",
+        "smoke-test-results",
+        "health-check-report",
+        "deployment-execution-questions"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "cd-config",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "deployment-strategy",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "environment-inventory",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "build-test-results",
+          "required": true,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "deployment-pipeline",
+        "environment-provisioning"
+      ]
+    },
+    {
+      "slug": "deployment-pipeline",
+      "name": "Deployment Pipeline",
+      "phase": "operation",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-pipeline-deploy-agent",
+      "supportAgents": [],
+      "mode": "inline",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [
+        "cd-config",
+        "deployment-strategy",
+        "rollback-runbook",
+        "deployment-pipeline-questions"
+      ],
+      "optionalProduces": [],
       "consumes": [
         {
           "artifact": "ci-config",
-          "required": true
+          "required": true,
+          "conditionalOn": null
         },
         {
-          "artifact": "technical-spec",
-          "required": false
+          "artifact": "quality-gates",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "infrastructure-specification",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "cicd-pipeline",
+          "required": true,
+          "conditionalOn": null
         }
       ],
       "requiresStage": [
-        "ci-pipeline"
+        "ci-pipeline",
+        "infrastructure-design"
       ]
     },
     {
-      "slug": "release-validation",
-      "name": "Release Validation",
-      "phase": "launch",
-      "execution": "ALWAYS",
-      "leadAgent": "qa-agent",
+      "slug": "domain-design",
+      "name": "Domain Design",
+      "phase": "inception",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-architect-agent",
       "supportAgents": [
-        "product-agent",
-        "devops-agent"
+        "aidlc-aws-platform-agent",
+        "aidlc-design-agent"
       ],
       "mode": "inline",
-      "reviewer": null,
+      "reviewer": "aidlc-architecture-reviewer-agent",
       "review": "auto",
       "produces": [
-        "release-validation-report"
+        "components",
+        "decisions",
+        "traceability"
       ],
+      "optionalProduces": [],
       "consumes": [
         {
           "artifact": "requirements",
-          "required": true
+          "required": true,
+          "conditionalOn": null
         },
         {
-          "artifact": "test-suite",
-          "required": true
+          "artifact": "stories",
+          "required": false,
+          "conditionalOn": null
         },
         {
-          "artifact": "deployment-runbook",
-          "required": false
+          "artifact": "architecture",
+          "required": false,
+          "conditionalOn": "brownfield"
+        },
+        {
+          "artifact": "component-inventory",
+          "required": false,
+          "conditionalOn": "brownfield"
+        },
+        {
+          "artifact": "team-practices",
+          "required": false,
+          "conditionalOn": null
         }
       ],
       "requiresStage": [
-        "test-generation",
-        "deployment"
+        "requirements-analysis",
+        "refined-mockups"
       ]
     },
     {
-      "slug": "test-generation",
-      "name": "Test Generation",
-      "phase": "launch",
-      "execution": "ALWAYS",
-      "leadAgent": "qa-agent",
+      "slug": "environment-provisioning",
+      "name": "Environment Provisioning",
+      "phase": "operation",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-aws-platform-agent",
       "supportAgents": [
-        "developer-agent"
+        "aidlc-devsecops-agent",
+        "aidlc-compliance-agent"
       ],
       "mode": "inline",
       "reviewer": null,
       "review": "auto",
       "produces": [
-        "test-suite"
+        "environment-inventory",
+        "validation-report",
+        "environment-provisioning-questions"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "infrastructure-specification",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "cd-config",
+          "required": true,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "infrastructure-design",
+        "deployment-pipeline"
+      ]
+    },
+    {
+      "slug": "feasibility",
+      "name": "Feasibility & Constraints",
+      "phase": "ideation",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-architect-agent",
+      "supportAgents": [
+        "aidlc-aws-platform-agent",
+        "aidlc-compliance-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [
+        "feasibility-assessment",
+        "constraint-register",
+        "raid-log",
+        "feasibility-questions"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "intent-statement",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "competitive-analysis",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "market-trends",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "build-vs-buy",
+          "required": false,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "intent-capture",
+        "market-research"
+      ]
+    },
+    {
+      "slug": "feedback-optimization",
+      "name": "Feedback & Optimization",
+      "phase": "operation",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-operations-agent",
+      "supportAgents": [
+        "aidlc-aws-platform-agent"
+      ],
+      "mode": "inline",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [
+        "slo-report",
+        "cost-analysis",
+        "drift-report",
+        "feedback-loop",
+        "feedback-optimization-questions"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "dashboards",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "alarms",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "slo-config",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "deployment-log",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "load-test-results",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "incident-plan",
+          "required": false,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "observability-setup",
+        "deployment-execution",
+        "incident-response",
+        "performance-validation"
+      ]
+    },
+    {
+      "slug": "functional-design",
+      "name": "Functional Design",
+      "phase": "construction",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-architect-agent",
+      "supportAgents": [
+        "aidlc-developer-agent"
+      ],
+      "mode": "inline",
+      "reviewer": "aidlc-architecture-reviewer-agent",
+      "review": "auto",
+      "produces": [
+        "entities",
+        "rules",
+        "functional-spec",
+        "traceability"
+      ],
+      "optionalProduces": [
+        "frontend-components"
       ],
       "consumes": [
         {
-          "artifact": "test-plan",
-          "required": true
+          "artifact": "unit-of-work",
+          "required": true,
+          "conditionalOn": null
         },
         {
-          "artifact": "source-changes",
-          "required": true
+          "artifact": "unit-of-work-story-map",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "requirements",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "components",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "contract-summary",
+          "required": false,
+          "conditionalOn": null
         }
       ],
       "requiresStage": [
-        "test-plan"
+        "units-generation",
+        "contract-design"
       ]
     },
     {
-      "slug": "test-plan",
-      "name": "Test Plan",
-      "phase": "launch",
-      "execution": "ALWAYS",
-      "leadAgent": "qa-agent",
+      "slug": "incident-response",
+      "name": "Incident Response",
+      "phase": "operation",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-operations-agent",
+      "supportAgents": [],
+      "mode": "inline",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [
+        "runbooks",
+        "incident-plan",
+        "escalation-matrix",
+        "incident-response-questions"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "dashboards",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "alarms",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "reliability-design",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "security-design",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "infrastructure-specification",
+          "required": true,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "observability-setup"
+      ]
+    },
+    {
+      "slug": "infrastructure-design",
+      "name": "Infrastructure Design",
+      "phase": "construction",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-aws-platform-agent",
       "supportAgents": [
-        "developer-agent"
+        "aidlc-devsecops-agent",
+        "aidlc-compliance-agent"
+      ],
+      "mode": "inline",
+      "reviewer": "aidlc-architecture-reviewer-agent",
+      "review": "auto",
+      "produces": [
+        "infrastructure-specification",
+        "monitoring-design",
+        "cicd-pipeline",
+        "traceability"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "performance-design",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "security-design",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "scalability-design",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "reliability-design",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "observability-design",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "logical-components",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "components",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "functional-spec",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "contract-summary",
+          "required": false,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "units-generation",
+        "nfr-design"
+      ]
+    },
+    {
+      "slug": "intent-capture",
+      "name": "Intent Capture & Framing",
+      "phase": "ideation",
+      "execution": "ALWAYS",
+      "leadAgent": "aidlc-product-agent",
+      "supportAgents": [
+        "aidlc-architect-agent"
+      ],
+      "mode": "inline",
+      "reviewer": "aidlc-product-lead-agent",
+      "review": "auto",
+      "produces": [
+        "intent-statement",
+        "stakeholder-map",
+        "intent-capture-questions"
+      ],
+      "optionalProduces": [],
+      "consumes": [],
+      "requiresStage": []
+    },
+    {
+      "slug": "market-research",
+      "name": "Market Research",
+      "phase": "ideation",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-product-agent",
+      "supportAgents": [],
+      "mode": "inline",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [
+        "competitive-analysis",
+        "market-trends",
+        "build-vs-buy",
+        "market-research-questions"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "intent-statement",
+          "required": true,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "intent-capture"
+      ]
+    },
+    {
+      "slug": "nfr-design",
+      "name": "NFR Design",
+      "phase": "construction",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-architect-agent",
+      "supportAgents": [
+        "aidlc-aws-platform-agent"
+      ],
+      "mode": "inline",
+      "reviewer": "aidlc-architecture-reviewer-agent",
+      "review": "auto",
+      "produces": [
+        "performance-design",
+        "security-design",
+        "scalability-design",
+        "reliability-design",
+        "observability-design",
+        "logical-components",
+        "traceability"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "performance-requirements",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "security-requirements",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "scalability-requirements",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "reliability-requirements",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "observability-requirements",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "tech-stack-decisions",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "functional-spec",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "contract-summary",
+          "required": false,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "units-generation",
+        "nfr-requirements"
+      ]
+    },
+    {
+      "slug": "nfr-requirements",
+      "name": "NFR Requirements",
+      "phase": "construction",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-architect-agent",
+      "supportAgents": [
+        "aidlc-devsecops-agent",
+        "aidlc-compliance-agent",
+        "aidlc-quality-agent"
+      ],
+      "mode": "inline",
+      "reviewer": "aidlc-architecture-reviewer-agent",
+      "review": "auto",
+      "produces": [
+        "performance-requirements",
+        "security-requirements",
+        "scalability-requirements",
+        "reliability-requirements",
+        "observability-requirements",
+        "tech-stack-decisions",
+        "traceability"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "functional-spec",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "rules",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "requirements",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "contract-summary",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "technology-stack",
+          "required": false,
+          "conditionalOn": "brownfield"
+        }
+      ],
+      "requiresStage": [
+        "units-generation",
+        "functional-design"
+      ]
+    },
+    {
+      "slug": "observability-setup",
+      "name": "Observability Setup",
+      "phase": "operation",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-operations-agent",
+      "supportAgents": [],
+      "mode": "inline",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [
+        "dashboards",
+        "alarms",
+        "slo-config",
+        "log-queries",
+        "tracing-config",
+        "anomaly-config",
+        "observability-setup-questions"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "performance-design",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "security-design",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "reliability-design",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "monitoring-design",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "infrastructure-specification",
+          "required": true,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "nfr-design",
+        "infrastructure-design",
+        "deployment-execution"
+      ]
+    },
+    {
+      "slug": "performance-validation",
+      "name": "Performance Validation",
+      "phase": "operation",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-quality-agent",
+      "supportAgents": [],
+      "mode": "inline",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [
+        "load-test-plan",
+        "load-test-results",
+        "nfr-validation-matrix",
+        "performance-validation-questions"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "performance-requirements",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "scalability-requirements",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "performance-design",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "scalability-design",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "dashboards",
+          "required": true,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "nfr-requirements",
+        "nfr-design",
+        "observability-setup"
+      ]
+    },
+    {
+      "slug": "practices-discovery",
+      "name": "Practices Discovery",
+      "phase": "inception",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-pipeline-deploy-agent",
+      "supportAgents": [
+        "aidlc-quality-agent",
+        "aidlc-developer-agent",
+        "aidlc-devsecops-agent"
+      ],
+      "mode": "subagent",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [
+        "team-practices",
+        "discovered-rules",
+        "evidence",
+        "practices-discovery-timestamp"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "code-structure",
+          "required": false,
+          "conditionalOn": "brownfield"
+        },
+        {
+          "artifact": "technology-stack",
+          "required": false,
+          "conditionalOn": "brownfield"
+        },
+        {
+          "artifact": "dependencies",
+          "required": false,
+          "conditionalOn": "brownfield"
+        },
+        {
+          "artifact": "code-quality-assessment",
+          "required": false,
+          "conditionalOn": "brownfield"
+        },
+        {
+          "artifact": "architecture",
+          "required": false,
+          "conditionalOn": "brownfield"
+        },
+        {
+          "artifact": "business-overview",
+          "required": false,
+          "conditionalOn": "brownfield"
+        }
+      ],
+      "requiresStage": [
+        "state-init",
+        "reverse-engineering"
+      ]
+    },
+    {
+      "slug": "refined-mockups",
+      "name": "Refined Mockups",
+      "phase": "inception",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-design-agent",
+      "supportAgents": [
+        "aidlc-product-agent"
+      ],
+      "mode": "inline",
+      "reviewer": "aidlc-product-lead-agent",
+      "review": "auto",
+      "produces": [
+        "mockups",
+        "interaction-spec",
+        "design-system-mapping",
+        "accessibility-checklist",
+        "refined-mockups-questions"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "wireframes",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "user-flow",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "stories",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "requirements",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "team-practices",
+          "required": false,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "user-stories"
+      ]
+    },
+    {
+      "slug": "requirements-analysis",
+      "name": "Requirements Analysis",
+      "phase": "inception",
+      "execution": "ALWAYS",
+      "leadAgent": "aidlc-product-agent",
+      "supportAgents": [],
+      "mode": "inline",
+      "reviewer": "aidlc-product-lead-agent",
+      "review": "auto",
+      "produces": [
+        "requirements",
+        "requirements-analysis-questions"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "intent-statement",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "scope-document",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "business-overview",
+          "required": false,
+          "conditionalOn": "brownfield"
+        },
+        {
+          "artifact": "architecture",
+          "required": false,
+          "conditionalOn": "brownfield"
+        },
+        {
+          "artifact": "code-structure",
+          "required": false,
+          "conditionalOn": "brownfield"
+        },
+        {
+          "artifact": "team-practices",
+          "required": false,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "approval-handoff",
+        "reverse-engineering"
+      ]
+    },
+    {
+      "slug": "reverse-engineering",
+      "name": "Reverse Engineering",
+      "phase": "inception",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-developer-agent",
+      "supportAgents": [
+        "aidlc-architect-agent"
+      ],
+      "mode": "pipeline",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [
+        "business-overview",
+        "architecture",
+        "code-structure",
+        "api-documentation",
+        "component-inventory",
+        "technology-stack",
+        "dependencies",
+        "code-quality-assessment",
+        "reverse-engineering-timestamp"
+      ],
+      "optionalProduces": [],
+      "consumes": [],
+      "requiresStage": [
+        "state-init"
+      ]
+    },
+    {
+      "slug": "rough-mockups",
+      "name": "Rough Mockups",
+      "phase": "ideation",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-design-agent",
+      "supportAgents": [
+        "aidlc-product-agent"
+      ],
+      "mode": "inline",
+      "reviewer": "aidlc-product-lead-agent",
+      "review": "auto",
+      "produces": [
+        "wireframes",
+        "user-flow",
+        "rough-mockups-questions"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "intent-statement",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "scope-document",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "intent-backlog",
+          "required": true,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "scope-definition",
+        "team-formation"
+      ]
+    },
+    {
+      "slug": "scope-definition",
+      "name": "Scope Definition",
+      "phase": "ideation",
+      "execution": "ALWAYS",
+      "leadAgent": "aidlc-product-agent",
+      "supportAgents": [
+        "aidlc-delivery-agent"
       ],
       "mode": "inline",
       "reviewer": null,
       "review": "auto",
       "produces": [
-        "test-plan"
+        "scope-document",
+        "intent-backlog",
+        "scope-definition-questions"
       ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "intent-statement",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "feasibility-assessment",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "constraint-register",
+          "required": false,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "intent-capture",
+        "feasibility"
+      ]
+    },
+    {
+      "slug": "state-init",
+      "name": "State Initialization",
+      "phase": "initialization",
+      "execution": "ALWAYS",
+      "leadAgent": "orchestrator",
+      "supportAgents": [],
+      "mode": "inline",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [],
+      "optionalProduces": [],
+      "consumes": [],
+      "requiresStage": [
+        "workspace-detection"
+      ]
+    },
+    {
+      "slug": "team-formation",
+      "name": "Team Formation",
+      "phase": "ideation",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-delivery-agent",
+      "supportAgents": [],
+      "mode": "inline",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [
+        "team-assessment",
+        "skill-matrix",
+        "mob-composition",
+        "team-formation-questions"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "scope-document",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "intent-backlog",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "feasibility-assessment",
+          "required": false,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "scope-definition"
+      ]
+    },
+    {
+      "slug": "units-generation",
+      "name": "Units Generation",
+      "phase": "inception",
+      "execution": "ALWAYS",
+      "leadAgent": "aidlc-architect-agent",
+      "supportAgents": [
+        "aidlc-delivery-agent"
+      ],
+      "mode": "inline",
+      "reviewer": "aidlc-architecture-reviewer-agent",
+      "review": "auto",
+      "produces": [
+        "unit-of-work",
+        "unit-of-work-dependency",
+        "unit-of-work-story-map",
+        "traceability"
+      ],
+      "optionalProduces": [],
+      "consumes": [
+        {
+          "artifact": "components",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "decisions",
+          "required": false,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "requirements",
+          "required": true,
+          "conditionalOn": null
+        },
+        {
+          "artifact": "stories",
+          "required": false,
+          "conditionalOn": null
+        }
+      ],
+      "requiresStage": [
+        "domain-design"
+      ]
+    },
+    {
+      "slug": "user-stories",
+      "name": "User Stories",
+      "phase": "inception",
+      "execution": "CONDITIONAL",
+      "leadAgent": "aidlc-product-agent",
+      "supportAgents": [
+        "aidlc-design-agent",
+        "aidlc-developer-agent",
+        "aidlc-quality-agent"
+      ],
+      "mode": "mob",
+      "reviewer": "aidlc-product-lead-agent",
+      "review": "auto",
+      "produces": [
+        "stories",
+        "personas",
+        "user-stories-assessment",
+        "traceability"
+      ],
+      "optionalProduces": [],
       "consumes": [
         {
           "artifact": "requirements",
-          "required": true
+          "required": true,
+          "conditionalOn": null
         },
         {
-          "artifact": "technical-spec",
-          "required": false
+          "artifact": "business-overview",
+          "required": false,
+          "conditionalOn": "brownfield"
         },
         {
-          "artifact": "source-changes",
-          "required": false
+          "artifact": "component-inventory",
+          "required": false,
+          "conditionalOn": "brownfield"
+        },
+        {
+          "artifact": "team-practices",
+          "required": false,
+          "conditionalOn": null
         }
       ],
       "requiresStage": [
-        "code-review"
+        "requirements-analysis"
       ]
+    },
+    {
+      "slug": "workspace-detection",
+      "name": "Workspace Detection",
+      "phase": "initialization",
+      "execution": "ALWAYS",
+      "leadAgent": "orchestrator",
+      "supportAgents": [],
+      "mode": "inline",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [],
+      "optionalProduces": [],
+      "consumes": [],
+      "requiresStage": [
+        "workspace-scaffold"
+      ]
+    },
+    {
+      "slug": "workspace-scaffold",
+      "name": "Workspace Scaffold",
+      "phase": "initialization",
+      "execution": "ALWAYS",
+      "leadAgent": "orchestrator",
+      "supportAgents": [],
+      "mode": "inline",
+      "reviewer": null,
+      "review": "auto",
+      "produces": [],
+      "optionalProduces": [],
+      "consumes": [],
+      "requiresStage": []
     }
   ],
   "scopes": [
     {
       "name": "bugfix",
+      "source": "native",
       "depth": "Minimal",
       "keywords": [
-        "bug",
         "fix",
-        "regression",
-        "hotfix",
-        "defect",
-        "broken"
+        "bug",
+        "broken",
+        "bugfix"
       ],
-      "phases": [
-        "analyze",
-        "develop",
-        "launch"
-      ],
-      "skip": [
-        "research-synthesis",
-        "feasibility-assessment",
-        "task-planning",
-        "refactor",
-        "test-plan",
-        "deployment"
-      ]
+      "phases": [],
+      "include": [],
+      "skip": []
     },
     {
       "name": "classic",
+      "source": "native",
       "depth": "Standard",
       "keywords": [],
-      "phases": [
-        "analyze",
-        "ideate",
-        "develop",
-        "launch",
-        "curate"
-      ],
+      "phases": [],
+      "include": [],
+      "skip": []
+    },
+    {
+      "name": "enterprise",
+      "source": "native",
+      "depth": "Comprehensive",
+      "keywords": [],
+      "phases": [],
+      "include": [],
       "skip": []
     },
     {
       "name": "express",
+      "source": "native",
       "depth": "Minimal",
       "keywords": [
         "express",
-        "quick",
-        "lightweight",
-        "small",
-        "tiny"
+        "lightweight"
       ],
-      "phases": [
-        "analyze",
-        "develop",
-        "launch"
-      ],
-      "skip": [
-        "research-synthesis",
-        "feasibility-assessment",
-        "code-review",
-        "release-validation"
-      ]
+      "phases": [],
+      "include": [],
+      "skip": []
     },
     {
       "name": "feature",
+      "source": "native",
       "depth": "Standard",
-      "keywords": [
-        "feature",
-        "add",
-        "enhance",
-        "capability",
-        "story"
-      ],
-      "phases": [
-        "analyze",
-        "ideate",
-        "develop",
-        "launch"
-      ],
-      "skip": [
-        "research-synthesis"
-      ]
+      "keywords": [],
+      "phases": [],
+      "include": [],
+      "skip": []
     },
     {
       "name": "infra",
+      "source": "native",
       "depth": "Standard",
       "keywords": [
-        "infra",
         "infrastructure",
-        "terraform",
-        "kubernetes",
-        "pipeline",
-        "platform",
-        "observability"
+        "deploy",
+        "infra"
       ],
-      "phases": [
-        "analyze",
-        "ideate",
-        "launch",
-        "curate"
-      ],
-      "skip": [
-        "research-synthesis",
-        "api-contract",
-        "code-review",
-        "refactor"
-      ]
+      "phases": [],
+      "include": [],
+      "skip": []
     },
     {
       "name": "mvp",
+      "source": "native",
       "depth": "Standard",
       "keywords": [
         "mvp",
-        "prototype",
-        "launch fast",
-        "ship fast",
-        "first version"
+        "minimum viable"
       ],
-      "phases": [
-        "analyze",
-        "ideate",
-        "develop",
-        "launch"
-      ],
-      "skip": [
-        "design-patterns",
-        "api-contract",
-        "refactor",
-        "deployment"
-      ]
+      "phases": [],
+      "include": [],
+      "skip": []
     },
     {
       "name": "poc",
+      "source": "native",
       "depth": "Minimal",
       "keywords": [
-        "poc",
         "proof of concept",
-        "spike",
-        "experiment",
         "prototype",
-        "validate idea"
+        "poc",
+        "spike"
       ],
-      "phases": [
-        "analyze",
-        "develop"
-      ],
-      "skip": [
-        "research-synthesis",
-        "code-review",
+      "phases": [],
+      "include": [],
+      "skip": []
+    },
+    {
+      "name": "refactor",
+      "source": "native",
+      "depth": "Minimal",
+      "keywords": [
         "refactor",
-        "task-planning"
-      ]
+        "clean up",
+        "simplify"
+      ],
+      "phases": [],
+      "include": [],
+      "skip": []
+    },
+    {
+      "name": "security-patch",
+      "source": "native",
+      "depth": "Minimal",
+      "keywords": [
+        "security",
+        "cve",
+        "vulnerability",
+        "patch"
+      ],
+      "phases": [],
+      "include": [],
+      "skip": []
+    },
+    {
+      "name": "workshop",
+      "source": "native",
+      "depth": "Standard",
+      "keywords": [
+        "workshop",
+        "lab",
+        "training"
+      ],
+      "phases": [],
+      "include": [],
+      "skip": []
     }
   ],
   "scopeGrid": {
     "bugfix": [
-      "intent-capture",
+      "workspace-scaffold",
+      "workspace-detection",
+      "state-init",
+      "reverse-engineering",
       "requirements-analysis",
       "code-generation",
-      "code-review",
-      "test-generation",
-      "ci-pipeline",
-      "release-validation"
+      "build-and-test",
+      "deployment-pipeline",
+      "deployment-execution"
     ],
     "classic": [
-      "intent-capture",
+      "workspace-scaffold",
+      "workspace-detection",
+      "state-init",
+      "reverse-engineering",
+      "practices-discovery",
       "requirements-analysis",
-      "research-synthesis",
-      "feasibility-assessment",
-      "architecture-design",
-      "api-contract",
-      "design-patterns",
-      "technical-spec",
-      "task-planning",
+      "user-stories",
+      "refined-mockups",
+      "domain-design",
+      "units-generation",
+      "contract-design",
+      "delivery-planning",
+      "functional-design",
+      "nfr-requirements",
+      "nfr-design",
+      "infrastructure-design",
       "code-generation",
-      "code-review",
-      "refactor",
-      "test-plan",
-      "test-generation",
+      "build-and-test"
+    ],
+    "enterprise": [
+      "workspace-scaffold",
+      "workspace-detection",
+      "state-init",
+      "intent-capture",
+      "market-research",
+      "feasibility",
+      "scope-definition",
+      "team-formation",
+      "rough-mockups",
+      "approval-handoff",
+      "reverse-engineering",
+      "practices-discovery",
+      "requirements-analysis",
+      "user-stories",
+      "refined-mockups",
+      "domain-design",
+      "units-generation",
+      "contract-design",
+      "delivery-planning",
+      "functional-design",
+      "nfr-requirements",
+      "nfr-design",
+      "infrastructure-design",
+      "code-generation",
+      "build-and-test",
       "ci-pipeline",
-      "deployment",
-      "release-validation",
+      "deployment-pipeline",
+      "environment-provisioning",
+      "deployment-execution",
       "observability-setup",
-      "documentation-update",
-      "incident-analysis",
-      "performance-optimization"
+      "incident-response",
+      "performance-validation",
+      "feedback-optimization"
     ],
     "express": [
-      "intent-capture",
+      "workspace-scaffold",
+      "workspace-detection",
+      "state-init",
+      "reverse-engineering",
       "requirements-analysis",
-      "task-planning",
       "code-generation",
-      "refactor",
-      "test-plan",
-      "test-generation",
-      "ci-pipeline",
-      "deployment"
+      "build-and-test",
+      "deployment-pipeline",
+      "deployment-execution",
+      "observability-setup"
     ],
     "feature": [
+      "workspace-scaffold",
+      "workspace-detection",
+      "state-init",
       "intent-capture",
+      "market-research",
+      "feasibility",
+      "scope-definition",
+      "team-formation",
+      "rough-mockups",
+      "approval-handoff",
+      "reverse-engineering",
+      "practices-discovery",
       "requirements-analysis",
-      "feasibility-assessment",
-      "architecture-design",
-      "api-contract",
-      "design-patterns",
-      "technical-spec",
-      "task-planning",
+      "user-stories",
+      "refined-mockups",
+      "domain-design",
+      "units-generation",
+      "contract-design",
+      "delivery-planning",
+      "functional-design",
+      "nfr-requirements",
+      "nfr-design",
+      "infrastructure-design",
       "code-generation",
-      "code-review",
-      "refactor",
-      "test-plan",
-      "test-generation",
+      "build-and-test",
       "ci-pipeline",
-      "deployment",
-      "release-validation"
+      "deployment-pipeline",
+      "environment-provisioning",
+      "deployment-execution",
+      "observability-setup",
+      "incident-response",
+      "performance-validation",
+      "feedback-optimization"
     ],
     "infra": [
-      "intent-capture",
+      "workspace-scaffold",
+      "workspace-detection",
+      "state-init",
+      "practices-discovery",
       "requirements-analysis",
-      "feasibility-assessment",
-      "architecture-design",
-      "design-patterns",
-      "technical-spec",
-      "test-plan",
-      "test-generation",
       "ci-pipeline",
-      "deployment",
-      "release-validation",
-      "observability-setup",
-      "documentation-update",
-      "incident-analysis",
-      "performance-optimization"
+      "nfr-requirements",
+      "nfr-design",
+      "infrastructure-design",
+      "deployment-pipeline",
+      "environment-provisioning",
+      "deployment-execution",
+      "observability-setup"
     ],
     "mvp": [
+      "workspace-scaffold",
+      "workspace-detection",
+      "state-init",
       "intent-capture",
+      "feasibility",
+      "scope-definition",
+      "rough-mockups",
+      "reverse-engineering",
+      "practices-discovery",
       "requirements-analysis",
-      "research-synthesis",
-      "feasibility-assessment",
-      "architecture-design",
-      "technical-spec",
-      "task-planning",
+      "user-stories",
+      "refined-mockups",
+      "domain-design",
+      "units-generation",
+      "contract-design",
+      "delivery-planning",
+      "functional-design",
+      "nfr-requirements",
+      "nfr-design",
+      "infrastructure-design",
       "code-generation",
-      "code-review",
-      "test-plan",
-      "test-generation",
-      "ci-pipeline",
-      "release-validation"
+      "build-and-test",
+      "ci-pipeline"
     ],
     "poc": [
+      "workspace-scaffold",
+      "workspace-detection",
+      "state-init",
       "intent-capture",
+      "reverse-engineering",
       "requirements-analysis",
-      "feasibility-assessment",
-      "code-generation"
+      "code-generation",
+      "build-and-test"
+    ],
+    "refactor": [
+      "workspace-scaffold",
+      "workspace-detection",
+      "state-init",
+      "reverse-engineering",
+      "requirements-analysis",
+      "functional-design",
+      "code-generation",
+      "build-and-test",
+      "deployment-pipeline",
+      "deployment-execution"
+    ],
+    "security-patch": [
+      "workspace-scaffold",
+      "workspace-detection",
+      "state-init",
+      "reverse-engineering",
+      "requirements-analysis",
+      "nfr-requirements",
+      "code-generation",
+      "build-and-test",
+      "deployment-pipeline",
+      "deployment-execution"
+    ],
+    "workshop": [
+      "workspace-scaffold",
+      "workspace-detection",
+      "state-init",
+      "reverse-engineering",
+      "practices-discovery",
+      "requirements-analysis",
+      "user-stories",
+      "refined-mockups",
+      "domain-design",
+      "units-generation",
+      "contract-design",
+      "delivery-planning",
+      "functional-design",
+      "nfr-requirements",
+      "nfr-design",
+      "infrastructure-design",
+      "code-generation",
+      "build-and-test",
+      "ci-pipeline",
+      "deployment-pipeline",
+      "environment-provisioning",
+      "deployment-execution",
+      "observability-setup",
+      "incident-response",
+      "performance-validation",
+      "feedback-optimization"
     ]
   }
 }

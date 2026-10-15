@@ -2,6 +2,9 @@
 dist/
 dist-release/
 
+# --- fetched AI-DLC release archive (the snapshot in core/native/ is committed) ---
+.cache/
+
 # --- local runtime output ---
 tmp/
 *.tmp
@@ -20,5 +23,6 @@ node_modules/
 # The workspace commits memory, artifacts, and state; it ignores local cursors.
 aidlc/.my-aidlc-sessions/
 aidlc/config.local.json
+aidlc/active-space
 aidlc/spaces/*/.active-space
 aidlc/spaces/*/intents/*/.active-intent

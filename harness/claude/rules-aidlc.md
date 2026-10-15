@@ -1,5 +1,14 @@
 <!--
-  .claude/rules/aidlc.md — the my-aidlc method @-import stub.
+  .claude/rules/aidlc.md - the my-aidlc method @-import stub.
+
+  my-aidlc runs the native AWS AI-DLC methodology - fetched from
+  awslabs/aidlc-workflows at the version pinned in aidlc-version.json into the
+  engine's native/ directory by `my-aidlc update` - across five phases:
+  Initialization, Ideation, Inception, Construction, Operation. Invoke it as
+  /aidlc.
+
+  Workflow profiles live in the space at aidlc/spaces/<space>/scopes/ and are
+  the team's to edit: each states its complete stage set in `include`.
 
   The method (org/team/project) is authored ONCE at the workspace root under
   aidlc/spaces/default/memory/. This file references it rather than copying it,

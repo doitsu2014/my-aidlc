@@ -20,10 +20,11 @@ design, migrations, queries, transactions, performance, or tests.
 
 ## When this skill applies
 
-- Ideate: choosing SQL Server/Azure SQL, designing the schema, or the contract.
-- Develop: writing T-SQL, repositories, migrations, stored procedures.
-- Launch: containerised tests, CI migration runs, fixtures.
-- Curate: execution-plan and index review, blocking/deadlock triage.
+- Inception: choosing SQL Server/Azure SQL, designing the schema, or the
+  contract.
+- Construction: writing T-SQL, repositories, migrations, stored procedures.
+- Construction: containerised tests, CI migration runs, fixtures.
+- Operation: execution-plan and index review, blocking/deadlock triage.
 
 ## Configuration and secrets
 
@@ -48,7 +49,8 @@ design, migrations, queries, transactions, performance, or tests.
 | Go | `microsoft/go-mssqldb` | sqlc, GORM, Ent |
 | .NET | `Microsoft.Data.SqlClient` | EF Core, Dapper |
 
-Record the driver, version, and pooling strategy in the technical spec.
+Record the driver and version in `construction/nfr-requirements`, and the
+pooling strategy in `construction/nfr-design`.
 
 ## Schema and data modelling
 
@@ -165,11 +167,15 @@ Rules:
 
 ## How this skill plugs into my-aidlc
 
-- Ideate: record edition (SQL Server vs Azure SQL), compatibility level,
-  driver/ORM, migration tool, and pooling in `technical-spec`.
-- Develop: every schema change is a migration under `develop/code-generation`;
-  note the tool and commands in `code-generation-notes`.
-- Launch: integration tests use Testcontainers or LocalDB; CI runs migrations
-  before `launch/test-generation`.
-- Curate: use Query Store and actual execution plans in
-  `curate/performance-optimization`.
+- Construction: record the edition (SQL Server vs Azure SQL) and hosting
+  decisions in `construction/infrastructure-design`.
+- Construction: record the compatibility level, driver/ORM, and migration tool
+  as tech-stack decisions in `construction/nfr-requirements`, and the pooling
+  strategy in `construction/nfr-design`.
+- Construction: every schema change is a migration under
+  `construction/code-generation`; note the tool and commands in
+  `code-generation-plan`.
+- Construction: integration tests use Testcontainers or LocalDB; CI runs
+  migrations before `construction/build-and-test`.
+- Operation: use Query Store and actual execution plans in
+  `operation/performance-validation`.

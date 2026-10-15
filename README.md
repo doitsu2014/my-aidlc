@@ -5,19 +5,25 @@
 
 my-aidlc turns AI coding assistants into a structured, verifiable
 software-delivery workflow. One harness-neutral core runs natively in
-**PI Agent**, **Codex CLI**, and **Claude Code**.
+**PI Agent**, **Codex CLI**, **Claude Code**, and **DeepSeek Harness**.
 
-The methodology follows the five AIDLC phases — **Analyze**, **Ideate**,
-**Develop**, **Launch**, **Curate** — as described in the
-[AIDLC cheatsheet](https://aidlc.io/cheatsheet/).
+The methodology is the **native AI-DLC from AWS**
+([`awslabs/aidlc-workflows`](https://github.com/awslabs/aidlc-workflows)) —
+five phases, 33 stages, 14 agents. my-aidlc does not re-author it: it pins one
+release in `aidlc-version.json`, verifies it, and projects it into your harness.
 
 ```
-Analyze  -> requirements & research      (Research assistant)
-Ideate   -> architecture & design        (Architect partner)
-Develop  -> code & review                (Coding agent)
-Launch   -> tests, CI/CD & release       (QA engineer)
-Curate   -> monitoring & improvement     (SRE assistant)
+Initialization -> intent + record dir        (Workspace orchestrator)
+Ideation       -> intent, scope, approval    (Product partner)
+Inception      -> requirements & design      (Architect partner)
+Construction   -> code, build & test         (Coding agent)
+Operation      -> deploy, observe, improve   (Operations assistant)
 ```
+
+What my-aidlc adds is the **space layer**: your workflow profiles
+(`classic`, `express`, `feature`, `bugfix`, `mvp`, `poc`, `infra`) live in the
+workspace at `aidlc/spaces/<space>/scopes/`, where you can edit them, and they
+decide which of the 33 native stages each profile runs.
 
 ## Quick start
 
@@ -50,13 +56,14 @@ From the project root, select the harness you use:
 
 ```bash
 cd /path/to/your-project
-my-aidlc config --harness pi      # or: claude, codex
+my-aidlc config --harness pi      # or: claude, codex, deepseek
 my-aidlc doctor
 ```
 
-This writes the harness directory, the engine, the methodology, the
-orchestrator skill, and the workspace memory files. The execution mode and
-question budget default to `normal` and `{ min: 0, max: 5 }`; see
+This projects the pinned native AI-DLC engine and methodology into the harness
+directory, and seeds your workspace: memory files plus the seven workflow
+profiles at `aidlc/spaces/default/scopes/`. The execution mode and question
+budget default to `normal` and `{ min: 0, max: 5 }`; see
 [Configuration](#configuration) to change them.
 
 ### 3. Start a workflow
@@ -67,9 +74,10 @@ Open your harness in the configured project and describe the work:
 /aidlc Build a REST API for inventory management
 ```
 
-Codex CLI uses `$aidlc`; PI Agent uses `/aidlc` or `/skill:aidlc`.
-my-aidlc detects a workflow profile from the request, asks for missing
-decisions, and stops at an approval gate before each stage is committed.
+Codex CLI uses `$aidlc`; PI Agent, Claude Code, and DeepSeek Harness use
+`/aidlc`. my-aidlc detects a workflow profile from the request, asks for
+missing decisions, and stops at an approval gate before each stage is
+committed.
 
 ## Pick your harness
 
@@ -78,6 +86,69 @@ decisions, and stops at an approval gate before each stage is committed.
 | PI Agent | `my-aidlc config --harness pi` | `pi` | `/aidlc` |
 | Codex CLI | `my-aidlc config --harness codex` | `codex` | `$aidlc` |
 | Claude Code | `my-aidlc config --harness claude` | `claude` | `/aidlc` |
+| DeepSeek Harness | `my-aidlc config --harness deepseek` | DeepSeek Harness | `/aidlc` |
+
+## The methodology comes from AWS
+
+The five phases, 33 stages, and 14 agents are native AI-DLC. `my-aidlc update`
+downloads the release pinned in [`aidlc-version.json`](aidlc-version.json),
+verifies its SHA-256, and rewrites the engine's `native/` tree byte-for-byte.
+Stage bodies keep the upstream `{{INVOKE}}` and `{{HARNESS_DIR}}` placeholders,
+so the packager binds them per harness.
+
+```bash
+my-aidlc update           # fetch the pinned release and refresh the methodology
+my-aidlc update --check   # verify the snapshot still matches the pin
+node scripts/fetch-native.mjs --check
+```
+
+The committed snapshot exists so builds, lint, and tests work offline; it is
+derived, never hand-edited, and `doctor` fails when it drifts from the pin.
+`native/ADAPTATION.md` records how the native runtime's engine calls map onto
+my-aidlc's binary, and which of its helpers are reference-only.
+
+## Your workflow profiles live in the space
+
+A **space** is one team's world: memory, and the workflow profiles it runs.
+Editing a profile is how a team changes what a workflow does.
+
+```text
+aidlc/spaces/default/
+  memory/            org.md, team.md, project.md - your standing rules
+  scopes/            your workflow profiles (seeded, never overwritten)
+  intents/<id>/      one directory per intent; artifacts per phase/stage
+```
+
+A profile states its complete stage list in `include` and the remainder in
+`skip`, so it is the authority on its own workflow:
+
+```yaml
+# aidlc/spaces/default/scopes/poc.md
+name: poc
+include:
+  - workspace-scaffold
+  - workspace-detection
+  - state-init
+  - intent-capture
+  - feasibility
+  - requirements-analysis
+  - code-generation
+skip: [ ... the other 26 native stages ... ]
+```
+
+| Profile | Stages | Shape |
+| --- | --- | --- |
+| `classic` | 33 | Full lifecycle through all five phases (default) |
+| `feature` | 32 | Everything except continuous optimisation |
+| `infra` | 27 | Design, deploy, and operate infrastructure |
+| `mvp` | 16 | Thin design pass, no Operation |
+| `bugfix` | 10 | Reproduce, fix, build, ship |
+| `express` | 10 | Requirements to deploy, no design pass, no reviewers |
+| `poc` | 7 | Frame the assumption, prove it, stop |
+
+The native baseline scopes (`enterprise`, `refactor`, `security-patch`,
+`workshop`) stay available underneath; a space profile with the same name
+replaces the baseline. `my-aidlc scope` marks each profile `space` or `native`.
 
 ## Configuration
 
@@ -107,7 +178,7 @@ keyword (default `classic`).
 ### Harness
 
 ```bash
-my-aidlc config --harness pi      # pi | claude | codex
+my-aidlc config --harness pi      # pi | claude | codex | deepseek
 ```
 
 `config` scaffolds the harness directory, the engine and methodology, and the
@@ -141,9 +212,9 @@ my-aidlc config --review-required false   # back to stage-only gates (default)
 ```
 
 It applies in both normal and YOLO mode and is independent of the execution
-mode. Individual phases can still opt in with `review: required` in
-`core/phases/<phase>/phase.md`, and a scope can override the toggle with
-`review_required:` in its frontmatter.
+mode. Individual phases can still opt in with `review: required` in the
+engine's phase metadata (`<harness dir>/native/phases/<phase>.md`), and a
+profile can override the toggle with `review_required:` in its frontmatter.
 
 ### Question budget
 
@@ -159,13 +230,13 @@ Precedence, most specific first: **stage** `question_budget` → **scope**
 `max: 0` disables the question flow for a stage. The budget never applies to
 the approval gate, which is always exactly one decision.
 
-### Per-scope overrides
+### Per-profile overrides
 
 A workflow profile can pin its own mode and budget in frontmatter, so a
 throwaway profile can run unattended while the project stays `normal`:
 
 ```yaml
-# core/scopes/poc.md
+# aidlc/spaces/default/scopes/poc.md
 mode: yolo
 question_budget:
   min: 1
@@ -182,26 +253,30 @@ aidlc/
   audit.log              # append-only event log (tool-owned)
   spaces/default/
     memory/              # org.md, team.md, project.md - your standing rules
+    scopes/              # your workflow profiles (seeded, yours to edit)
     intents/<id>/        # one directory per intent; artifacts per phase/stage
 ```
 
 `state.json` and `audit.log` are tool-owned: never edit them by hand. The
-memory files are yours to edit; they are the method every stage reads.
+memory files and the space scopes are yours to edit; they are the method every
+stage reads.
 
 ### Inspecting and validating
 
 ```bash
 my-aidlc config           # show harness, mode, and question budget
 my-aidlc status           # active intent, mode, and per-stage progress
-my-aidlc doctor           # validate the engine, workspace, and configuration
+my-aidlc scope            # list workflow profiles, marked space or native
+my-aidlc doctor           # validate the engine, native snapshot, workspace, config
+my-aidlc update --check   # confirm the methodology still matches the AWS pin
 ```
 
 ## Why my-aidlc
 
-- **5 phases / 21 stages** from requirements through continuous curation
-- **15 agents** — domain experts, reviewers, and an adaptive composer
-- **7 workflow profiles** for features, bug fixes, MVPs, infrastructure,
-  proof of concepts, express changes, and full lifecycle delivery
+- **Native AWS AI-DLC methodology** — 5 phases, 33 stages, 14 agents, pinned
+  and checksum-verified; never a hand-maintained fork
+- **Your workflow in your space** — the seven shipped profiles live in
+  `aidlc/spaces/<space>/scopes/`, where a team edits which stages run
 - **Human approval gates** at every stage (Normal mode), or an optional
   **YOLO mode** that auto-picks recommended answers and auto-approves gates
   while recording every auto-approval in the audit log
@@ -214,27 +289,34 @@ my-aidlc doctor           # validate the engine, workspace, and configuration
 
 ## Repository layout
 
-- `core/` — hand-authored, harness-neutral methodology and engine
-  - `core/agents/` — 15 agent definitions
-  - `core/phases/` — the five phases and their stage files
-  - `core/scopes/` — workflow profiles
+- `core/` — harness-neutral engine plus the pinned methodology
+  - `core/native/` — **generated** from the AWS AI-DLC release; do not edit
+    - `stages/<phase>/` — the 33 native stage definitions, byte-for-byte
+    - `agents/` — the 14 native agent personas
+    - `scopes/` — the 11 native baseline workflow scopes
+    - `protocols/`, `phases/`, `lock.json`, `ADAPTATION.md`
+  - `core/templates/scopes/` — the seven workflow profiles seeded into a space
   - `core/protocols/` — stage, question, gate, and recovery protocols
   - `core/skills/` — the orchestrator skill and database skills
   - `core/memory/` — org/team/project memory templates
-  - `core/tools/` — the Node.js engine and authoring tools
-  - `core/data/` — compiled stage graph and scope grid
+  - `core/tools/` — the Node.js engine (`lib/native.mjs` owns the pin)
+  - `core/data/` — compiled stage graph and phase metadata
 - `harness/<name>/` — thin, harness-specific manifests and integrations
+- `scripts/fetch-native.mjs` — fetch, verify, and normalise the pinned release
 - `scripts/` — packaging, installer, and release tooling
 - `tests/` — smoke, unit, and integration tests
 - `docs/` — user and developer documentation
 
-Edit `core/` or `harness/<name>/`, never generated `dist*/` output.
+Edit `core/` (except `core/native/`) or `harness/<name>/`, never generated
+`dist*/` output.
 
 ## Development
 
 ```bash
+node scripts/fetch-native.mjs --check    # snapshot matches the pin
 node scripts/package.mjs                 # generate every harness into dist/
 node scripts/package.mjs --check         # determinism guard
+node scripts/lint.mjs                    # methodology integrity
 node tests/run-tests.mjs                 # smoke + unit + integration
 ```
 
@@ -246,9 +328,14 @@ node tests/run-tests.mjs                 # smoke + unit + integration
   context `AGENTS.md`, invoke with `$aidlc`.
 - **Claude Code** — project config in `.claude/`, skills in
   `.claude/skills/aidlc/`, ambient method import via `.claude/rules/aidlc.md`.
+- **DeepSeek Harness** — project skills in `.dsh/skills/aidlc/` (the
+  `project-dsh` root, rank 100), context `AGENTS.md`, invoke with `/aidlc`.
+  DSH config is home-scoped (`$DSH_HOME/profiles/<name>/cordis.patch.yml`), so
+  no project-level native config file is shipped.
 
 ## References
 
-- [AIDLC cheatsheet](https://aidlc.io/cheatsheet/)
+- [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) — the native AI-DLC this pins
 - [AWS AI-DLC blog post](https://aws.amazon.com/blogs/devops/ai-driven-development-life-cycle/)
+- [AIDLC cheatsheet](https://aidlc.io/cheatsheet/)
 - [MIT No Attribution license](LICENSE)

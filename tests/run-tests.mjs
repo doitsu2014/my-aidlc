@@ -3,7 +3,16 @@
 
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -15,7 +24,17 @@ import {
   loadMethodology,
   workflowForScope,
   scopeByName,
+  readNativeLock,
 } from "../core/tools/lib/graph.mjs";
+import {
+  isUpstreamPath,
+  projectSnapshotFiles,
+  readLock,
+  readPin,
+  sha256,
+  verifySnapshot,
+  writeSnapshot,
+} from "../core/tools/lib/native.mjs";
 import { buildHarness, listHarnesses } from "../core/tools/lib/packager.mjs";
 import { runDoctor } from "../core/tools/lib/doctor.mjs";
 import { runNext, runReport, statusReport, parkDirective } from "../core/tools/lib/orchestrate.mjs";
@@ -39,12 +58,29 @@ import {
   uninstallCompletion,
 } from "../core/tools/lib/completion.mjs";
 import { engineRoot, repoRoot, readVersion } from "../core/tools/lib/version.mjs";
+import {
+  HARNESS_DIRS,
+  HARNESS_INVOKE,
+  detectHarness,
+  harnessDir,
+  spaceScopesDir,
+} from "../core/tools/lib/paths.mjs";
 
 const tests = [];
 const test = (name, fn) => tests.push({ name, fn });
 
 function tempProject() {
   return mkdtempSync(join(tmpdir(), "my-aidlc-test-"));
+}
+
+/** Copy the seven space-scope seeds into a project, as `config` does. */
+function seedSpaceScopes(root) {
+  const source = join(engineRoot(), "templates", "scopes");
+  const target = spaceScopesDir(root);
+  mkdirSync(target, { recursive: true });
+  for (const file of readdirSync(source)) {
+    if (file.endsWith(".md")) copyFileSync(join(source, file), join(target, file));
+  }
 }
 
 // A two-phase workflow where `analyze` requires a phase review and `develop` does not.
@@ -212,24 +248,160 @@ test("frontmatter handles folded block scalars", () => {
 // Unit: methodology
 // ---------------------------------------------------------------------------
 
-test("methodology loads five phases, 21 stages, scopes, and agents", () => {
+test("methodology loads the five native phases, 33 stages, scopes, and agents", () => {
   const m = loadMethodology(engineRoot());
   assert.equal(m.phases.length, 5);
   assert.deepEqual(
     m.phases.map((p) => p.slug),
-    ["analyze", "ideate", "develop", "launch", "curate"],
+    ["initialization", "ideation", "inception", "construction", "operation"],
   );
-  assert.equal(m.stages.length, 21);
-  assert.ok(m.scopes.length >= 6);
-  assert.equal(m.agents.length, 15);
+  assert.equal(m.stages.length, 33);
+  assert.equal(m.agents.length, 14);
+  // The 11 native baseline scopes ship in the engine; the team's 7 live in a space.
+  assert.equal(m.scopes.length, 11);
+  assert.ok(m.scopes.every((scope) => scope.source === "native"));
+});
+
+test("the native snapshot matches the pin it was fetched from", () => {
+  const pin = readPin(repoRoot());
+  const lock = readNativeLock(engineRoot());
+  assert.ok(lock, "core/native/lock.json is missing");
+  assert.equal(lock.repository, pin.repository);
+  assert.equal(lock.version, pin.version);
+  assert.equal(lock.tag, pin.tag);
+  assert.equal(lock.stages, 33);
+  assert.equal(lock.agents, 14);
+  assert.equal(lock.scopes, 11);
+  const verified = verifySnapshot(repoRoot(), pin);
+  assert.ok(verified.ok, `snapshot drifted: ${JSON.stringify(verified.drift.slice(0, 3))}`);
+});
+
+test("optional natives produces surface in the run directive", () => {
+  // `functional-design` declares `optional_produces: [frontend-components]`;
+  // the directive must name it so the conductor knows it may write it.
+  const root = tempProject();
+  try {
+    const m = loadMethodology(engineRoot());
+    const config = loadConfig(root);
+    config.mode = "yolo";
+    let directive = runNext(root, m, config, { text: "build an inventory API", scope: "classic" });
+    let guard = 0;
+    while (directive.stage !== "functional-design" && guard < 60) {
+      guard += 1;
+      directive = runReport(root, m, config, { stage: directive.stage, result: "awaiting-approval" });
+      if (directive.kind !== "run-stage") break;
+    }
+    assert.equal(directive.stage, "functional-design");
+    assert.deepEqual(directive.optional_produces, ["frontend-components"]);
+    assert.equal(directive.optional_produce_paths.length, 1);
+    assert.ok(directive.optional_produce_paths[0].endsWith("/functional-design/frontend-components.md"));
+    assert.ok(directive.produce_paths.some((path) => path.endsWith("/functional-spec.md")));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("the native grids reproduce the published AI-DLC scope sizes", () => {
+  const m = loadMethodology(engineRoot());
+  // Sizes documented in awslabs/aidlc-workflows docs/guide/05-scopes-and-depth.md.
+  const published = {
+    enterprise: 33,
+    feature: 33,
+    mvp: 23,
+    poc: 8,
+    bugfix: 9,
+    refactor: 10,
+    infra: 13,
+    "security-patch": 10,
+    classic: 18,
+  };
+  for (const [name, size] of Object.entries(published)) {
+    const scope = scopeByName(m, name);
+    assert.ok(scope, `missing baseline scope ${name}`);
+    const workflow = workflowForScope(m, scope);
+    assert.equal(workflow.length, size, `scope ${name} resolved to ${workflow.length} stages`);
+  }
+});
+
+test("the committed snapshot is exactly what the generator produces", () => {
+  // Regression guard: `my-aidlc update` and scripts/fetch-native.mjs must both
+  // emit the projection layer (phases/, README.md, ADAPTATION.md), not just the
+  // upstream methodology files. This reproduces the committed tree from its own
+  // upstream half, with no network access.
+  const pin = readPin(repoRoot());
+  const dir = join(repoRoot(), pin.snapshotDir);
+  const lock = readLock(repoRoot(), pin);
+  assert.ok(lock, "core/native/lock.json is missing");
+
+  const methodology = new Map();
+  for (const entry of lock.files) {
+    if (!isUpstreamPath(entry.path)) continue;
+    methodology.set(entry.path, readFileSync(join(dir, entry.path)));
+  }
+  assert.equal(methodology.size, 33 + 14 + 11 + 9);
+
+  const { files, counts } = projectSnapshotFiles(methodology, pin);
+  assert.deepEqual(counts, { stages: 33, agents: 14, scopes: 11, protocols: 9 });
+  assert.equal(files.size, lock.files.length, "generator file count differs from the lock");
+  for (const entry of lock.files) {
+    const generated = files.get(entry.path);
+    assert.ok(generated, `generator omitted ${entry.path}`);
+    assert.equal(sha256(generated), entry.sha256, `generator differs from the lock for ${entry.path}`);
+  }
+});
+
+test("a missing native tree fails loudly instead of yielding an empty workflow", () => {
+  const root = tempProject();
+  try {
+    assert.throws(
+      () => loadMethodology(root),
+      /No native AI-DLC methodology/,
+      "loadMethodology should name the missing tree",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("the snapshot writer is deterministic and prunes stale files", () => {
+  const root = tempProject();
+  try {
+    const pin = { ...readPin(repoRoot()), snapshotDir: ".native-snapshot-test" };
+    const outDir = join(root, pin.snapshotDir);
+    const files = new Map([
+      ["stages/initialization/workspace-scaffold.md", Buffer.from("stage\n", "utf8")],
+      ["phases/initialization.md", Buffer.from("phase\n", "utf8")],
+      ["README.md", Buffer.from("readme\n", "utf8")],
+      ["stale/old-stage.md", Buffer.from("gone soon\n", "utf8")],
+    ]);
+    writeSnapshot(outDir, files, pin, { archiveVerified: true });
+    assert.ok(existsSync(join(outDir, "stale/old-stage.md")));
+
+    // A refresh that no longer ships the stage must drop it and its directory
+    // rather than leaving a stale file or crashing on rmdir.
+    const next = new Map([...files].filter(([path]) => path !== "stale/old-stage.md"));
+    const lock = writeSnapshot(outDir, next, pin, { archiveVerified: true });
+    assert.ok(!existsSync(join(outDir, "stale/old-stage.md")));
+    assert.ok(!existsSync(join(outDir, "stale")), "empty directory should be pruned");
+    assert.equal(lock.files.length, 3);
+
+    // Writing the same content twice changes nothing.
+    const again = writeSnapshot(outDir, next, pin, { archiveVerified: true });
+    assert.deepEqual(again, lock);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("every stage references known agents", () => {
   const m = loadMethodology(engineRoot());
   const known = new Set(m.agents.map((a) => a.slug));
+  // Initialization stages are led by the engine's own conductor.
+  const reserved = new Set(["orchestrator"]);
   for (const stage of m.stages) {
     const refs = [stage.leadAgent, ...stage.supportAgents, stage.reviewer].filter(Boolean);
     for (const ref of refs) {
+      if (reserved.has(ref)) continue;
       assert.ok(known.has(ref), `stage ${stage.slug} references unknown agent ${ref}`);
     }
   }
@@ -399,11 +571,65 @@ test("every consumed artifact is produced by some stage", () => {
   }
 });
 
-test("classic scope runs all 21 stages in phase order", () => {
+test("space scopes layer over the native baseline and state their own workflow", () => {
+  const root = tempProject();
+  try {
+    seedSpaceScopes(root);
+    const m = loadMethodology(engineRoot(), { spaceScopesDir: spaceScopesDir(root) });
+
+    // The team's seven replace the native baseline of the same name.
+    const classic = scopeByName(m, "classic");
+    assert.equal(classic.source, "space");
+    assert.equal(workflowForScope(m, classic).length, 33);
+
+    const bugfix = scopeByName(m, "bugfix");
+    assert.equal(bugfix.source, "space");
+    assert.equal(workflowForScope(m, bugfix).length, 10);
+
+    // Native-only scopes stay available underneath.
+    const enterprise = scopeByName(m, "enterprise");
+    assert.equal(enterprise.source, "native");
+    assert.equal(workflowForScope(m, enterprise).length, 33);
+
+    // `include` is authoritative: a stage the native grid runs for a scope is
+    // still skipped when a space scope leaves it out.
+    const poc = workflowForScope(m, scopeByName(m, "poc")).map((s) => s.slug);
+    assert.deepEqual(poc, [
+      "workspace-scaffold",
+      "workspace-detection",
+      "state-init",
+      "intent-capture",
+      "feasibility",
+      "requirements-analysis",
+      "code-generation",
+    ]);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("every space-scope seed accounts for the whole native inventory", () => {
+  const m = loadMethodology(engineRoot());
+  const all = new Set(m.stages.map((stage) => stage.slug));
+  const dir = join(engineRoot(), "templates", "scopes");
+  const files = readdirSync(dir).filter((file) => file.endsWith(".md"));
+  assert.equal(files.length, 7, "expected the seven original workflow profiles");
+  for (const file of files) {
+    const { data } = parseFrontmatter(readFileSync(join(dir, file), "utf8"));
+    const include = data.include || [];
+    const skip = data.skip || [];
+    const covered = new Set([...include, ...skip]);
+    assert.equal(covered.size, all.size, `${file} covers ${covered.size} of ${all.size} stages`);
+    assert.equal(include.filter((s) => skip.includes(s)).length, 0, `${file} overlaps include and skip`);
+    for (const slug of covered) assert.ok(all.has(slug), `${file} names unknown stage ${slug}`);
+  }
+});
+
+test("classic scope runs all 33 native stages in phase order", () => {
   const m = loadMethodology(engineRoot());
   const workflow = workflowForScope(m, scopeByName(m, "classic"));
-  assert.equal(workflow.length, 21);
-  const phaseOrder = { analyze: 1, ideate: 2, develop: 3, launch: 4, curate: 5 };
+  assert.equal(workflow.length, 18); // the native baseline grid
+  const phaseOrder = { initialization: 1, ideation: 2, inception: 3, construction: 4, operation: 5 };
   let last = 0;
   for (const stage of workflow) {
     const order = phaseOrder[stage.phase];
@@ -412,12 +638,14 @@ test("classic scope runs all 21 stages in phase order", () => {
   }
 });
 
-test("express scope is lighter than classic and skips design", () => {
+test("express scope is lighter than classic and skips the design pass", () => {
   const m = loadMethodology(engineRoot());
   const express = workflowForScope(m, scopeByName(m, "express")).map((s) => s.slug);
-  assert.ok(express.length < 21);
-  assert.ok(!express.includes("architecture-design"));
+  assert.ok(express.length < 18);
+  assert.ok(!express.includes("domain-design"));
+  assert.ok(!express.includes("user-stories"));
   assert.ok(express.includes("code-generation"));
+  assert.ok(express.includes("deployment-execution"));
 });
 
 test("scope detection matches keywords and falls back to classic", () => {
@@ -427,10 +655,13 @@ test("scope detection matches keywords and falls back to classic", () => {
   assert.equal(detectScope(m, "build something nobody has words for"), "classic");
 });
 
-test("compiled graph includes a scope grid", () => {
+test("compiled graph records the native pin and a scope grid", () => {
   const graph = compileGraph(engineRoot());
   assert.equal(graph.phases.length, 5);
-  assert.ok(graph.scopeGrid.classic.length === 21);
+  assert.equal(graph.stages.length, 33);
+  assert.ok(graph.native, "compiled graph should record the native release");
+  assert.equal(graph.native.stages, 33);
+  assert.equal(graph.scopeGrid.classic.length, 18);
   assert.ok(Array.isArray(graph.scopeGrid.express));
 });
 
@@ -446,9 +677,12 @@ test("orchestration drives a workflow from start to done", () => {
 
     const first = runNext(root, m, config, { text: "build an inventory API" });
     assert.equal(first.kind, "run-stage");
-    assert.equal(first.stage, "intent-capture");
+    // Native AI-DLC starts every scope at the Initialization phase.
+    assert.equal(first.stage, "workspace-scaffold");
+    assert.equal(first.phase, "initialization");
     assert.equal(first.gate, true);
-    assert.ok(first.produce_paths[0].startsWith("aidlc/spaces/default/intents/"));
+    assert.equal(first.stage_file, ".pi/native/stages/initialization/workspace-scaffold.md");
+    assert.ok(first.record_dir.startsWith("aidlc/spaces/default/intents/"));
 
     let directive = first;
     let guard = 0;
@@ -495,8 +729,8 @@ test("a skipped conditional stage requires a reason and advances", () => {
     const m = loadMethodology(engineRoot());
     const config = loadConfig(root);
     let directive = runNext(root, m, config, { text: "add a feature" });
-    // Move to a conditional stage by approving until research-synthesis appears,
-    // or skip the current stage directly.
+    // A conditional stage that does not apply reports `skipped` with a reason;
+    // reporting it without one is refused.
     const noReason = runReport(root, m, config, { stage: directive.stage, result: "skipped" });
     assert.equal(noReason.kind, "error");
     const skipped = runReport(root, m, config, {
@@ -569,8 +803,13 @@ test("packaging builds every harness with tokens substituted", async () => {
       const { manifest } = await buildHarness({ repoRoot: repoRoot(), harnessName: name, outDir });
       const tree = join(outDir, manifest.harnessDir);
       assert.ok(existsSync(tree), `${name} harness dir missing`);
-      assert.ok(existsSync(join(tree, "phases/analyze/stages/intent-capture.md")));
-      assert.ok(existsSync(join(tree, "agents/product-agent.md")));
+      // The methodology is the fetched native snapshot, not hand-authored files.
+      assert.ok(existsSync(join(tree, "native/stages/ideation/intent-capture.md")));
+      assert.ok(existsSync(join(tree, "native/agents/aidlc-product-agent.md")));
+      assert.ok(existsSync(join(tree, "native/scopes/classic.md")));
+      assert.ok(existsSync(join(tree, "native/lock.json")));
+      // The team's workflow scopes ship as seeds for a project's space.
+      assert.ok(existsSync(join(tree, "templates/scopes/classic.md")));
       assert.ok(existsSync(join(tree, "version.json")));
       const skillPath = join(outDir, manifest.orchestratorSkillPath);
       assert.ok(existsSync(skillPath), `${name} orchestrator skill missing`);
@@ -615,6 +854,101 @@ function skillsDirFor(outDir, manifest) {
   throw new Error(`harness ${manifest.name} ships no skills directory`);
 }
 
+test("the deepseek harness targets DSH discovery paths", async () => {
+  assert.ok(listHarnesses(repoRoot()).includes("deepseek"), "deepseek harness is not listed");
+  assert.equal(HARNESS_DIRS.deepseek, ".dsh");
+  assert.equal(HARNESS_INVOKE.deepseek, "/aidlc");
+  assert.equal(harnessDir(tempProject(), "deepseek"), ".dsh");
+
+  const outDir = join(tempProject(), "dist-deepseek");
+  try {
+    const { manifest } = await buildHarness({
+      repoRoot: repoRoot(),
+      harnessName: "deepseek",
+      outDir,
+    });
+    assert.equal(manifest.name, "deepseek");
+    assert.equal(manifest.harnessDir, ".dsh");
+    assert.equal(manifest.invoke, "/aidlc");
+    assert.equal(manifest.orchestratorSkillPath, ".dsh/skills/aidlc/SKILL.md");
+
+    // DSH config is home-scoped, so the harness ships no native config file.
+    assert.deepEqual(manifest.harnessFiles, []);
+
+    // The orchestrator is a top-level bundle under the rank-100 project root.
+    const skill = readFileSync(join(outDir, ".dsh/skills/aidlc/SKILL.md"), "utf8");
+    assert.ok(!skill.includes("{{"), "deepseek skill still contains tokens");
+    assert.match(skill, /^---\nname: aidlc\n/);
+    assert.match(skill, /\/aidlc orchestrate next/);
+
+    assert.ok(existsSync(join(outDir, ".dsh/native/stages/ideation/intent-capture.md")));
+    assert.ok(existsSync(join(outDir, ".dsh/templates/scopes/classic.md")));
+    assert.ok(existsSync(join(outDir, "AGENTS.md")), "deepseek onboarding is missing");
+    assert.ok(existsSync(join(outDir, ".dsh/version.json")));
+  } finally {
+    rmSync(outDir, { recursive: true, force: true });
+  }
+});
+
+test("applying deepseek writes .dsh, merges AGENTS.md, and drives .dsh paths", async () => {
+  const root = tempProject();
+  try {
+    const outDir = join(root, "dist");
+    const { manifest } = await buildHarness({
+      repoRoot: repoRoot(),
+      harnessName: "deepseek",
+      outDir,
+    });
+    // Pre-existing instructions must survive the managed-block merge.
+    writeFileSync(join(root, "AGENTS.md"), "# Project notes\n\nKeep me.\n", "utf8");
+
+    const { applyDistribution } = await import("../core/tools/lib/packager.mjs");
+    applyDistribution({ distributionDir: outDir, projectRoot: root, manifest });
+
+    assert.ok(existsSync(join(root, ".dsh/skills/aidlc/SKILL.md")));
+    assert.ok(existsSync(join(root, ".dsh/tools/my-aidlc.mjs")));
+    const agents = readFileSync(join(root, "AGENTS.md"), "utf8");
+    assert.match(agents, /Keep me\./);
+    assert.match(agents, /# BEGIN my-aidlc:deepseek/);
+    assert.match(agents, /# END my-aidlc:deepseek/);
+
+    saveConfig(root, { harness: "deepseek" });
+    assert.equal(detectHarness(root), "deepseek");
+
+    // The run directive resolves stage and agent files under .dsh/, not .pi/.
+    const m = loadMethodology(engineRoot());
+    const directive = runNext(root, m, loadConfig(root), { text: "build a widget" });
+    assert.equal(directive.kind, "run-stage");
+    assert.ok(directive.stage_file.startsWith(".dsh/native/stages/"), directive.stage_file);
+    assert.ok(
+      directive.lead_agent_file === null || directive.lead_agent_file.startsWith(".dsh/native/agents/"),
+      directive.lead_agent_file,
+    );
+    for (const file of directive.support_agent_files) {
+      assert.ok(file.startsWith(".dsh/native/agents/"), file);
+    }
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("detectHarness honours a configured harness and falls back by directory", () => {
+  const root = tempProject();
+  try {
+    // Nothing installed: the default projection is PI.
+    assert.equal(detectHarness(root), "pi");
+
+    mkdirSync(join(root, HARNESS_DIRS.deepseek), { recursive: true });
+    assert.equal(detectHarness(root), "deepseek");
+
+    // An explicit config entry outranks directory presence.
+    saveConfig(root, { harness: "claude" });
+    assert.equal(detectHarness(root), "claude");
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("question budget resolves with stage > scope > project > default precedence", () => {
   assert.deepEqual(normalizeBudget(undefined), { min: 0, max: 5 });
   assert.deepEqual(normalizeBudget(3), { min: 0, max: 3 });
@@ -639,14 +973,16 @@ test("question budget resolves with stage > scope > project > default precedence
 });
 
 test("run-stage directives carry the effective question budget", () => {
-  const m = loadMethodology(engineRoot());
-
   const expressRoot = tempProject();
   const classicRoot = tempProject();
   const offRoot = tempProject();
   try {
-    // Scope-level budget (express sets min 0, max 3).
-    const express = runNext(expressRoot, m, loadConfig(expressRoot), {
+    // Scope-level budget: the space `express` profile pins min 0, max 3.
+    seedSpaceScopes(expressRoot);
+    const expressMethodology = loadMethodology(engineRoot(), {
+      spaceScopesDir: spaceScopesDir(expressRoot),
+    });
+    const express = runNext(expressRoot, expressMethodology, loadConfig(expressRoot), {
       text: "express change",
       scope: "express",
     });
@@ -657,13 +993,15 @@ test("run-stage directives carry the effective question budget", () => {
     // Project-level budget on a scope without its own.
     const classicConfig = loadConfig(classicRoot);
     classicConfig.questionBudget = { min: 2, max: 4 };
-    const classic = runNext(classicRoot, m, classicConfig, { text: "build a feature" });
+    const classic = runNext(classicRoot, loadMethodology(engineRoot()), classicConfig, {
+      text: "build a feature",
+    });
     assert.deepEqual(classic.question_budget, { min: 2, max: 4, source: "project" });
 
     // max 0 disables the question flow module.
     const offConfig = loadConfig(offRoot);
     offConfig.questionBudget = { min: 0, max: 0 };
-    const off = runNext(offRoot, m, offConfig, { text: "build a feature" });
+    const off = runNext(offRoot, loadMethodology(engineRoot()), offConfig, { text: "build a feature" });
     assert.deepEqual(off.question_budget, { min: 0, max: 0, source: "project" });
     assert.ok(!off.protocol_modules.includes("question-flow"));
   } finally {
@@ -854,6 +1192,26 @@ test("help renders and documents modes, questions, and completion", () => {
   assert.match(out, /--mode/);
   assert.match(out, /--questions-max/);
   assert.match(out, /completion/);
+});
+
+test("top-level alias flags resolve instead of falling through to help", () => {
+  const cli = join(repoRoot(), "core/tools/my-aidlc.mjs");
+  const run = (args) => execFileSync(process.execPath, [cli, ...args], { encoding: "utf8" });
+
+  // A bare invocation still prints help.
+  assert.match(run([]), /USAGE/);
+
+  // Each alias must reach its command, not the help fallback. `status` and
+  // `config` print their own heading; `doctor` exits non-zero on a repo root
+  // with no workspace, so accept either outcome and check the heading only.
+  assert.doesNotMatch(run(["--status"]), /USAGE/);
+  assert.doesNotMatch(run(["--config"]), /USAGE/);
+  const doctor = spawnSync(process.execPath, [cli, "--doctor"], { encoding: "utf8" });
+  assert.match(`${doctor.stdout}${doctor.stderr}`, /doctor/);
+  assert.doesNotMatch(`${doctor.stdout}`, /USAGE/);
+
+  // A real unknown command still fails loudly.
+  assert.throws(() => run(["definitely-not-a-command"]), /Command failed|Unknown command/);
 });
 
 test("completion output includes the mode flag and its values", () => {

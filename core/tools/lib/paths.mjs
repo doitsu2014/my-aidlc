@@ -10,6 +10,7 @@ export const HARNESS_DIRS = {
   pi: ".pi",
   claude: ".claude",
   codex: ".codex",
+  deepseek: ".dsh",
 };
 
 /** Known harness invocation strings. */
@@ -17,6 +18,7 @@ export const HARNESS_INVOKE = {
   pi: "/aidlc",
   claude: "/aidlc",
   codex: "$aidlc",
+  deepseek: "/aidlc",
 };
 
 export function projectRoot(cwd = process.cwd()) {
@@ -51,6 +53,29 @@ export function memoryDir(root, space = DEFAULT_SPACE) {
   return join(spaceDir(root, space), "memory");
 }
 
+/**
+ * The active space. `aidlc/active-space` is the cursor (mirroring native
+ * AI-DLC); when it is absent or empty, the space is `default`.
+ */
+export function activeSpace(root) {
+  const cursor = join(workspaceRoot(root), "active-space");
+  try {
+    const name = readFileSync(cursor, "utf8").trim().split(/\r?\n/)[0].trim();
+    if (name) return name;
+  } catch {
+    // No cursor yet: fall through to the default space.
+  }
+  return DEFAULT_SPACE;
+}
+
+/**
+ * Where a space's workflow scopes live: `aidlc/spaces/<space>/scopes/`.
+ * These layer over the native baseline in `core/native/scopes/`.
+ */
+export function spaceScopesDir(root, space = activeSpace(root)) {
+  return join(spaceDir(root, space), "scopes");
+}
+
 export function intentsDir(root, space = DEFAULT_SPACE) {
   return join(spaceDir(root, space), "intents");
 }
@@ -81,7 +106,7 @@ export function detectHarness(root) {
   if (config && typeof config.harness === "string" && HARNESS_DIRS[config.harness]) {
     return config.harness;
   }
-  for (const name of ["pi", "claude", "codex"]) {
+  for (const name of Object.keys(HARNESS_DIRS)) {
     if (existsSync(join(root, HARNESS_DIRS[name]))) return name;
   }
   return "pi";

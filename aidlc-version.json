@@ -1,0 +1,17 @@
+{
+  "repository": "awslabs/aidlc-workflows",
+  "product": "AI-DLC",
+  "version": "2.11.0",
+  "tag": "v2.11.0",
+  "commit": "6a378b53c0a4fe0641ed7d8de8dfff94264d5b6a",
+  "tagObject": "4079edbea52cf4d3c80e580825da3a4dd8213271",
+  "asset": "aidlc-workflows-2.11.0.tar.gz",
+  "assetUrl": "https://codeload.github.com/awslabs/aidlc-workflows/tar.gz/refs/tags/v2.11.0",
+  "sha256": "170243fdddfeaf0a7d04eb45481a49ae280716ab2f4dd93e8360aecd95cf74f3",
+  "archiveRoot": "aidlc-workflows-2.11.0",
+  "sourcePath": "core",
+  "snapshotDir": "core/native",
+  "cacheDir": ".cache/aidlc",
+  "license": "MIT-0",
+  "homepage": "https://github.com/awslabs/aidlc-workflows"
+}

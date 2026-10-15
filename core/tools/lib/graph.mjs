@@ -1,5 +1,22 @@
-// core/tools/lib/graph.mjs — loads the phase/stage/scope methodology from the
-// engine's core directory and derives the workflow order for a scope.
+// core/tools/lib/graph.mjs — loads the methodology and derives the workflow
+// order for a scope.
+//
+// The methodology is not authored here. It is the native AWS AI-DLC snapshot
+// that `my-aidlc update` writes into `core/native/` (see core/tools/lib/native.mjs
+// and aidlc-version.json):
+//
+//   native/phases/<phase>.md            my-aidlc's display + gate metadata
+//   native/stages/<phase>/<slug>.md     the native stage definitions
+//   native/agents/<slug>.md             the native agent personas
+//   native/scopes/<name>.md             the native baseline workflow scopes
+//
+// Workflow scopes the team owns live in the workspace, one file per scope:
+//
+//   aidlc/spaces/<space>/scopes/<name>.md
+//
+// A space scope with the same name replaces the native baseline of that name;
+// a new name adds a profile. Space scopes are where `include`/`skip` are
+// authored, and those lists win over a stage's own `scopes:` declaration.
 
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -39,22 +56,69 @@ function asArray(value) {
   return Array.isArray(value) ? value : [value];
 }
 
-/** Load all phases, stages, and scopes from core/. */
-export function loadMethodology(coreRoot) {
-  const phasesRoot = join(coreRoot, "phases");
-  const scopesRoot = join(coreRoot, "scopes");
-  const agentsRoot = join(coreRoot, "agents");
+/** Root of the fetched native methodology inside the engine directory. */
+export function nativeRoot(coreRoot) {
+  return join(coreRoot, "native");
+}
+
+function readScopeFile(path, source) {
+  const { data, body } = readFrontmatterFile(path);
+  const fileName = path.split("/").pop().replace(/\.md$/, "");
+  return {
+    name: data.name || fileName.replace(/^aidlc-/, ""),
+    depth: data.depth || "Standard",
+    keywords: asArray(data.keywords).map((k) => String(k).toLowerCase()),
+    description: data.description || "",
+    skeleton: data.skeleton || "off",
+    reviewCap: data.review_cap || "advisory",
+    guardPolicy: data.guard_policy || "relaxed",
+    sensors: data.sensors || "on",
+    learnings: data.learnings || "on",
+    summaryConfirmation: data.summary_confirmation || "off",
+    mode: typeof data.mode === "string" ? data.mode.trim().toLowerCase() : null,
+    reviewRequired: data.review_required ?? null,
+    questionBudget: data.question_budget ?? null,
+    phases: asArray(data.phases),
+    include: asArray(data.include),
+    skip: asArray(data.skip),
+    source,
+    file: path,
+    body,
+  };
+}
+
+/**
+ * Load phases, stages, agents, and scopes.
+ *
+ * @param {string} coreRoot Engine directory (e.g. `<repo>/core` or `<project>/.pi`).
+ * @param {{ spaceScopesDir?: string|null }} [options]
+ *   Absolute path to the active space's `scopes/` directory, if any.
+ */
+export function loadMethodology(coreRoot, options = {}) {
+  const native = nativeRoot(coreRoot);
+  const phasesRoot = join(native, "phases");
+  const stagesRoot = join(native, "stages");
+  const agentsRoot = join(native, "agents");
+  const scopesRoot = join(native, "scopes");
+
+  // The methodology is fetched, so a missing tree is a real, fixable state
+  // rather than an empty workflow. Fail loudly with the way out.
+  if (!existsSync(stagesRoot) || !existsSync(phasesRoot)) {
+    throw new Error(
+      `No native AI-DLC methodology at ${native}. ` +
+        'From a my-aidlc checkout run "my-aidlc update", then re-project this project with ' +
+        '"my-aidlc config --harness <name>".',
+    );
+  }
 
   const phases = [];
-  const stages = [];
-
-  for (const phaseSlug of listDirs(phasesRoot)) {
-    const phaseFile = join(phasesRoot, phaseSlug, "phase.md");
-    if (!existsSync(phaseFile)) continue;
-    const { data } = readFrontmatterFile(phaseFile);
+  for (const file of listMarkdown(phasesRoot)) {
+    const path = join(phasesRoot, file);
+    const { data } = readFrontmatterFile(path);
+    const slug = data.slug || file.replace(/\.md$/, "");
     phases.push({
-      slug: data.slug || phaseSlug,
-      name: data.name || titleCase(phaseSlug),
+      slug,
+      name: data.name || titleCase(slug),
       order: typeof data.order === "number" ? data.order : phases.length + 1,
       focus: data.focus || "",
       aiRole: data.ai_role || "",
@@ -66,12 +130,16 @@ export function loadMethodology(coreRoot) {
         data.review === undefined || data.review === null
           ? "auto"
           : String(data.review).trim().toLowerCase(),
-      file: phaseFile,
+      file: path,
     });
+  }
+  phases.sort((a, b) => a.order - b.order || a.slug.localeCompare(b.slug));
 
-    const stagesRoot = join(phasesRoot, phaseSlug, "stages");
-    for (const file of listMarkdown(stagesRoot)) {
-      const path = join(stagesRoot, file);
+  const stages = [];
+  for (const phaseSlug of listDirs(stagesRoot)) {
+    const dir = join(stagesRoot, phaseSlug);
+    for (const file of listMarkdown(dir)) {
+      const path = join(dir, file);
       const { data, body } = readFrontmatterFile(path);
       const slug = data.slug || file.replace(/\.md$/, "");
       if (data.phase && data.phase !== phaseSlug) {
@@ -94,13 +162,19 @@ export function loadMethodology(coreRoot) {
           data.review === undefined || data.review === null
             ? "auto"
             : String(data.review).trim().toLowerCase(),
+        reviewArtifact: data.review_artifact || null,
         forEach: data.for_each || null,
         workspaceRequires: data.workspace_requires === true,
         questionBudget: data.question_budget ?? null,
         produces: asArray(data.produces),
+        // `optional_produces` is native's way of naming an artifact a stage
+        // writes only when its condition selects that output (for example
+        // `frontend-components`, written only for a `ui` unit).
+        optionalProduces: asArray(data.optional_produces),
         consumes: asArray(data.consumes).map((entry) => ({
           artifact: entry.artifact,
           required: entry.required !== false,
+          conditionalOn: entry.conditional_on || null,
         })),
         requiresStage: asArray(data.requires_stage),
         scopes: asArray(data.scopes),
@@ -111,35 +185,21 @@ export function loadMethodology(coreRoot) {
       });
     }
   }
+  stages.sort((a, b) => a.slug.localeCompare(b.slug));
 
-  phases.sort((a, b) => a.order - b.order);
-
-  const scopes = [];
+  // Baseline scopes come from the pinned release; space scopes layer over them.
+  const byName = new Map();
   for (const file of listMarkdown(scopesRoot)) {
-    const path = join(scopesRoot, file);
-    const { data, body } = readFrontmatterFile(path);
-    scopes.push({
-      name: data.name || file.replace(/\.md$/, ""),
-      depth: data.depth || "Standard",
-      keywords: asArray(data.keywords).map((k) => String(k).toLowerCase()),
-      description: data.description || "",
-      skeleton: data.skeleton || "off",
-      reviewCap: data.review_cap || "advisory",
-      guardPolicy: data.guard_policy || "relaxed",
-      sensors: data.sensors || "on",
-      learnings: data.learnings || "on",
-      summaryConfirmation: data.summary_confirmation || "off",
-      mode: typeof data.mode === "string" ? data.mode.trim().toLowerCase() : null,
-      reviewRequired: data.review_required ?? null,
-      questionBudget: data.question_budget ?? null,
-      phases: asArray(data.phases),
-      include: asArray(data.include),
-      skip: asArray(data.skip),
-      file: path,
-      body,
-    });
+    const scope = readScopeFile(join(scopesRoot, file), "native");
+    byName.set(scope.name, scope);
   }
-  scopes.sort((a, b) => a.name.localeCompare(b.name));
+  if (options.spaceScopesDir && existsSync(options.spaceScopesDir)) {
+    for (const file of listMarkdown(options.spaceScopesDir)) {
+      const scope = readScopeFile(join(options.spaceScopesDir, file), "space");
+      byName.set(scope.name, scope);
+    }
+  }
+  const scopes = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
 
   const agents = [];
   for (const file of listMarkdown(agentsRoot)) {
@@ -164,11 +224,30 @@ export function scopeByName(methodology, name) {
   return methodology.scopes.find((scope) => scope.name === name) || null;
 }
 
-/** Does a stage execute under a scope? */
+/** Scopes the team authored in a space, as opposed to the native baseline. */
+export function spaceScopes(methodology) {
+  return methodology.scopes.filter((scope) => scope.source === "space");
+}
+
+/**
+ * Does a stage execute under a scope?
+ *
+ * Precedence, most specific first:
+ *   1. a non-empty `include` list is authoritative: the stage runs if and only
+ *      if its slug is listed. This is how a space scope states its complete
+ *      workflow, and it is why a space scope can re-map the native grid
+ *      without touching a single stage file.
+ *   2. the scope's `skip` list (an explicit SKIP).
+ *   3. the stage's own `scopes:` declaration — the native baseline grid.
+ *   4. the scope's `phases` list.
+ *
+ * The native baseline scopes under `core/native/scopes/` declare no `include`,
+ * so they resolve through rule 3 and reproduce the published AI-DLC grids.
+ */
 export function stageRunsInScope(stage, scope) {
-  if (stage.scopes.length > 0) return stage.scopes.includes(scope.name);
-  if (scope.include.includes(stage.slug)) return true;
+  if (scope.include.length > 0) return scope.include.includes(stage.slug);
   if (scope.skip.includes(stage.slug)) return false;
+  if (stage.scopes.length > 0) return stage.scopes.includes(scope.name);
   return scope.phases.includes(stage.phase);
 }
 
@@ -250,14 +329,37 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+/** The pin and provenance recorded by the last `my-aidlc update`. */
+export function readNativeLock(coreRoot) {
+  const path = join(nativeRoot(coreRoot), "lock.json");
+  if (!existsSync(path)) return null;
+  try {
+    const lock = JSON.parse(readFileSync(path, "utf8"));
+    return {
+      repository: lock.repository,
+      version: lock.version,
+      tag: lock.tag,
+      commit: lock.commit || null,
+      archiveVerified: lock.archiveVerified === true,
+      stages: lock.stages,
+      agents: lock.agents,
+      scopes: lock.scopes,
+      protocols: lock.protocols,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Compile the method into a serializable graph for `package` output. */
-export function compileGraph(coreRoot) {
-  const methodology = loadMethodology(coreRoot);
+export function compileGraph(coreRoot, options = {}) {
+  const methodology = loadMethodology(coreRoot, options);
   const scopeGrid = {};
   for (const scope of methodology.scopes) {
     scopeGrid[scope.name] = workflowForScope(methodology, scope).map((stage) => stage.slug);
   }
   return {
+    native: readNativeLock(coreRoot),
     phases: methodology.phases.map((phase) => ({
       slug: phase.slug,
       name: phase.name,
@@ -278,14 +380,17 @@ export function compileGraph(coreRoot) {
       reviewer: stage.reviewer,
       review: stage.review,
       produces: stage.produces,
+      optionalProduces: stage.optionalProduces,
       consumes: stage.consumes,
       requiresStage: stage.requiresStage,
     })),
     scopes: methodology.scopes.map((scope) => ({
       name: scope.name,
+      source: scope.source,
       depth: scope.depth,
       keywords: scope.keywords,
       phases: scope.phases,
+      include: scope.include,
       skip: scope.skip,
     })),
     scopeGrid,

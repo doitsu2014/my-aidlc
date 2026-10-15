@@ -15,23 +15,24 @@ demand when a stage touches a database.
 
 Every skill is organised the same way so it is predictable to use:
 
-- **When this skill applies** — which AIDLC stages should load it
-- **Configuration and secrets** — connection strings, TLS, least privilege
-- **Drivers and ORMs** — a per-ecosystem table so you can choose and record one
-- **Schema and data modelling** — engine-specific rules and conventions
-- **Migrations** — the common tools plus the safety rules (forward-only,
-  expand → migrate → contract)
-- **Query patterns and performance** — indexes, plans, N+1, pagination
-- **Transactions and concurrency** — isolation defaults that differ per engine
-- **Connection pooling** — sizing and pooler caveats
-- **Security** — parameterisation, encryption, auditing
-- **Testing** — Testcontainers and ephemeral databases
-- **Common pitfalls** — the mistakes that hurt in production
-- **How this skill plugs into my-aidlc** — which stage records what
+- **When this skill applies** - which AIDLC stages should load it
+- **Configuration and secrets** - connection strings, TLS, least privilege
+- **Drivers and ORMs** - a per-ecosystem table so you can choose and record one
+- **Schema and data modelling** - engine-specific rules and conventions
+- **Migrations** - the common tools plus the safety rules (forward-only,
+  expand -> migrate -> contract)
+- **Query patterns and performance** - indexes, plans, N+1, pagination
+- **Transactions and concurrency** - isolation defaults that differ per engine
+- **Connection pooling** - sizing and pooler caveats
+- **Security** - parameterisation, encryption, auditing
+- **Testing** - Testcontainers and ephemeral databases
+- **Common pitfalls** - the mistakes that hurt in production
+- **How this skill plugs into my-aidlc** - which stage records what
 
 The skills are deliberately stack-neutral. They name the common driver and ORM
 per ecosystem (Node, Python, Java, Go, .NET) but never force one. The
-`technical-spec` stage should record the choice so later stages are consistent.
+`construction/nfr-requirements` stage records the choice as a tech-stack
+decision so later stages are consistent.
 
 ## How they load
 
@@ -40,13 +41,19 @@ per ecosystem (Node, Python, Java, Go, .NET) but never force one. The
 | PI Agent | `.pi/skills/db-*` | automatic, or `/skill:db-postgres` |
 | Claude Code | `.claude/skills/db-*` | automatic, or the skill command |
 | Codex CLI | `.agents/skills/db-*` | automatic when the task matches |
+| DeepSeek Harness | `.dsh/skills/db-*` | automatic, or `/db-postgres` |
 
 The orchestrator also names them, so the conductor loads the right one at the
 right stage.
 
 ## Where the choice is recorded
 
-During **Ideate → Technical Specification**, record:
+The stages below are the native stage slugs; each skill's "How this skill
+plugs into my-aidlc" section repeats them.
+
+During **Construction -> NFR Requirements** (`construction/nfr-requirements`),
+record the engine version, driver/ORM, and migration tool as tech-stack
+decisions:
 
 - engine and version (e.g. PostgreSQL 16.3, MySQL 8.4, SQL Server 2022,
   MongoDB 7.0)
@@ -56,14 +63,20 @@ During **Ideate → Technical Specification**, record:
 - read/write concerns (MongoDB), isolation level (relational)
 - deployment topology (standalone, replica set, sharded, managed)
 
-During **Develop → Code Generation**, every schema change is a reviewed
-migration. Note the exact commands in `code-generation-notes.md`.
+During **Construction -> NFR Design** (`construction/nfr-design`), record the
+pooling strategy and limits.
 
-During **Launch → Test Generation**, integration tests use an ephemeral
-database (Testcontainers or equivalent), and CI runs migrations before tests.
+During **Construction -> Code Generation** (`construction/code-generation`),
+every schema change is a reviewed migration. Note the exact commands in
+`code-generation-plan`.
 
-During **Curate → Performance Optimization**, evidence comes from query plans
-(`EXPLAIN`, Query Store, `explain("executionStats")`) and engine statistics —
+During **Construction -> Build and Test** (`construction/build-and-test`),
+integration tests use an ephemeral database (Testcontainers or equivalent),
+and CI runs migrations before tests.
+
+During **Operation -> Performance Validation**
+(`operation/performance-validation`), evidence comes from query plans
+(`EXPLAIN`, Query Store, `explain("executionStats")`) and engine statistics -
 never from guesses.
 
 ## Adding another engine
