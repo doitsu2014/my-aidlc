@@ -21,8 +21,19 @@ node_modules/
 
 # --- my-aidlc workspace runtime (per project) ---
 # The workspace commits memory, artifacts, and state; it ignores local cursors.
+
+# BEGIN my-aidlc:deepseek
+# my-aidlc workspace runtime
 aidlc/.my-aidlc-sessions/
 aidlc/config.local.json
 aidlc/active-space
 aidlc/spaces/*/.active-space
 aidlc/spaces/*/intents/*/.active-intent
+# END my-aidlc:deepseek
+
+# --- my-aidlc dogfood install (this repository only) ---
+# This repository is my-aidlc itself, so the harness install and the workspace
+# here are regenerable projections of core/ and harness/<name> — the same class
+# of generated tree as dist/. A project that *uses* my-aidlc tracks both.
+/.dsh/
+/aidlc/

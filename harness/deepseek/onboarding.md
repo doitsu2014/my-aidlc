@@ -39,8 +39,15 @@ one to change which native stages that workflow runs.
 | `{{INVOKE}} --doctor` | Validate the workspace and configuration |
 | `{{INVOKE}} --version` | Print the framework version |
 
-On the command line the same operations are available as
-`my-aidlc status`, `my-aidlc doctor`, and `my-aidlc orchestrate next`.
+These are skills, not shell commands. On the command line the same operations
+are `my-aidlc status`, `my-aidlc doctor`, and `my-aidlc orchestrate next`, or
+`node {{HARNESS_DIR}}/tools/my-aidlc.mjs <subcommand>` when my-aidlc is not on
+your PATH.
+
+Every skill in this project is a directory bundle at the top level of
+`{{HARNESS_DIR}}/skills/`, which DSH scans as the `project-dsh` root (rank 100).
+DSH does not substitute `$ARGUMENTS` in a skill body; write the request out in
+the same message instead of relying on a placeholder.
 
 ## What was installed
 
