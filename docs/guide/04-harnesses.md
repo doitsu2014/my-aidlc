@@ -46,7 +46,13 @@ Project config lives in `.claude/`. The orchestrator skill is at
 method memory files (`aidlc/spaces/default/memory/*`) into ambient context by
 reference - it is a stub, not a copy. Edit the method at the workspace root.
 
-`.claude/settings.json` pre-approves the engine's own commands. Copy
+`/aidlc` runs in **ultracode**: substantive stages execute as multi-agent
+`Workflow`s, and `.claude/settings.json` enables ultracode and dynamic
+workflows for the session (`"ultracode": true`, `"enableWorkflows": true`). The
+recipe ships beside the skill at `.claude/skills/aidlc/ultracode.md`.
+
+`.claude/settings.json` also pre-approves the engine's own commands, including
+the `Workflow` tool that ultracode uses. Copy
 `.claude/settings.local.json.example` to `.claude/settings.local.json` for
 personal overrides.
 

@@ -44,6 +44,13 @@ All notable changes to my-aidlc are documented here. The format follows
 
 ### Added
 
+- **Ultracode execution for `/aidlc`.** The orchestrator skill now requires
+  every substantive stage to run as a multi-agent workflow where the harness
+  provides one. In Claude Code that is the `Workflow` tool; the concrete recipe
+  ships beside the skill at `.claude/skills/aidlc/ultracode.md`. The Claude
+  harness's `.claude/settings.json` sets `"ultracode": true` and
+  `"enableWorkflows": true`, and pre-approves the tool. The engine still owns
+  routing, and humans still own every approval gate.
 - `my-aidlc update [--check]` — fetch the pinned AI-DLC release and rewrite the
   methodology, or verify the committed snapshot without network access.
 - `my-aidlc scope` now lists every profile with its stage count and origin

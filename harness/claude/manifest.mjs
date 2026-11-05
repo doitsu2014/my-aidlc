@@ -28,6 +28,9 @@ const manifest = {
 
   harnessFiles: [
     { src: "rules-aidlc.md", dst: "rules/aidlc.md" },
+    // The Claude Code recipe for running each stage in ultracode. It lands
+    // beside the skill because SKILL.md references it there.
+    { src: "ultracode.md", dst: "skills/aidlc/ultracode.md" },
     { src: "settings.json", dst: "settings.json" },
     { src: "settings.local.json.example", dst: "settings.local.json.example" },
   ],
