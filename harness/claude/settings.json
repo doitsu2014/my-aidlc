@@ -1,4 +1,6 @@
 {
+  "enableWorkflows": true,
+  "ultracode": true,
   "permissions": {
     "allow": [
       "Read",
@@ -7,6 +9,7 @@
       "Glob",
       "Grep",
       "Task",
+      "Workflow",
       "WebSearch",
       "Bash(node:*)",
       "Bash(my-aidlc:*)",

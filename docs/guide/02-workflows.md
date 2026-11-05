@@ -220,6 +220,31 @@ where relevant, **Skip**. On Request Changes you choose to Keep, Modify, or Redo
 the artifact. A conditional stage that does not apply reports a skip with a
 recorded reason.
 
+## Ultracode (Claude Code)
+
+Claude Code runs `/aidlc` in **ultracode**. Every substantive stage executes
+as a multi-agent `Workflow` instead of a single pass: the stage is decomposed
+into its independent work, the produced artifacts are refuted through
+independent lenses, and a completeness critic names what is still missing.
+
+Ultracode changes execution, not governance. The conductor still calls the
+engine one directive at a time and follows the directive's human loop: in
+`normal` mode it asks the stage's questions before the work starts and presents
+the gate after it ends; in `yolo` it auto-picks the recommended answers and
+skips the gate when the engine auto-approves, while a `review: required` stage
+still gates. Workflow agents never report outcomes, write state, edit the audit
+log, or approve a gate.
+
+The Claude harness enables it persistently in `.claude/settings.json`
+(`"ultracode": true` and `"enableWorkflows": true`), so the session plans a
+workflow for each substantive task. A user can still override it in
+`.claude/settings.local.json` or with `/effort ultracode off`, and ultracode
+needs a model that supports `xhigh` effort. The stage recipe ships at
+`.claude/skills/aidlc/ultracode.md`.
+
+Other harnesses use their own subagent dispatch where they have one, and
+otherwise run a stage inline.
+
 ## Execution modes: normal and YOLO
 
 The project runs in one of two modes:

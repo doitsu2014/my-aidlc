@@ -14,7 +14,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
 
 import { parseFrontmatter } from "../core/tools/lib/frontmatter.mjs";
@@ -819,6 +819,61 @@ test("packaging builds every harness with tokens substituted", async () => {
     } finally {
       rmSync(outDir, { recursive: true, force: true });
     }
+  }
+});
+
+test("the aidlc skill mandates ultracode and ships the claude recipe", async () => {
+  for (const name of listHarnesses(repoRoot())) {
+    const outDir = join(tempProject(), `dist-${name}`);
+    try {
+      const { manifest } = await buildHarness({ repoRoot: repoRoot(), harnessName: name, outDir });
+      const skillPath = join(outDir, manifest.orchestratorSkillPath);
+      const skill = readFileSync(skillPath, "utf8");
+      assert.match(skill, /^## Ultracode$/m, `${name} skill lacks the Ultracode section`);
+      assert.match(
+        skill,
+        /call `Workflow` for every\s+substantive/,
+        `${name} skill does not mandate the Workflow tool for substantive stages`,
+      );
+      assert.match(
+        skill,
+        /If you are not in Claude Code, use the harness fallback/,
+        `${name} skill lacks the non-Claude capability gate`,
+      );
+      assert.match(skill, /run the stage inline/, `${name} skill lacks the inline fallback`);
+
+      // The Claude-only recipe is referenced beside the skill; other harnesses
+      // must not be told to read a file they do not ship.
+      const recipePath = join(dirname(skillPath), "ultracode.md");
+      if (name === "claude") {
+        assert.ok(existsSync(recipePath), "claude projection is missing the ultracode recipe");
+        const recipe = readFileSync(recipePath, "utf8");
+        assert.ok(!recipe.includes("{{"), "claude ultracode recipe still contains tokens");
+        assert.match(recipe, /pipeline\(/);
+        assert.match(recipe, /SYNTH_SCHEMA/);
+        assert.match(recipe, /result\s*\?\s*parallel\(/, "recipe verifies null produce results");
+        assert.match(recipe, /missing: true/, "recipe marks skipped produce results");
+      } else {
+        assert.ok(!existsSync(recipePath), `${name} should not ship the Claude-only recipe`);
+      }
+    } finally {
+      rmSync(outDir, { recursive: true, force: true });
+    }
+  }
+
+  const root = tempProject();
+  try {
+    const outDir = join(root, "dist-claude");
+    await buildHarness({ repoRoot: repoRoot(), harnessName: "claude", outDir });
+    const settings = JSON.parse(readFileSync(join(outDir, ".claude/settings.json"), "utf8"));
+    assert.equal(settings.ultracode, true, "claude settings do not enable ultracode");
+    assert.equal(settings.enableWorkflows, true, "claude settings do not enable workflows");
+    assert.ok(
+      settings.permissions.allow.includes("Workflow"),
+      "claude settings do not pre-approve the Workflow tool",
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });
 

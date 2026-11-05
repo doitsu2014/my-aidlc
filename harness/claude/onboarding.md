@@ -18,6 +18,16 @@ Type `/aidlc` followed by what you want to build:
 /aidlc Build a REST API for inventory management
 ```
 
+Runs execute in **ultracode**: when `/aidlc` runs a stage with substantive
+work, it uses the `Workflow` tool to fan the stage out across agents and verify
+the artifacts adversarially before the approval gate. The engine still owns
+routing, and the human still owns every gate. The recipe is at
+`{{HARNESS_DIR}}/skills/aidlc/ultracode.md`.
+
+`.claude/settings.json` enables ultracode and dynamic workflows for the
+session. Override it in `.claude/settings.local.json` or with
+`/effort ultracode off`.
+
 The workflow profile is detected from the request. You can name one explicitly:
 `classic`, `express`, `feature`, `bugfix`, `mvp`, `poc`, `infra`.
 
@@ -48,7 +58,8 @@ the stub.
 
 ## What was installed
 
-- `{{HARNESS_DIR}}/skills/aidlc/` - the orchestrator skill
+- `{{HARNESS_DIR}}/skills/aidlc/` - the orchestrator skill and its ultracode
+  stage recipe
 - `{{HARNESS_DIR}}/rules/aidlc.md` - the ambient method import
 - `{{HARNESS_DIR}}/native/` - the fetched AI-DLC methodology: 5 phases, 33
   stages, and 14 agents
