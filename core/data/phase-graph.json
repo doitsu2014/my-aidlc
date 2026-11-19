@@ -4,7 +4,7 @@
   "phases": [
     {"id": "analyze", "name": "Analyze", "order": 1, "gate": "analysis-baseline", "file": "methodology/phases/analyze.md", "agents": ["brief-analyst", "context-risk-analyst"], "stages": ["problem-framing", "context-and-risk"]},
     {"id": "ideate", "name": "Ideate", "order": 2, "gate": "solution-direction", "file": "methodology/phases/ideate.md", "agents": ["solution-explorer", "decision-facilitator"], "stages": ["option-generation", "direction-selection"]},
-    {"id": "develop", "name": "Develop", "order": 3, "gate": "release-candidate", "file": "methodology/phases/develop.md", "agents": ["implementation-planner", "builder-verifier"], "stages": ["implementation-design", "build-and-verify"]},
+    {"id": "develop", "name": "Develop", "order": 3, "gate": "release-candidate", "file": "methodology/phases/develop.md", "agents": ["implementation-planner", "builder-verifier"], "stages": ["implementation-design", "red-tests", "build-and-verify"]},
     {"id": "launch", "name": "Launch", "order": 4, "gate": "launch-and-handoff", "file": "methodology/phases/launch.md", "agents": ["release-coordinator", "operations-handoff"], "stages": ["release-readiness", "operational-handoff"]},
     {"id": "curate", "name": "Curate", "order": 5, "gate": "closure", "file": "methodology/phases/curate.md", "agents": ["outcome-curator", "knowledge-steward"], "stages": ["outcome-review", "knowledge-maintenance"]},
     {"id": "archived", "name": "Archived", "order": 6, "gate": "knowledge-writeback", "file": "methodology/phases/archived.md", "agents": ["record-keeper", "knowledge-archivist"], "stages": ["intent-record", "knowledge-writeback"]}
@@ -15,7 +15,8 @@
     {"id": "option-generation", "phase": "ideate", "order": 1, "agent": "solution-explorer", "produces": ["solution-options", "trade-off-matrix"]},
     {"id": "direction-selection", "phase": "ideate", "order": 2, "agent": "decision-facilitator", "produces": ["recommended-direction", "decision-record", "scope-boundary", "architecture-design"]},
     {"id": "implementation-design", "phase": "develop", "order": 1, "agent": "implementation-planner", "produces": ["implementation-plan", "interfaces-and-contracts", "functional-design"]},
-    {"id": "build-and-verify", "phase": "develop", "order": 2, "agent": "builder-verifier", "produces": ["implementation", "verification-report", "known-limitations"]},
+    {"id": "red-tests", "phase": "develop", "order": 2, "agent": "builder-verifier", "produces": ["failing-tests", "red-evidence"]},
+    {"id": "build-and-verify", "phase": "develop", "order": 3, "agent": "builder-verifier", "produces": ["implementation", "green-verification-report", "known-limitations"]},
     {"id": "release-readiness", "phase": "launch", "order": 1, "agent": "release-coordinator", "produces": ["release-checklist", "deployment-and-rollback-plan", "communications-draft"]},
     {"id": "operational-handoff", "phase": "launch", "order": 2, "agent": "operations-handoff", "produces": ["launch-record", "monitoring-and-support-ownership", "handoff-record"]},
     {"id": "outcome-review", "phase": "curate", "order": 1, "agent": "outcome-curator", "produces": ["outcome-summary", "lessons-learned", "follow-up-register"]},

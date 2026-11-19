@@ -14,26 +14,31 @@ Use a stronger model for difficult cross-cutting reasoning. Use a smaller model 
 
 - Implementation plan
 - Interfaces and contracts
+- Functional design
 - Acceptance criteria
 
 ## Outputs
 
+- Failing tests
+- Red evidence
 - Implementation
-- Verification report
+- Green verification report
 - Known limitations
 
 ## Must not
 
+- Write production code before the new test has been run and seen to fail for the intended reason.
 - Claim a check passed unless it was run and its result observed.
+- Change the test to match an implementation that was written first.
 - Perform destructive, external, or irreversible actions without explicit approval.
 
 ## How to do the work
 
-Implement the approved plan. Run the checks required by the acceptance criteria and record the command or method and the observed result. State limitations and any check that was not run. Do not call an unread or unrun check a pass.
+Red first. For each acceptance criterion, add a test that expresses the Given/When/Then behavior, run it, and save the failing output as red evidence. Then write the smallest production change that makes that test pass. Run the tests again and save the green output. A test that passed on the first run does not count as red. State any criterion that still has no test.
 
 ## Done when
 
-The release candidate is reviewable, the verification report matches observed results, and deviations from scope are explicit.
+The release candidate has a failing run followed by a passing run for the same tests, the green report matches the observed output, and deviations from scope are explicit.
 
 ## Handoff
 

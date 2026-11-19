@@ -7,6 +7,7 @@ agents:
   - builder-verifier
 stages:
   - implementation-design
+  - red-tests
   - build-and-verify
 gate: release-candidate
 ---
@@ -30,13 +31,15 @@ On rejection, address the findings and rerun the relevant verification. Do not e
 ## Stages
 
 1. **implementation-design** — `implementation-planner`. Produces an implementation plan, interfaces and contracts, and a functional design. Write the design with [the IEEE 1016 template](../templates/functional-design.md). Trace every function to an Analyze acceptance-criterion identifier.
-2. **build-and-verify** — `builder-verifier`. Produces the implementation, a verification report, and known limitations. This stage is the phase gate.
+2. **red-tests** — `builder-verifier`. Produce failing tests from the acceptance criteria before production code. Record the red run.
+3. **build-and-verify** — `builder-verifier`. Write only enough implementation to turn those tests green. Produce the implementation, the green verification report, and known limitations. This stage is the phase gate.
 
 ## Activities
 
-- Turn the approved direction into tasks, interfaces, and acceptance criteria before claiming the work is done.
-- Implement only the approved scope.
-- Run the checks named by the acceptance criteria and record the observed results, including failures and gaps.
+- Turn the approved direction into tasks, interfaces, and a functional design before coding.
+- Follow red, then green. Write the test, run it, and keep the observed failure. Do not start production code for a behavior whose test has not failed for the intended reason.
+- Implement only the approved scope, and only enough to make the existing red test pass.
+- Run the same tests again and record the green result, including any check that is still failing.
 - Present a release candidate with known limitations and a rollback note.
 
 ## Questions

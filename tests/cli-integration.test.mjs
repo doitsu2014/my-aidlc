@@ -120,7 +120,7 @@ test('phase-final completion requires explicit approval; blocked and skipped rep
   const project = temporaryDirectory('aidlc-approval-');
   t.after(() => rmSync(project, { recursive: true, force: true }));
   cliJson(project, 'orchestrate', 'next', '--scope', 'solo', '--intent', 'Review approval boundaries');
-  const ordered = ['problem-framing', 'context-and-risk', 'option-generation', 'direction-selection', 'implementation-design', 'build-and-verify', 'intent-record', 'knowledge-writeback'];
+  const ordered = ['problem-framing', 'context-and-risk', 'option-generation', 'direction-selection', 'implementation-design', 'red-tests', 'build-and-verify', 'intent-record', 'knowledge-writeback'];
   const phaseFinals = new Set(['context-and-risk', 'direction-selection', 'build-and-verify', 'knowledge-writeback']);
   for (const stage of ordered) {
     const current = cliJson(project, 'orchestrate', 'next');
