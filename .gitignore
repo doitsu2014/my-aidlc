@@ -1,0 +1,14 @@
+node_modules/
+.npm/
+coverage/
+*.log
+.DS_Store
+
+# Local project state and generated artifacts
+.aidlc/
+.aidlc-work/
+*.tmp
+*.bak
+
+# Harness-generated local configuration
+.claude/settings.local.json

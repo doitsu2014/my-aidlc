@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "1.1.0",
+  "modelAliases": ["opus", "sonnet", "haiku", "fable"],
+  "phases": [
+    {"id": "analyze", "name": "Analyze", "order": 1, "gate": "analysis-baseline", "file": "methodology/phases/analyze.md", "agents": ["brief-analyst", "context-risk-analyst"], "stages": ["problem-framing", "context-and-risk"]},
+    {"id": "ideate", "name": "Ideate", "order": 2, "gate": "solution-direction", "file": "methodology/phases/ideate.md", "agents": ["solution-explorer", "decision-facilitator"], "stages": ["option-generation", "direction-selection"]},
+    {"id": "develop", "name": "Develop", "order": 3, "gate": "release-candidate", "file": "methodology/phases/develop.md", "agents": ["implementation-planner", "builder-verifier"], "stages": ["implementation-design", "build-and-verify"]},
+    {"id": "launch", "name": "Launch", "order": 4, "gate": "launch-and-handoff", "file": "methodology/phases/launch.md", "agents": ["release-coordinator", "operations-handoff"], "stages": ["release-readiness", "operational-handoff"]},
+    {"id": "curate", "name": "Curate", "order": 5, "gate": "closure", "file": "methodology/phases/curate.md", "agents": ["outcome-curator", "knowledge-steward"], "stages": ["outcome-review", "knowledge-maintenance"]}
+  ],
+  "stages": [
+    {"id": "problem-framing", "phase": "analyze", "order": 1, "agent": "brief-analyst", "produces": ["problem-statement", "success-measures", "stakeholder-map"]},
+    {"id": "context-and-risk", "phase": "analyze", "order": 2, "agent": "context-risk-analyst", "produces": ["constraints-and-assumptions", "evidence-log", "risk-register", "open-questions"]},
+    {"id": "option-generation", "phase": "ideate", "order": 1, "agent": "solution-explorer", "produces": ["solution-options", "trade-off-matrix"]},
+    {"id": "direction-selection", "phase": "ideate", "order": 2, "agent": "decision-facilitator", "produces": ["recommended-direction", "decision-record", "scope-boundary"]},
+    {"id": "implementation-design", "phase": "develop", "order": 1, "agent": "implementation-planner", "produces": ["implementation-plan", "interfaces-and-contracts", "acceptance-criteria"]},
+    {"id": "build-and-verify", "phase": "develop", "order": 2, "agent": "builder-verifier", "produces": ["implementation", "verification-report", "known-limitations"]},
+    {"id": "release-readiness", "phase": "launch", "order": 1, "agent": "release-coordinator", "produces": ["release-checklist", "deployment-and-rollback-plan", "communications-draft"]},
+    {"id": "operational-handoff", "phase": "launch", "order": 2, "agent": "operations-handoff", "produces": ["launch-record", "monitoring-and-support-ownership", "handoff-record"]},
+    {"id": "outcome-review", "phase": "curate", "order": 1, "agent": "outcome-curator", "produces": ["outcome-summary", "lessons-learned", "follow-up-register"]},
+    {"id": "knowledge-maintenance", "phase": "curate", "order": 2, "agent": "knowledge-steward", "produces": ["curated-project-record", "retention-and-access-notes", "closure-recommendation"]}
+  ],
+  "scopes": {
+    "solo": ["analyze", "ideate", "develop"],
+    "team": ["analyze", "ideate", "develop", "launch"],
+    "enterprise": ["analyze", "ideate", "develop", "launch", "curate"]
+  },
+  "agents": [
+    {"id": "brief-analyst", "phase": "analyze", "model": "sonnet", "file": "methodology/agents/brief-analyst.md"},
+    {"id": "context-risk-analyst", "phase": "analyze", "model": "sonnet", "file": "methodology/agents/context-risk-analyst.md"},
+    {"id": "solution-explorer", "phase": "ideate", "model": "opus", "file": "methodology/agents/solution-explorer.md"},
+    {"id": "decision-facilitator", "phase": "ideate", "model": "opus", "file": "methodology/agents/decision-facilitator.md"},
+    {"id": "implementation-planner", "phase": "develop", "model": "sonnet", "file": "methodology/agents/implementation-planner.md"},
+    {"id": "builder-verifier", "phase": "develop", "model": "sonnet", "file": "methodology/agents/builder-verifier.md"},
+    {"id": "release-coordinator", "phase": "launch", "model": "sonnet", "file": "methodology/agents/release-coordinator.md"},
+    {"id": "operations-handoff", "phase": "launch", "model": "sonnet", "file": "methodology/agents/operations-handoff.md"},
+    {"id": "outcome-curator", "phase": "curate", "model": "sonnet", "file": "methodology/agents/outcome-curator.md"},
+    {"id": "knowledge-steward", "phase": "curate", "model": "haiku", "file": "methodology/agents/knowledge-steward.md"}
+  ]
+}
