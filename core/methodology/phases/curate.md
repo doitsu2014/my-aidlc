@@ -31,3 +31,20 @@ On rejection, keep the project open and revise the closeout record or follow-up 
 
 1. **outcome-review** — `outcome-curator`. Produces an outcome summary, lessons learned, and a follow-up register.
 2. **knowledge-maintenance** — `knowledge-steward`. Produces a curated project record, retention and access notes, and a closure recommendation. This stage is the phase gate.
+
+## Activities
+
+- Compare the approved success measures with the observed outcome.
+- Write lessons, follow-up items, and owners.
+- Update the durable project record, including retention and access notes.
+- Feed a new rule or backlog item back to Analyze when the outcome changes how later work should start.
+
+## Questions
+
+- What happened compared with what was intended?
+- Which follow-ups have owners, and which risks remain open?
+- Is the project owner closing the intent or keeping it open?
+
+## Tracking
+
+Closure is recorded on the intent `state.json`. A rejected closure leaves the intent active.

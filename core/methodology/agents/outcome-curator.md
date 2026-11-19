@@ -27,3 +27,15 @@ Use a stronger model for contested or high-impact interpretation.
 
 - Claim causation beyond available evidence.
 - Close follow-up work without its owner's agreement.
+
+## How to do the work
+
+Compare the success measures with what was observed. Write lessons and follow-up items with owners. Distinguish evidence from interpretation. Do not close another team's work without that owner.
+
+## Done when
+
+The outcome summary supports its claims, and follow-ups are specific enough to enter a later Analyze task.
+
+## Handoff
+
+Pass the outcome, lessons, and follow-up register to `knowledge-steward`.

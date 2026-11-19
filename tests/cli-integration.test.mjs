@@ -7,7 +7,7 @@ import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
 const repo = resolve(import.meta.dirname, '..');
-const cli = join(repo, 'core/tools/my-aidlc.mjs');
+const cli = join(repo, 'core/tools/dtech-aidlc.mjs');
 const installScript = join(repo, 'scripts/install.sh');
 const mkdtempAsync = promisify(mkdtemp);
 
@@ -105,6 +105,10 @@ test('workflow keeps the original intent, advances in order, and records audit e
   assert.equal(state.intent, intent);
   assert.equal(state.stages['problem-framing'].status, 'complete');
   assert.equal(state.stages['context-and-risk'].status, 'in_progress');
+  assert.equal(state.project, project);
+  const tracked = JSON.parse(readFileSync(join(project, '.aidlc', 'intents', state.intentId, 'state.json'), 'utf8'));
+  assert.equal(tracked.currentStage, 'context-and-risk');
+  assert.match(readFileSync(join(project, '.aidlc', 'intents', state.intentId, 'intent.md'), 'utf8'), /inventory API/);
 
   const audit = readFileSync(join(project, '.aidlc', 'audit.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
   assert.ok(audit.some((event) => event.event === 'intent.created' && event.intent === intent));
@@ -116,8 +120,8 @@ test('phase-final completion requires explicit approval; blocked and skipped rep
   const project = temporaryDirectory('aidlc-approval-');
   t.after(() => rmSync(project, { recursive: true, force: true }));
   cliJson(project, 'orchestrate', 'next', '--scope', 'solo', '--intent', 'Review approval boundaries');
-  const ordered = ['problem-framing', 'context-and-risk', 'option-generation', 'direction-selection', 'implementation-design', 'build-and-verify'];
-  const phaseFinals = new Set(['context-and-risk', 'direction-selection', 'build-and-verify']);
+  const ordered = ['problem-framing', 'context-and-risk', 'option-generation', 'direction-selection', 'implementation-design', 'red-tests', 'build-and-verify', 'intent-record', 'knowledge-writeback'];
+  const phaseFinals = new Set(['context-and-risk', 'direction-selection', 'build-and-verify', 'knowledge-writeback']);
   for (const stage of ordered) {
     const current = cliJson(project, 'orchestrate', 'next');
     assert.equal(current.stage.id, stage);
@@ -167,15 +171,18 @@ test('local installer creates a working isolated launcher and refuses replacemen
   t.after(() => rmSync(scratch, { recursive: true, force: true }));
   const installed = spawnSync('sh', [installScript, '--from', repo, '--prefix', prefix], { cwd: scratch, encoding: 'utf8' });
   assert.equal(installed.status, 0, installed.stderr || installed.stdout);
-  const launcher = join(prefix, 'bin', 'my-aidlc');
+  const launcher = join(prefix, 'bin', 'dtech-aidlc');
   const help = spawnSync('sh', [launcher, '--help'], { encoding: 'utf8' });
   assert.equal(help.status, 0, help.stderr || help.stdout);
-  assert.equal(existsSync(join(prefix, 'lib', 'my-aidlc', '.git')), false);
+  assert.equal(existsSync(join(prefix, 'lib', 'dtech-aidlc', '.git')), false);
 
   const rerun = spawnSync('sh', [installScript, '--from', repo, '--prefix', prefix], { cwd: scratch, encoding: 'utf8' });
   assert.notEqual(rerun.status, 0);
   assert.match(rerun.stderr, /already exists/);
   assert.ok(existsSync(launcher));
+  const completion = join(prefix, 'share/zsh/site-functions/_dtech-aidlc');
+  assert.equal(readFileSync(completion, 'utf8').startsWith('#compdef dtech-aidlc\n'), true);
+  assert.match(installed.stdout, /fpath=/);
 });
 
 test('doctor validates clean initialization and status remains local to project', (t) => {

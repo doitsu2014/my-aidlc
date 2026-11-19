@@ -15,7 +15,7 @@ Human-readable definitions live in [`phases/`](phases/) (one file per phase) and
 
 ## Phase and stage contracts
 
-Phases run in this order: **Analyze → Ideate → Develop → Launch → Curate**. A phase can start only when its entry criteria are satisfied. Its agents produce the artifacts described in the graph's stages, then the project owner reviews the exit criteria and records an explicit decision. Rejection returns the work for revision; it does not permit the workflow to progress by default.
+Phases run in this order: **Analyze → Ideate → Develop → Launch → Curate → Archived**. Solo, Team, and Enterprise all end at Archived. A phase can start only when its entry criteria are satisfied. Its agents produce the artifacts described in the graph's stages, then the project owner reviews the exit criteria and records an explicit decision. Rejection returns the work for revision; it does not permit the workflow to progress by default.
 
 ### Analyze
 

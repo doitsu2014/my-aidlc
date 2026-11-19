@@ -1,5 +1,5 @@
 {
-  "name": "my-aidlc",
+  "name": "dtech-aidlc",
   "version": "0.1.0",
   "private": false,
   "description": "AIDLC methodology and harness-aware CLI",
@@ -8,7 +8,7 @@
     "node": ">=20"
   },
   "bin": {
-    "my-aidlc": "core/tools/my-aidlc.mjs"
+    "dtech-aidlc": "core/tools/dtech-aidlc.mjs"
   },
   "scripts": {
     "test": "node --test",
