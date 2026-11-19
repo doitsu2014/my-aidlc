@@ -29,7 +29,7 @@ On rejection, revise the analysis artifacts and resubmit. Do not enter Ideate.
 
 ## Stages
 
-1. **problem-framing** — `brief-analyst`. Produces a problem statement, success measures, and a stakeholder map.
+1. **problem-framing** — `brief-analyst`. Produces a problem statement, success measures, a stakeholder map, and acceptance criteria. Write the criteria in Given/When/Then using [the acceptance-criteria template](../templates/acceptance-criteria.md).
 2. **context-and-risk** — `context-risk-analyst`. Produces constraints and assumptions, an evidence log, a risk register, and open questions. This stage is the phase gate.
 
 ## Activities

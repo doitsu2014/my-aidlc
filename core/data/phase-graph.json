@@ -10,11 +10,11 @@
     {"id": "archived", "name": "Archived", "order": 6, "gate": "knowledge-writeback", "file": "methodology/phases/archived.md", "agents": ["record-keeper", "knowledge-archivist"], "stages": ["intent-record", "knowledge-writeback"]}
   ],
   "stages": [
-    {"id": "problem-framing", "phase": "analyze", "order": 1, "agent": "brief-analyst", "produces": ["problem-statement", "success-measures", "stakeholder-map"]},
+    {"id": "problem-framing", "phase": "analyze", "order": 1, "agent": "brief-analyst", "produces": ["problem-statement", "success-measures", "stakeholder-map", "acceptance-criteria"]},
     {"id": "context-and-risk", "phase": "analyze", "order": 2, "agent": "context-risk-analyst", "produces": ["constraints-and-assumptions", "evidence-log", "risk-register", "open-questions"]},
     {"id": "option-generation", "phase": "ideate", "order": 1, "agent": "solution-explorer", "produces": ["solution-options", "trade-off-matrix"]},
-    {"id": "direction-selection", "phase": "ideate", "order": 2, "agent": "decision-facilitator", "produces": ["recommended-direction", "decision-record", "scope-boundary"]},
-    {"id": "implementation-design", "phase": "develop", "order": 1, "agent": "implementation-planner", "produces": ["implementation-plan", "interfaces-and-contracts", "acceptance-criteria"]},
+    {"id": "direction-selection", "phase": "ideate", "order": 2, "agent": "decision-facilitator", "produces": ["recommended-direction", "decision-record", "scope-boundary", "architecture-design"]},
+    {"id": "implementation-design", "phase": "develop", "order": 1, "agent": "implementation-planner", "produces": ["implementation-plan", "interfaces-and-contracts", "functional-design"]},
     {"id": "build-and-verify", "phase": "develop", "order": 2, "agent": "builder-verifier", "produces": ["implementation", "verification-report", "known-limitations"]},
     {"id": "release-readiness", "phase": "launch", "order": 1, "agent": "release-coordinator", "produces": ["release-checklist", "deployment-and-rollback-plan", "communications-draft"]},
     {"id": "operational-handoff", "phase": "launch", "order": 2, "agent": "operations-handoff", "produces": ["launch-record", "monitoring-and-support-ownership", "handoff-record"]},

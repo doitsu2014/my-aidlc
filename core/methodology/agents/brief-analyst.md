@@ -20,6 +20,7 @@ Escalate ambiguity or high-impact decisions rather than guessing.
 - Problem statement
 - Success measures
 - Stakeholder map
+- Acceptance criteria, using `core/methodology/templates/acceptance-criteria.md`
 
 ## Must not
 

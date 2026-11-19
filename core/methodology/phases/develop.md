@@ -29,7 +29,7 @@ On rejection, address the findings and rerun the relevant verification. Do not e
 
 ## Stages
 
-1. **implementation-design** — `implementation-planner`. Produces an implementation plan, interfaces and contracts, and acceptance criteria.
+1. **implementation-design** — `implementation-planner`. Produces an implementation plan, interfaces and contracts, and a functional design. Write the design with [the IEEE 1016 template](../templates/functional-design.md). Trace every function to an Analyze acceptance-criterion identifier.
 2. **build-and-verify** — `builder-verifier`. Produces the implementation, a verification report, and known limitations. This stage is the phase gate.
 
 ## Activities
