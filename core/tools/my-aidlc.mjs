@@ -13,6 +13,20 @@ function fail(message) { process.stderr.write(`my-aidlc: ${message}\n`); process
 function validateScope(scope) { if (!['solo', 'team', 'enterprise'].includes(scope)) throw new Error('scope must be solo, team, or enterprise'); return scope; }
 function validateHarness(name) { if (!['claude', 'deepseek'].includes(name)) throw new Error('harness must be claude or deepseek'); return name; }
 function stageStatus(state, stage) { return state?.stages?.[stage.id]?.status ?? 'pending'; }
+function intentSlug(text) {
+  const base = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
+  return base || 'intent';
+}
+function intentDir(root, id) { return join(root, '.aidlc', 'intents', id); }
+function persistWorkflow(root, state) {
+  state.updatedAt = new Date().toISOString();
+  saveState(root, state);
+  if (!state.intentId) return state;
+  const dir = intentDir(root, state.intentId);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'state.json'), `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
+  return state;
+}
 function ensureState(root, scope, intent) {
   const state = loadState(root);
   if (state) {
@@ -21,8 +35,16 @@ function ensureState(root, scope, intent) {
     return state;
   }
   if (!intent) throw new Error('No active intent. Run `my-aidlc orchestrate next --intent "..."` first.');
-  const created = { version: 1, scope, intent, currentStage: null, stages: {}, dependencies: {}, createdAt: new Date().toISOString() };
-  saveState(root, created); audit(root, 'intent.created', { intent, scope }); return created;
+  const id = intentSlug(intent);
+  let intentId = id, n = 2;
+  while (existsSync(intentDir(root, intentId))) intentId = `${id}-${n++}`;
+  const created = { version: 1, intentId, project: root, scope, intent, status: 'active', currentStage: null, stages: {}, dependencies: {}, createdAt: new Date().toISOString() };
+  const dir = intentDir(root, intentId);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'intent.md'), `# ${intentId}\n\nProject: ${root}\n\n${intent}\n`, { flag: 'wx', mode: 0o600 });
+  persistWorkflow(root, created);
+  audit(root, 'intent.created', { intent, intentId, scope });
+  return created;
 }
 function main() {
   const { positional: args, flags } = parseArgs(process.argv.slice(2));
@@ -83,7 +105,7 @@ function main() {
   }
   if (cmd === 'status') {
     const state = loadState(root); if (!state) return out({ initialized: existsSync(configPath(root)), activeIntent: null });
-    return out({ intent: state.intent, scope: state.scope, currentStage: state.currentStage, stages: state.stages });
+    return out({ intent: state.intent, intentId: state.intentId ?? null, intentDir: state.intentId ? intentDir(root, state.intentId) : null, scope: state.scope, status: state.status ?? 'active', currentStage: state.currentStage, stages: state.stages });
   }
   if (cmd === 'doctor') {
     const checks = [], check = (ok, message) => checks.push({ status: ok ? 'pass' : 'fail', message });
@@ -108,13 +130,13 @@ function main() {
       const state = ensureState(root, scope, flags.intent || flags.description || null);
       const stages = orderedStages(graph, state.scope);
       const next = stages.find(stage => !['complete', 'skipped'].includes(stageStatus(state, stage)));
-      if (!next) { state.currentStage = null; saveState(root, state); return out({ complete: true, intent: state.intent }); }
-      state.currentStage = next.id; state.stages[next.id] ??= { status: 'in_progress', startedAt: new Date().toISOString() }; saveState(root, state);
+      if (!next) { state.currentStage = null; state.status = 'complete'; persistWorkflow(root, state); return out({ complete: true, intent: state.intent, intentId: state.intentId }); }
+      state.currentStage = next.id; state.status = 'active'; state.stages[next.id] ??= { status: 'in_progress', startedAt: new Date().toISOString() }; persistWorkflow(root, state);
       audit(root, 'stage.selected', { intent: state.intent, stage: next.id });
       const model = next.agent ? resolveAgentModel(graph.agents.find(agent => agent.id === next.agent), config) : {};
       const phase = graph.phases.find(item => item.id === next.phase);
       const agent = next.agent ? graph.agents.find(item => item.id === next.agent) : null;
-      return out({ intent: state.intent, scope: state.scope, stage: { ...next, phaseFile: phase ? join(engineRoot(), phase.file) : null, ...(agent ? { agentFile: join(engineRoot(), agent.file), model: model.model, modelSource: model.source } : {}) }, approvalRequiredAfter: next.id });
+      return out({ intent: state.intent, intentId: state.intentId, intentDir: intentDir(root, state.intentId), scope: state.scope, stage: { ...next, phaseFile: phase ? join(engineRoot(), phase.file) : null, ...(agent ? { agentFile: join(engineRoot(), agent.file), model: model.model, modelSource: model.source } : {}) }, approvalRequiredAfter: next.id });
     }
     if (action === 'report') {
       const state = loadState(root); if (!state) throw new Error('No active workflow state');
@@ -128,7 +150,7 @@ function main() {
       if (isGate && result === 'complete' && flags.approval !== 'approved') throw new Error(`Phase gate after ${stage.id} requires explicit --approval approved`);
       state.stages[stage.id] = { ...(state.stages[stage.id] || {}), status: result, reportedAt: new Date().toISOString(), detail: flags.detail || null };
       state.currentStage = null;
-      saveState(root, state); audit(root, 'stage.reported', { intent: state.intent, stage: stage.id, result, gateApproval: isGate && flags.approval === 'approved' ? 'approved' : null });
+      persistWorkflow(root, state); audit(root, 'stage.reported', { intent: state.intent, intentId: state.intentId, stage: stage.id, result, gateApproval: isGate && flags.approval === 'approved' ? 'approved' : null });
       return out({ recorded: true, stage: stage.id, result, phaseGate: isGate, approval: isGate ? 'approved' : null });
     }
     throw new Error('Use orchestrate next or orchestrate report');

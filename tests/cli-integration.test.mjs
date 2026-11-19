@@ -105,6 +105,10 @@ test('workflow keeps the original intent, advances in order, and records audit e
   assert.equal(state.intent, intent);
   assert.equal(state.stages['problem-framing'].status, 'complete');
   assert.equal(state.stages['context-and-risk'].status, 'in_progress');
+  assert.equal(state.project, project);
+  const tracked = JSON.parse(readFileSync(join(project, '.aidlc', 'intents', state.intentId, 'state.json'), 'utf8'));
+  assert.equal(tracked.currentStage, 'context-and-risk');
+  assert.match(readFileSync(join(project, '.aidlc', 'intents', state.intentId, 'intent.md'), 'utf8'), /inventory API/);
 
   const audit = readFileSync(join(project, '.aidlc', 'audit.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
   assert.ok(audit.some((event) => event.event === 'intent.created' && event.intent === intent));
