@@ -11,6 +11,7 @@ _my-aidlc() {
     implementation-planner builder-verifier
     release-coordinator operations-handoff
     outcome-curator knowledge-steward
+    record-keeper knowledge-archivist
   )
   results=(complete blocked skipped)
 
@@ -70,8 +71,8 @@ _my-aidlc() {
         config)
           _arguments -C '1:section:(agents)' '2:action:->action' '*::arg:->rest'
           case ${words[2]} in
-            set) _arguments '1:agent:(brief-analyst context-risk-analyst solution-explorer decision-facilitator implementation-planner builder-verifier release-coordinator operations-handoff outcome-curator knowledge-steward)' '2:model:(opus sonnet haiku fable)' ;;
-            reset) _arguments '1:agent:(brief-analyst context-risk-analyst solution-explorer decision-facilitator implementation-planner builder-verifier release-coordinator operations-handoff outcome-curator knowledge-steward)' ;;
+            set) _arguments '1:agent:(brief-analyst context-risk-analyst solution-explorer decision-facilitator implementation-planner builder-verifier release-coordinator operations-handoff outcome-curator knowledge-steward record-keeper knowledge-archivist)' '2:model:(opus sonnet haiku fable)' ;;
+            reset) _arguments '1:agent:(brief-analyst context-risk-analyst solution-explorer decision-facilitator implementation-planner builder-verifier release-coordinator operations-handoff outcome-curator knowledge-steward record-keeper knowledge-archivist)' ;;
           esac
           ;;
         repos)

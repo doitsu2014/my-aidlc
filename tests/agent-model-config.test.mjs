@@ -17,7 +17,7 @@ test('config agents lists defaults, set/reset all aliases, and preserves config 
   const project = temp(); t.after(() => rmSync(project, { recursive: true, force: true }));
   const graph = readFileSync(graphPath, 'utf8');
   let rows = json(project, 'config', 'agents');
-  assert.equal(rows.length, 10);
+  assert.equal(rows.length, 12);
   assert.ok(rows.every(row => row.model === row.defaultModel && row.source === 'default'));
   assert.equal(existsSync(join(project, '.aidlc')), false);
   init(project);

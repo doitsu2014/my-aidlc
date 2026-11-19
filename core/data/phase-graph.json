@@ -6,7 +6,8 @@
     {"id": "ideate", "name": "Ideate", "order": 2, "gate": "solution-direction", "file": "methodology/phases/ideate.md", "agents": ["solution-explorer", "decision-facilitator"], "stages": ["option-generation", "direction-selection"]},
     {"id": "develop", "name": "Develop", "order": 3, "gate": "release-candidate", "file": "methodology/phases/develop.md", "agents": ["implementation-planner", "builder-verifier"], "stages": ["implementation-design", "build-and-verify"]},
     {"id": "launch", "name": "Launch", "order": 4, "gate": "launch-and-handoff", "file": "methodology/phases/launch.md", "agents": ["release-coordinator", "operations-handoff"], "stages": ["release-readiness", "operational-handoff"]},
-    {"id": "curate", "name": "Curate", "order": 5, "gate": "closure", "file": "methodology/phases/curate.md", "agents": ["outcome-curator", "knowledge-steward"], "stages": ["outcome-review", "knowledge-maintenance"]}
+    {"id": "curate", "name": "Curate", "order": 5, "gate": "closure", "file": "methodology/phases/curate.md", "agents": ["outcome-curator", "knowledge-steward"], "stages": ["outcome-review", "knowledge-maintenance"]},
+    {"id": "archived", "name": "Archived", "order": 6, "gate": "knowledge-writeback", "file": "methodology/phases/archived.md", "agents": ["record-keeper", "knowledge-archivist"], "stages": ["intent-record", "knowledge-writeback"]}
   ],
   "stages": [
     {"id": "problem-framing", "phase": "analyze", "order": 1, "agent": "brief-analyst", "produces": ["problem-statement", "success-measures", "stakeholder-map"]},
@@ -18,12 +19,14 @@
     {"id": "release-readiness", "phase": "launch", "order": 1, "agent": "release-coordinator", "produces": ["release-checklist", "deployment-and-rollback-plan", "communications-draft"]},
     {"id": "operational-handoff", "phase": "launch", "order": 2, "agent": "operations-handoff", "produces": ["launch-record", "monitoring-and-support-ownership", "handoff-record"]},
     {"id": "outcome-review", "phase": "curate", "order": 1, "agent": "outcome-curator", "produces": ["outcome-summary", "lessons-learned", "follow-up-register"]},
-    {"id": "knowledge-maintenance", "phase": "curate", "order": 2, "agent": "knowledge-steward", "produces": ["curated-project-record", "retention-and-access-notes", "closure-recommendation"]}
+    {"id": "knowledge-maintenance", "phase": "curate", "order": 2, "agent": "knowledge-steward", "produces": ["curated-project-record", "retention-and-access-notes", "closure-recommendation"]},
+    {"id": "intent-record", "phase": "archived", "order": 1, "agent": "record-keeper", "produces": ["intent-summary", "completed-scope", "artifact-index"]},
+    {"id": "knowledge-writeback", "phase": "archived", "order": 2, "agent": "knowledge-archivist", "produces": ["knowledge-record", "next-intent-notes"]}
   ],
   "scopes": {
-    "solo": ["analyze", "ideate", "develop"],
-    "team": ["analyze", "ideate", "develop", "launch"],
-    "enterprise": ["analyze", "ideate", "develop", "launch", "curate"]
+    "solo": ["analyze", "ideate", "develop", "archived"],
+    "team": ["analyze", "ideate", "develop", "launch", "archived"],
+    "enterprise": ["analyze", "ideate", "develop", "launch", "curate", "archived"]
   },
   "agents": [
     {"id": "brief-analyst", "phase": "analyze", "model": "sonnet", "file": "methodology/agents/brief-analyst.md"},
@@ -35,6 +38,8 @@
     {"id": "release-coordinator", "phase": "launch", "model": "sonnet", "file": "methodology/agents/release-coordinator.md"},
     {"id": "operations-handoff", "phase": "launch", "model": "sonnet", "file": "methodology/agents/operations-handoff.md"},
     {"id": "outcome-curator", "phase": "curate", "model": "sonnet", "file": "methodology/agents/outcome-curator.md"},
-    {"id": "knowledge-steward", "phase": "curate", "model": "haiku", "file": "methodology/agents/knowledge-steward.md"}
+    {"id": "knowledge-steward", "phase": "curate", "model": "haiku", "file": "methodology/agents/knowledge-steward.md"},
+    {"id": "record-keeper", "phase": "archived", "model": "haiku", "file": "methodology/agents/record-keeper.md"},
+    {"id": "knowledge-archivist", "phase": "archived", "model": "sonnet", "file": "methodology/agents/knowledge-archivist.md"}
   ]
 }
