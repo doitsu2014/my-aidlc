@@ -5,9 +5,10 @@ import { fileURLToPath } from 'node:url';
 import { audit, configPath, loadConfig, loadState, parseArgs, readGraph, readJson, saveState, safeId, stateDir, statePath, auditPath, copyTreePreserving, orderedStages, engineRoot, repoRoot } from './lib.mjs';
 import { MODEL_ALIASES, resolveAgentModel, validateModelConfig, writeModelConfig } from './agent-models.mjs';
 import { addDependency, importDependencies, listDependencies, projectDependenciesPath, pullDependencies, removeDependency, validateDependencies } from './dependencies.mjs';
+import { scanProject, writeProjectProfile } from './onboard.mjs';
 
 const VERSION = readJson(join(repoRoot(), 'package.json'))?.version || readJson(join(engineRoot(), 'version.json'))?.version || '0.1.0';
-const HELP = `dtech-aidlc ${VERSION}\n\nUsage: dtech-aidlc <command> [options]\n\nCommands:\n  help, --help            Show help\n  version, --version      Show version\n  init --harness NAME --scope NAME\n                          Initialize .aidlc and project harness/methodology\n  scope [NAME]            List scopes or show stages in a scope\n  status                  Show current intent and stage progress\n  doctor                  Validate graph, state, config, and projection\n  orchestrate next [--intent TEXT] [--scope NAME]\n  orchestrate report --result complete|blocked|skipped [--approval approved]\n  config agents            List effective agent models\n  config agents set <agent-id> <opus|sonnet|haiku|fable>\n  config agents reset <agent-id>\n  repos add <name> <url> [--ref REF]\n  repos list              List registered dependency repositories\n  repos pull [name]       Clone or fast-forward repositories from aidlc.deps.json\n  repos remove <name>     Unregister only; preserve checkout\n  completion zsh          Print the zsh completion function\n  deps add <id> <dependency-id>\n  deps list                List dependency edges\n  deps pull <id>           Show direct dependencies and their status\n\nScope values: solo, team, enterprise. Harness values: claude, deepseek.\nPhase gates require explicit --approval approved when reporting a phase's final stage.\nAll workflow state and audit records are local under .aidlc/.\n`;
+const HELP = `dtech-aidlc ${VERSION}\n\nUsage: dtech-aidlc <command> [options]\n\nCommands:\n  help, --help            Show help\n  version, --version      Show version\n  onboard --harness NAME --scope NAME\n                          Initialize and detect the project in one command\n  init --harness NAME --scope NAME\n                          Initialize .aidlc and project harness/methodology\n  scope [NAME]            List scopes or show stages in a scope\n  status                  Show current intent and stage progress\n  doctor                  Validate graph, state, config, and projection\n  orchestrate next [--intent TEXT] [--scope NAME]\n  orchestrate report --result complete|blocked|skipped [--approval approved]\n  config agents            List effective agent models\n  config agents set <agent-id> <opus|sonnet|haiku|fable>\n  config agents reset <agent-id>\n  repos add <name> <url> [--ref REF]\n  repos list              List registered dependency repositories\n  repos pull [name]       Clone or fast-forward repositories from aidlc.deps.json\n  repos remove <name>     Unregister only; preserve checkout\n  completion zsh          Print the zsh completion function\n  deps add <id> <dependency-id>\n  deps list                List dependency edges\n  deps pull <id>           Show direct dependencies and their status\n\nScope values: solo, team, enterprise. Harness values: claude, deepseek.\nPhase gates require explicit --approval approved when reporting a phase's final stage.\nAll workflow state and audit records are local under .aidlc/.\n`;
 function out(value) { process.stdout.write(typeof value === 'string' ? value : `${JSON.stringify(value, null, 2)}\n`); }
 function fail(message) { process.stderr.write(`dtech-aidlc: ${message}\n`); process.exitCode = 1; }
 function validateScope(scope) { if (!['solo', 'team', 'enterprise'].includes(scope)) throw new Error('scope must be solo, team, or enterprise'); return scope; }
@@ -52,7 +53,7 @@ function main() {
   if (cmd === 'help' || flags.help || cmd === '--help') return out(HELP);
   if (cmd === 'version' || flags.version || cmd === '--version') return out(`dtech-aidlc ${VERSION}\n`);
   const root = resolve(flags.project || process.cwd());
-  if (cmd === 'init') {
+  if (cmd === 'onboard' || cmd === 'init') {
     const harness = validateHarness(flags.harness || 'claude');
     const scope = validateScope(flags.scope || 'solo');
     const graph = readGraph();
@@ -71,7 +72,11 @@ function main() {
     let methodologyTarget = null;
     if (existsSync(methodologySrc)) { methodologyTarget = join(root, '.aidlc', 'methodology'); copied.push(...copyTreePreserving(methodologySrc, methodologyTarget)); }
     audit(root, 'project.initialized', { harness, scope, graphPhases: graph.phases.length, projection: projectionRoot });
-    return out({ initialized: true, harness, scope, stateDir: stateDir(root), projection: projectionRoot, methodology: methodologyTarget, filesCreated: copied.length });
+    const result = { initialized: true, harness, scope, stateDir: stateDir(root), projection: projectionRoot, methodology: methodologyTarget, filesCreated: copied.length };
+    if (cmd === 'init') return out(result);
+    const detected = writeProjectProfile(root, scanProject(root));
+    audit(root, 'project.onboarded', { kind: detected.profile.kind, languages: detected.profile.languages.map(row => row.name) });
+    return out({ ...result, kind: detected.profile.kind, shared: detected.shared, languages: detected.profile.languages, architecture: detected.profile.architecture, brd: detected.profile.brdCopied });
   }
   if (cmd === 'config') {
     const section = args.shift();

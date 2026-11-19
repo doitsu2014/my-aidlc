@@ -4,6 +4,30 @@ A local-first AIDLC CLI and methodology distribution for Node.js 20 and newer. T
 
 ## Install from a local checkout
 
+macOS and Linux:
+
+```sh
+sh scripts/install.sh
+```
+
+Windows PowerShell:
+
+```powershell
+powershell -File scripts/install.ps1
+```
+
+Node.js 20 or newer is required on all three. The POSIX installer uses `~/.local`. The Windows installer uses `%LOCALAPPDATA%\dtech-aidlc` and writes `bin\dtech-aidlc.cmd`.
+
+## Onboard a project
+
+From the project directory, greenfield or brownfield:
+
+```sh
+dtech-aidlc onboard --harness claude --scope solo
+```
+
+This initializes the project and writes `.aidlc/shared/project-profile.json`. It records detected languages, architecture evidence, whether the project already contains source, and copies a found BRD into `.aidlc/shared/brd/`. Detection reports only evidence it found.
+
 No installer network access is required. From the repository root:
 
 ```sh
