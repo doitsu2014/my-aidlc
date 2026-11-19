@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { audit, configPath, loadConfig, loadState, parseArgs, readGraph, readJson, saveState, safeId, stateDir, statePath, auditPath, copyTreePreserving, orderedStages, engineRoot, repoRoot } from './lib.mjs';
 import { MODEL_ALIASES, resolveAgentModel, validateModelConfig, writeModelConfig } from './agent-models.mjs';
+import { addDependency, importDependencies, listDependencies, projectDependenciesPath, pullDependencies, removeDependency, validateDependencies } from './dependencies.mjs';
 
 const VERSION = readJson(join(repoRoot(), 'package.json'))?.version || readJson(join(engineRoot(), 'version.json'))?.version || '0.1.0';
-const HELP = `my-aidlc ${VERSION}\n\nUsage: my-aidlc <command> [options]\n\nCommands:\n  help, --help            Show help\n  version, --version      Show version\n  init --harness NAME --scope NAME\n                          Initialize .aidlc and project harness/methodology\n  scope [NAME]            List scopes or show stages in a scope\n  status                  Show current intent and stage progress\n  doctor                  Validate graph, state, config, and projection\n  orchestrate next [--intent TEXT] [--scope NAME]\n  orchestrate report --result complete|blocked|skipped [--approval approved]\n  config agents            List effective agent models\n  config agents set <agent-id> <opus|sonnet|haiku|fable>\n  config agents reset <agent-id>\n  deps add <id> <dependency-id>\n  deps list                List dependency edges\n  deps pull <id>           Show direct dependencies and their status\n\nScope values: solo, team, enterprise. Harness values: claude, deepseek.\nPhase gates require explicit --approval approved when reporting a phase's final stage.\nAll workflow state and audit records are local under .aidlc/.\n`;
+const HELP = `my-aidlc ${VERSION}\n\nUsage: my-aidlc <command> [options]\n\nCommands:\n  help, --help            Show help\n  version, --version      Show version\n  init --harness NAME --scope NAME\n                          Initialize .aidlc and project harness/methodology\n  scope [NAME]            List scopes or show stages in a scope\n  status                  Show current intent and stage progress\n  doctor                  Validate graph, state, config, and projection\n  orchestrate next [--intent TEXT] [--scope NAME]\n  orchestrate report --result complete|blocked|skipped [--approval approved]\n  config agents            List effective agent models\n  config agents set <agent-id> <opus|sonnet|haiku|fable>\n  config agents reset <agent-id>\n  repos add <name> <url> [--ref REF]\n  repos list              List registered dependency repositories\n  repos pull [name]       Clone or fast-forward repositories from aidlc.deps.json\n  repos remove <name>     Unregister only; preserve checkout\n  completion zsh          Print the zsh completion function\n  deps add <id> <dependency-id>\n  deps list                List dependency edges\n  deps pull <id>           Show direct dependencies and their status\n\nScope values: solo, team, enterprise. Harness values: claude, deepseek.\nPhase gates require explicit --approval approved when reporting a phase's final stage.\nAll workflow state and audit records are local under .aidlc/.\n`;
 function out(value) { process.stdout.write(typeof value === 'string' ? value : `${JSON.stringify(value, null, 2)}\n`); }
 function fail(message) { process.stderr.write(`my-aidlc: ${message}\n`); process.exitCode = 1; }
 function validateScope(scope) { if (!['solo', 'team', 'enterprise'].includes(scope)) throw new Error('scope must be solo, team, or enterprise'); return scope; }
@@ -90,6 +92,8 @@ function main() {
     let config = {};
     try { config = validateModelConfig(root, graph ?? readGraph()); check(!existsSync(configPath(root)) || (['claude','deepseek'].includes(config.harness) && ['solo','team','enterprise'].includes(config.scope)), 'Project configuration and agent models'); }
     catch (e) { check(false, `Project configuration and agent models: ${e.message}`); }
+    try { const repos = validateDependencies(root); check(true, `Dependency repositories: ${repos.length} registered`); }
+    catch (e) { check(false, `Dependency repositories: ${e.message}`); }
     const state = loadState(root);
     check(!existsSync(statePath(root)) || Boolean(state), 'State JSON is readable');
     check(!existsSync(auditPath(root)) || readFileSync(auditPath(root), 'utf8').split(/\r?\n/).filter(Boolean).every(line => { try { JSON.parse(line); return true; } catch { return false; } }), 'Audit log contains valid JSON lines');
@@ -128,6 +132,31 @@ function main() {
       return out({ recorded: true, stage: stage.id, result, phaseGate: isGate, approval: isGate ? 'approved' : null });
     }
     throw new Error('Use orchestrate next or orchestrate report');
+  }
+  if (cmd === 'completion') {
+    if (args.length !== 1 || args[0] !== 'zsh') throw new Error('Usage: my-aidlc completion zsh');
+    const script = join(dirname(fileURLToPath(import.meta.url)), 'completion.zsh');
+    return out(readFileSync(script, 'utf8'));
+  }
+  if (cmd === 'repos') {
+    const action = args.shift();
+    const allowedFlags = action === 'add' ? ['project', 'ref'] : action === 'pull' ? ['project', 'file'] : ['project'];
+    if (Object.keys(flags).some(flag => !allowedFlags.includes(flag))) throw new Error('Unknown option for repos command');
+    if (action === 'add') {
+      if (args.length !== 2 || (flags.ref !== undefined && typeof flags.ref !== 'string')) throw new Error('Usage: repos add <name> <url> [--ref REF]');
+      return out(addDependency(root, args[0], args[1], flags.ref));
+    }
+    if (action === 'list' && args.length === 0) return out(listDependencies(root));
+    if (action === 'pull' && args.length <= 1) {
+      const source = flags.file || projectDependenciesPath(root);
+      if (flags.file || existsSync(source)) importDependencies(root, source);
+      const results = pullDependencies(root, args[0]);
+      out(results);
+      if (results.some(result => !result.ok)) process.exitCode = 1;
+      return;
+    }
+    if (action === 'remove' && args.length === 1) return out(removeDependency(root, args[0]));
+    throw new Error('Use repos add <name> <url> [--ref REF], repos list, repos pull [name], or repos remove <name>');
   }
   if (cmd === 'deps') {
     const action = args.shift(), state = loadState(root); if (!state) throw new Error('Initialize a workflow before managing dependencies');

@@ -176,6 +176,9 @@ test('local installer creates a working isolated launcher and refuses replacemen
   assert.notEqual(rerun.status, 0);
   assert.match(rerun.stderr, /already exists/);
   assert.ok(existsSync(launcher));
+  const completion = join(prefix, 'share/zsh/site-functions/_my-aidlc');
+  assert.equal(readFileSync(completion, 'utf8').startsWith('#compdef my-aidlc\n'), true);
+  assert.match(installed.stdout, /fpath=/);
 });
 
 test('doctor validates clean initialization and status remains local to project', (t) => {

@@ -36,6 +36,7 @@ source_dir=$(CDPATH= cd -- "$source_dir" && pwd -P)
 [ -f "$source_dir/core/tools/my-aidlc.mjs" ] || fail 'source is missing core/tools/my-aidlc.mjs'
 [ -f "$source_dir/core/tools/lib.mjs" ] || fail 'source is missing core/tools/lib.mjs'
 [ -f "$source_dir/core/data/phase-graph.json" ] || fail 'source is missing core/data/phase-graph.json'
+[ -f "$source_dir/core/tools/completion.zsh" ] || fail 'source is missing core/tools/completion.zsh'
 [ -d "$source_dir/core" ] && [ -d "$source_dir/harness" ] || fail 'source is missing core/ or harness/'
 
 case $prefix in
@@ -47,17 +48,21 @@ prefix=$(CDPATH= cd -- "$prefix" && pwd -P)
 install_root=$prefix/lib/my-aidlc
 bin_dir=$prefix/bin
 launcher=$bin_dir/my-aidlc
+completion=$prefix/share/zsh/site-functions/_my-aidlc
 
 # Never replace an existing installation or launcher without explicit removal.
 [ ! -e "$install_root" ] && [ ! -L "$install_root" ] || fail "installation already exists: $install_root (remove it manually before reinstalling)"
 [ ! -e "$launcher" ] && [ ! -L "$launcher" ] || fail "launcher already exists: $launcher (remove it manually before reinstalling)"
+[ ! -e "$completion" ] && [ ! -L "$completion" ] || fail "zsh completion already exists: $completion (remove it manually before reinstalling)"
 
 mkdir -p "$bin_dir"
 created_root=0
 created_launcher=0
+created_completion=0
 cleanup() {
   status=$?
   if [ "$status" -ne 0 ]; then
+    [ "$created_completion" -eq 0 ] || rm -f "$completion"
     [ "$created_launcher" -eq 0 ] || rm -f "$launcher"
     [ "$created_root" -eq 0 ] || rm -rf "$install_root"
   fi
@@ -81,6 +86,12 @@ chmod 755 "$tmp_launcher"
 ln "$tmp_launcher" "$launcher" || fail "launcher appeared during install: $launcher"
 created_launcher=1
 rm -f "$tmp_launcher"
+mkdir -p "$(dirname "$completion")"
+cp "$source_dir/core/tools/completion.zsh" "$completion"
+created_completion=1
 trap - EXIT HUP INT TERM
 printf 'Installed my-aidlc to %s\n' "$launcher"
+printf 'Installed zsh completion to %s\n' "$completion"
 printf '%s\n' 'Add the prefix bin directory to PATH if needed.'
+printf '%s\n' 'For zsh, add the site-functions directory to fpath before compinit:'
+printf '  fpath=(%s $fpath)\n' "$(dirname "$completion")"

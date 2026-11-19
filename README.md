@@ -23,7 +23,7 @@ sh scripts/install.sh --prefix "$HOME/.local" --from /path/to/my-aidlc
 
 `MY_AIDLC_PREFIX` and `MY_AIDLC_SOURCE` can supply the corresponding defaults. The installer verifies that the local source contains the expected CLI, core, and harness. It does not download packages or contact external services. It refuses to replace an existing installation or launcher; remove the named path yourself before reinstalling. Installation copies only the runtime `core/`, `harness/`, and `package.json`, not repository metadata or tests.
 
-The installer and generated launcher use POSIX `/bin/sh` syntax and are intended to work with common minimal shells such as `ash`. `ash` itself does not provide the standard programmable-completion interface used by Bash, Zsh, and similar shells; interactive tab completion is therefore not promised there.
+The installer and generated launcher use POSIX `/bin/sh` syntax. Zsh completion is installed at `<prefix>/share/zsh/site-functions/_my-aidlc`. Add that directory to `fpath` before `compinit`. `my-aidlc completion zsh` prints the same function. `ash` does not provide this completion interface.
 
 ## Run without installing
 
@@ -81,6 +81,33 @@ Supported aliases are `opus`, `sonnet`, `haiku`, and `fable`. Overrides are stor
 ```
 
 These aliases are runtime preferences, used only when a harness or delegated-work mechanism supports explicit model selection. They do not automatically switch the workflow conductor's model, guarantee a model is available, or imply that a particular environment (including DeepSeek) supports these aliases. `orchestrate next` and `scope NAME` expose the effective model and whether it comes from the default or project configuration. Human approval requirements remain unchanged.
+
+## Dependency repositories
+
+Declare repositories in `aidlc.deps.json` at the project root, then check them out under `.aidlc/repos/<name>`. `repos pull` reads that file when it exists, or the file given with `--file`. The runtime copy is `.aidlc/deps.json`. Checked-out commits are recorded in `.aidlc/deps-lock.json`.
+
+```json
+{
+  "schemaVersion": 1,
+  "repos": {
+    "contracts": { "url": "https://example.com/contracts.git", "ref": "main" },
+    "design": { "url": "https://example.com/design.git", "ref": "v1.2.0" }
+  }
+}
+```
+
+```sh
+my-aidlc repos add contracts /absolute/path/to/contracts.git --ref main
+my-aidlc repos add design https://example.com/design.git --ref v1.2.0
+my-aidlc repos list
+my-aidlc repos pull
+my-aidlc repos pull contracts
+my-aidlc repos remove design
+```
+
+`repos pull` clones a missing checkout or fast-forwards an existing one. It refuses dirty checkouts, non-fast-forward updates, and unmanaged paths. `repos remove` deletes only the manifest entry and leaves the checkout on disk. Repository contents are not executed. URLs may be `https://`, `ssh://`, `git@host:path`, or an absolute local path. Embedded passwords and tokens are rejected.
+
+`deps` is a separate workflow-item graph and does not clone repositories.
 
 ## Safety and local state
 
