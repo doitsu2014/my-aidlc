@@ -5,7 +5,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-const cli = resolve(import.meta.dirname, '../core/tools/my-aidlc.mjs');
+const cli = resolve(import.meta.dirname, '../core/tools/dtech-aidlc.mjs');
 function git(cwd, ...args) {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8', env: { ...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' } });
   assert.equal(result.status, 0, result.stderr);

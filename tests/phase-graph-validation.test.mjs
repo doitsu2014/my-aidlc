@@ -6,7 +6,7 @@ import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const repo = resolve(import.meta.dirname, '..');
-const cli = join(repo, 'core/tools/my-aidlc.mjs');
+const cli = join(repo, 'core/tools/dtech-aidlc.mjs');
 const base = JSON.parse(readFileSync(join(repo, 'core/data/phase-graph.json'), 'utf8'));
 function fixture() {
   const root = mkdtempSync(join(tmpdir(), 'aidlc-graph-'));
@@ -19,7 +19,7 @@ function fixture() {
   return root;
 }
 function check(root) {
-  const result = spawnSync(process.execPath, [cli, 'scope', '--project', root], { encoding: 'utf8', env: { ...process.env, MY_AIDLC_HOME: join(root, 'core') } });
+  const result = spawnSync(process.execPath, [cli, 'scope', '--project', root], { encoding: 'utf8', env: { ...process.env, DTECH_AIDLC_HOME: join(root, 'core') } });
   return result;
 }
 

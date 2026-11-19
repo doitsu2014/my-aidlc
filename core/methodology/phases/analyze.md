@@ -47,4 +47,4 @@ On rejection, revise the analysis artifacts and resubmit. Do not enter Ideate.
 
 ## Tracking
 
-The active project is the directory where `my-aidlc` is run. The task text is `intent.md`. Stage status, the current stage, and approval progress are `state.json` in the same intent folder. `.aidlc/state.json` points at that active task.
+The active project is the directory where `dtech-aidlc` is run. The task text is `intent.md`. Stage status, the current stage, and approval progress are `state.json` in the same intent folder. `.aidlc/state.json` points at that active task.

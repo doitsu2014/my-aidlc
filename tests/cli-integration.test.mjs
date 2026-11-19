@@ -7,7 +7,7 @@ import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
 
 const repo = resolve(import.meta.dirname, '..');
-const cli = join(repo, 'core/tools/my-aidlc.mjs');
+const cli = join(repo, 'core/tools/dtech-aidlc.mjs');
 const installScript = join(repo, 'scripts/install.sh');
 const mkdtempAsync = promisify(mkdtemp);
 
@@ -171,17 +171,17 @@ test('local installer creates a working isolated launcher and refuses replacemen
   t.after(() => rmSync(scratch, { recursive: true, force: true }));
   const installed = spawnSync('sh', [installScript, '--from', repo, '--prefix', prefix], { cwd: scratch, encoding: 'utf8' });
   assert.equal(installed.status, 0, installed.stderr || installed.stdout);
-  const launcher = join(prefix, 'bin', 'my-aidlc');
+  const launcher = join(prefix, 'bin', 'dtech-aidlc');
   const help = spawnSync('sh', [launcher, '--help'], { encoding: 'utf8' });
   assert.equal(help.status, 0, help.stderr || help.stdout);
-  assert.equal(existsSync(join(prefix, 'lib', 'my-aidlc', '.git')), false);
+  assert.equal(existsSync(join(prefix, 'lib', 'dtech-aidlc', '.git')), false);
 
   const rerun = spawnSync('sh', [installScript, '--from', repo, '--prefix', prefix], { cwd: scratch, encoding: 'utf8' });
   assert.notEqual(rerun.status, 0);
   assert.match(rerun.stderr, /already exists/);
   assert.ok(existsSync(launcher));
-  const completion = join(prefix, 'share/zsh/site-functions/_my-aidlc');
-  assert.equal(readFileSync(completion, 'utf8').startsWith('#compdef my-aidlc\n'), true);
+  const completion = join(prefix, 'share/zsh/site-functions/_dtech-aidlc');
+  assert.equal(readFileSync(completion, 'utf8').startsWith('#compdef dtech-aidlc\n'), true);
   assert.match(installed.stdout, /fpath=/);
 });
 

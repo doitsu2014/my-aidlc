@@ -7,9 +7,9 @@ import { MODEL_ALIASES, resolveAgentModel, validateModelConfig, writeModelConfig
 import { addDependency, importDependencies, listDependencies, projectDependenciesPath, pullDependencies, removeDependency, validateDependencies } from './dependencies.mjs';
 
 const VERSION = readJson(join(repoRoot(), 'package.json'))?.version || readJson(join(engineRoot(), 'version.json'))?.version || '0.1.0';
-const HELP = `my-aidlc ${VERSION}\n\nUsage: my-aidlc <command> [options]\n\nCommands:\n  help, --help            Show help\n  version, --version      Show version\n  init --harness NAME --scope NAME\n                          Initialize .aidlc and project harness/methodology\n  scope [NAME]            List scopes or show stages in a scope\n  status                  Show current intent and stage progress\n  doctor                  Validate graph, state, config, and projection\n  orchestrate next [--intent TEXT] [--scope NAME]\n  orchestrate report --result complete|blocked|skipped [--approval approved]\n  config agents            List effective agent models\n  config agents set <agent-id> <opus|sonnet|haiku|fable>\n  config agents reset <agent-id>\n  repos add <name> <url> [--ref REF]\n  repos list              List registered dependency repositories\n  repos pull [name]       Clone or fast-forward repositories from aidlc.deps.json\n  repos remove <name>     Unregister only; preserve checkout\n  completion zsh          Print the zsh completion function\n  deps add <id> <dependency-id>\n  deps list                List dependency edges\n  deps pull <id>           Show direct dependencies and their status\n\nScope values: solo, team, enterprise. Harness values: claude, deepseek.\nPhase gates require explicit --approval approved when reporting a phase's final stage.\nAll workflow state and audit records are local under .aidlc/.\n`;
+const HELP = `dtech-aidlc ${VERSION}\n\nUsage: dtech-aidlc <command> [options]\n\nCommands:\n  help, --help            Show help\n  version, --version      Show version\n  init --harness NAME --scope NAME\n                          Initialize .aidlc and project harness/methodology\n  scope [NAME]            List scopes or show stages in a scope\n  status                  Show current intent and stage progress\n  doctor                  Validate graph, state, config, and projection\n  orchestrate next [--intent TEXT] [--scope NAME]\n  orchestrate report --result complete|blocked|skipped [--approval approved]\n  config agents            List effective agent models\n  config agents set <agent-id> <opus|sonnet|haiku|fable>\n  config agents reset <agent-id>\n  repos add <name> <url> [--ref REF]\n  repos list              List registered dependency repositories\n  repos pull [name]       Clone or fast-forward repositories from aidlc.deps.json\n  repos remove <name>     Unregister only; preserve checkout\n  completion zsh          Print the zsh completion function\n  deps add <id> <dependency-id>\n  deps list                List dependency edges\n  deps pull <id>           Show direct dependencies and their status\n\nScope values: solo, team, enterprise. Harness values: claude, deepseek.\nPhase gates require explicit --approval approved when reporting a phase's final stage.\nAll workflow state and audit records are local under .aidlc/.\n`;
 function out(value) { process.stdout.write(typeof value === 'string' ? value : `${JSON.stringify(value, null, 2)}\n`); }
-function fail(message) { process.stderr.write(`my-aidlc: ${message}\n`); process.exitCode = 1; }
+function fail(message) { process.stderr.write(`dtech-aidlc: ${message}\n`); process.exitCode = 1; }
 function validateScope(scope) { if (!['solo', 'team', 'enterprise'].includes(scope)) throw new Error('scope must be solo, team, or enterprise'); return scope; }
 function validateHarness(name) { if (!['claude', 'deepseek'].includes(name)) throw new Error('harness must be claude or deepseek'); return name; }
 function stageStatus(state, stage) { return state?.stages?.[stage.id]?.status ?? 'pending'; }
@@ -34,7 +34,7 @@ function ensureState(root, scope, intent) {
     if (scope !== state.scope) throw new Error(`Active intent uses scope ${state.scope}; refusing to change it to ${scope}.`);
     return state;
   }
-  if (!intent) throw new Error('No active intent. Run `my-aidlc orchestrate next --intent "..."` first.');
+  if (!intent) throw new Error('No active intent. Run `dtech-aidlc orchestrate next --intent "..."` first.');
   const id = intentSlug(intent);
   let intentId = id, n = 2;
   while (existsSync(intentDir(root, intentId))) intentId = `${id}-${n++}`;
@@ -50,7 +50,7 @@ function main() {
   const { positional: args, flags } = parseArgs(process.argv.slice(2));
   const cmd = args.shift() || 'help';
   if (cmd === 'help' || flags.help || cmd === '--help') return out(HELP);
-  if (cmd === 'version' || flags.version || cmd === '--version') return out(`my-aidlc ${VERSION}\n`);
+  if (cmd === 'version' || flags.version || cmd === '--version') return out(`dtech-aidlc ${VERSION}\n`);
   const root = resolve(flags.project || process.cwd());
   if (cmd === 'init') {
     const harness = validateHarness(flags.harness || 'claude');
@@ -156,7 +156,7 @@ function main() {
     throw new Error('Use orchestrate next or orchestrate report');
   }
   if (cmd === 'completion') {
-    if (args.length !== 1 || args[0] !== 'zsh') throw new Error('Usage: my-aidlc completion zsh');
+    if (args.length !== 1 || args[0] !== 'zsh') throw new Error('Usage: dtech-aidlc completion zsh');
     const script = join(dirname(fileURLToPath(import.meta.url)), 'completion.zsh');
     return out(readFileSync(script, 'utf8'));
   }
@@ -193,6 +193,6 @@ function main() {
     if (action === 'pull') { const id = safeId(args[0], 'item id'), deps = state.dependencies[id] || []; return out({ id, dependencies: deps.map(dependency => ({ id: dependency, status: state.stages?.[dependency]?.status ?? 'unknown' })) }); }
     throw new Error('Use deps add, deps list, or deps pull');
   }
-  throw new Error(`Unknown command ${cmd}; use my-aidlc help`);
+  throw new Error(`Unknown command ${cmd}; use dtech-aidlc help`);
 }
 try { main(); } catch (error) { fail(error.message); }

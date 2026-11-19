@@ -4,7 +4,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export function engineRoot() {
   const here = dirname(fileURLToPath(import.meta.url));
-  const home = process.env.MY_AIDLC_HOME;
+  const home = process.env.DTECH_AIDLC_HOME;
   if (home) {
     const candidates = [resolve(home, 'core'), resolve(home)];
     for (const candidate of candidates) {
@@ -14,7 +14,7 @@ export function engineRoot() {
   return resolve(here, '..');
 }
 export function repoRoot() {
-  const home = process.env.MY_AIDLC_HOME;
+  const home = process.env.DTECH_AIDLC_HOME;
   if (home && existsSync(resolve(home))) return resolve(home);
   return resolve(engineRoot(), '..');
 }
@@ -131,7 +131,7 @@ export function projectHarness(root, name) {
   const known = ['claude', 'deepseek'];
   if (!known.includes(name)) throw new Error(`Unsupported harness "${name}". Choose claude or deepseek.`);
   const src = join(repoRoot(), 'harness', name);
-  if (!existsSync(src)) throw new Error(`Harness source not found at ${src}; install my-aidlc with this harness projection available.`);
+  if (!existsSync(src)) throw new Error(`Harness source not found at ${src}; install dtech-aidlc with this harness projection available.`);
   return src;
 }
 export function copyTreePreserving(source, target) {

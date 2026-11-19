@@ -1,6 +1,6 @@
-#compdef my-aidlc
+#compdef dtech-aidlc
 
-_my-aidlc() {
+_dtech-aidlc() {
   local -a scopes harnesses models agents results
   scopes=(solo team enterprise)
   harnesses=(claude deepseek)
@@ -99,4 +99,4 @@ _my-aidlc() {
   esac
 }
 
-_my-aidlc "$@"
+_dtech-aidlc "$@"

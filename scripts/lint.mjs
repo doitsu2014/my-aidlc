@@ -22,8 +22,8 @@ if (pkg) {
     errors.push('package.json must require Node.js 20 or newer');
   }
   if (pkg.type !== 'module') errors.push('package.json must declare type=module');
-  if (typeof pkg.bin?.['my-aidlc'] !== 'string' || !(await exists(pkg.bin['my-aidlc']))) {
-    errors.push(`CLI entry point does not exist: ${pkg.bin?.['my-aidlc'] ?? '(not configured)'}`);
+  if (typeof pkg.bin?.['dtech-aidlc'] !== 'string' || !(await exists(pkg.bin['dtech-aidlc']))) {
+    errors.push(`CLI entry point does not exist: ${pkg.bin?.['dtech-aidlc'] ?? '(not configured)'}`);
   }
 }
 

@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const repo = resolve(import.meta.dirname, '..');
-const cli = join(repo, 'core/tools/my-aidlc.mjs');
+const cli = join(repo, 'core/tools/dtech-aidlc.mjs');
 const graphPath = join(repo, 'core/data/phase-graph.json');
 function temp() { return mkdtempSync(join(tmpdir(), 'aidlc-models-')); }
 function run(project, ...args) { return spawnSync(process.execPath, [cli, ...args, '--project', project], { cwd: project, encoding: 'utf8' }); }
