@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -23,6 +23,10 @@ test('onboard detects a brownfield project and copies the BRD into shared', t =>
   assert.ok(profile.languages.some(row => row.name === 'javascript'));
   assert.ok(profile.languages.some(row => row.name === 'typescript'));
   assert.match(readFileSync(join(root, '.aidlc/shared/brd/product-brd.md'), 'utf8'), /inventory/);
+  const skillPath = join(root, '.claude/skills/aidlc/SKILL.md');
+  assert.ok(existsSync(skillPath), 'Claude Code /aidlc skill entry point must be projected at the manifest path');
+  assert.match(readFileSync(skillPath, 'utf8'), /^---\r?\nname: aidlc\r?\n/m);
+  assert.equal(existsSync(join(root, '.claude/skills/aidlc/skills/aidlc/SKILL.md')), false);
 });
 
 test('onboard reports a project with no source as greenfield', t => {

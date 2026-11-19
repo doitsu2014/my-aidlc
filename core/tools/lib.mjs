@@ -154,6 +154,16 @@ export function copyTreePreserving(source, target) {
   }
   return copied;
 }
+export function copyHarnessProjection(source, target) {
+  const copied = [];
+  for (const entry of readdirSync(source, { withFileTypes: true })) {
+    if (entry.name === 'skills' || entry.isSymbolicLink()) continue;
+    copied.push(...copyTreePreserving(join(source, entry.name), join(target, entry.name)));
+  }
+  const skillSource = join(source, 'skills', 'aidlc');
+  if (existsSync(skillSource)) copied.push(...copyTreePreserving(skillSource, target));
+  return copied;
+}
 export function orderedStages(graph, scope) {
   const includedPhases = graph.scopes?.[scope];
   if (!Array.isArray(includedPhases)) return [];

@@ -62,6 +62,14 @@ test('init projects Claude and DeepSeek harnesses and does not overwrite local f
     const projection = join(targetProject, base, 'skills', 'aidlc');
     assert.ok(existsSync(projection));
     assert.ok(existsSync(join(projection, 'manifest.mjs')));
+    assert.ok(existsSync(join(projection, 'SKILL.md')));
+    assert.equal(existsSync(join(projection, 'skills', 'aidlc', 'SKILL.md')), false);
+    const skill = readFileSync(join(projection, 'SKILL.md'), 'utf8');
+    assert.match(skill, /^---\r?\nname: aidlc\r?\n/m);
+    const manifestPath = join(repo, 'harness', harness, 'manifest.mjs');
+    const manifestSource = readFileSync(manifestPath, 'utf8');
+    const entryPath = harness === 'claude' ? '.claude/skills/aidlc/SKILL.md' : '.dsh/skills/aidlc/SKILL.md';
+    assert.ok(manifestSource.includes(entryPath));
     assert.ok(existsSync(join(targetProject, '.aidlc', 'methodology')));
     const config = JSON.parse(readFileSync(join(targetProject, '.aidlc', 'config.json'), 'utf8'));
     assert.equal(config.harness, harness);

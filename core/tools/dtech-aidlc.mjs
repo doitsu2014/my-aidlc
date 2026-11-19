@@ -2,7 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { audit, configPath, loadConfig, loadState, parseArgs, readGraph, readJson, saveState, safeId, stateDir, statePath, auditPath, copyTreePreserving, orderedStages, engineRoot, repoRoot } from './lib.mjs';
+import { audit, configPath, loadConfig, loadState, parseArgs, readGraph, readJson, saveState, safeId, stateDir, statePath, auditPath, copyTreePreserving, copyHarnessProjection, orderedStages, engineRoot, repoRoot } from './lib.mjs';
 import { MODEL_ALIASES, resolveAgentModel, validateModelConfig, writeModelConfig } from './agent-models.mjs';
 import { addDependency, importDependencies, listDependencies, projectDependenciesPath, pullDependencies, removeDependency, validateDependencies } from './dependencies.mjs';
 import { scanProject, writeProjectProfile } from './onboard.mjs';
@@ -67,7 +67,7 @@ function main() {
     const projectionRoot = harness === 'claude' ? join(root, '.claude', 'skills', 'aidlc') : join(root, '.dsh', 'skills', 'aidlc');
     mkdirSync(stateDir(root), { recursive: true });
     if (!existsSync(configPath(root))) writeFileSync(configPath(root), `${JSON.stringify(project, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
-    const copied = copyTreePreserving(sourceRoot, projectionRoot);
+    const copied = copyHarnessProjection(sourceRoot, projectionRoot);
     const methodologySrc = join(engineRoot(), 'methodology');
     let methodologyTarget = null;
     if (existsSync(methodologySrc)) { methodologyTarget = join(root, '.aidlc', 'methodology'); copied.push(...copyTreePreserving(methodologySrc, methodologyTarget)); }
