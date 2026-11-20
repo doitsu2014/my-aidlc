@@ -64,7 +64,7 @@ function main() {
       throw new Error(`Project already initialized with harness ${existingConfig.harness} and scope ${existingConfig.scope}; refusing conflicting configuration`);
     }
     const project = existsSync(configPath(root)) ? existingConfig : { harness, scope, initializedAt: new Date().toISOString() };
-    const projectionRoot = harness === 'claude' ? join(root, '.claude', 'skills', 'aidlc') : join(root, '.dsh', 'skills', 'aidlc');
+    const projectionRoot = harness === 'claude' ? join(root, '.claude', 'skills', 'dtech-aidlc') : join(root, '.dsh', 'skills', 'aidlc');
     mkdirSync(stateDir(root), { recursive: true });
     if (!existsSync(configPath(root))) writeFileSync(configPath(root), `${JSON.stringify(project, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
     const copied = copyHarnessProjection(sourceRoot, projectionRoot);

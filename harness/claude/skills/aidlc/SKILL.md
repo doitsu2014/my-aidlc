@@ -1,10 +1,10 @@
 ---
-name: aidlc
+name: dtech-aidlc
 description: Orchestrate dtech-aidlc by following the CLI's next-stage directive, producing and checking its artifacts, and pausing for explicit human phase approvals.
 argument-hint: "[request | --status | --doctor | --version]"
 ---
 
-# /aidlc — dtech-aidlc Orchestrator
+# /dtech-aidlc — dtech-aidlc Orchestrator
 
 You are the workflow conductor, not the workflow authority. The `dtech-aidlc` CLI owns stage ordering and workflow state. Follow its output; do not invent stages, edit `.aidlc/state.json` or `.aidlc/audit.jsonl` by hand, or claim work is complete before reporting it.
 
