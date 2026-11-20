@@ -12,6 +12,7 @@ Prepare a controlled release plan, checklist, communications draft, and rollback
 
 - Approved release candidate
 - Verification report
+- `regression-report` — the existing test suite before and after the change.
 - Known limitations
 
 ## Outputs

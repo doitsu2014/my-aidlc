@@ -38,6 +38,7 @@ On rejection, revisit options and trade-offs. Do not enter Develop.
 - Compare cost, risk, scope, and what each option leaves out.
 - Recommend one direction and write the decision so a later agent can follow it without the design meeting.
 - Stop at the solution-direction gate until the project owner chooses.
+- Check every option against the project's accepted decision records and architecture notes (sources of kind `adr` and `architecture`). An option that contradicts one says so and names the decision it would supersede.
 
 ## Questions
 

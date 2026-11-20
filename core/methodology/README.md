@@ -1,6 +1,6 @@
 # AIDLC methodology
 
-This directory defines a human-governed, phase-based workflow for taking a project from an initial request through delivery and learning. It is designed for a fresh project: begin with what the user actually asked for, make uncertainty visible, and do not assume prior decisions or artifacts exist.
+This directory defines a human-governed, phase-based workflow for taking a project from an initial request through delivery and learning. Begin with what the user actually asked for and make uncertainty visible.
 
 Human-readable definitions live in [`phases/`](phases/) (one file per phase) and [`agents/`](agents/) (one file per agent). [`../data/phase-graph.json`](../data/phase-graph.json) is the machine index (schema 1.1.0): phase order, stage routing, gate IDs, outputs, scope membership, model aliases, and file paths. Phase purpose and entry/exit criteria, as well as agent responsibilities, stay in the Markdown files. This document explains how to use that graph and the contracts that govern its work.
 
@@ -76,3 +76,11 @@ Use the stage outputs as contracts, not a requirement to create empty paperwork.
 5. Continue phase by phase, maintaining links between decisions, contracts, implementation, and evidence.
 
 A request that is clear enough to start does not need an exhaustive interview. Make reasonable, low-impact working assumptions explicit and reversible; ask before committing to consequential assumptions or actions.
+
+## Kickoff: existing project (brownfield)
+
+1. Run `dtech-aidlc onboard --harness <claude|deepseek> --scope <scope>` in the project.
+2. Review `aidlc.knowledge.json` and `PROJECT.md`, and correct them as needed.
+3. Start the first intent; its `context-and-risk` stage writes the codebase map.
+4. Review the map at the analysis-baseline gate.
+5. Later intents read the map. The Develop stage that changes a component, entry point, dependency, or test command updates it in the same change.

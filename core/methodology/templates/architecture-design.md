@@ -1,6 +1,6 @@
 # Architecture design
 
-Use this for the Ideate output `architecture-design`. Follow the arc42 structure. Use C4 names for the context and building-block views: System Context, Container, and Component. Record each significant decision as an ADR with the headings Context, Decision, and Consequences.
+Use this for the Ideate output `architecture-design`. Follow the arc42 structure. Use C4 names for the context and building-block views: System Context, Container, and Component. Significant decisions are written once, in the decision record (the output `decision-record`), each under its identifier with the headings Context, Decision, and Consequences; section 9 of this document only lists them.
 
 ```markdown
 # Architecture design
@@ -43,11 +43,7 @@ Use this for the Ideate output `architecture-design`. Follow the arc42 structure
 - Observability:
 
 ## 9. Architecture decisions
-### ADR-001 <title>
-- Status: proposed | accepted | superseded
-- Context:
-- Decision:
-- Consequences:
+- ADR-001 <title> — <proposed | accepted | superseded> — see decision-record.md
 
 ## 10. Quality requirements
 - Scenario:
@@ -63,3 +59,5 @@ Rules:
 - Describe the approved direction only. Do not reopen an unapproved option as if it were chosen.
 - A box in a diagram needs a responsibility and an interface. A picture alone is not the design.
 - Mark any section that does not apply as "not applicable" and say why.
+- If the project already has decision records, continue their numbering and keep their convention; `ADR-001` in this template is a placeholder for the next free number.
+- The decision record is where a decision is written. Section 9 lists each decision by its identifier with a relative link to the decision record and does not restate it.

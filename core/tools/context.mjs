@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs';
 import { inspectSources, loadKnowledgeManifest, readRecords, expectedRecordFrontmatter, recordPath } from './knowledge.mjs';
 import { engineRoot } from './lib.mjs';
 import { join } from 'node:path';
-import { sourceStatus } from './onboard.mjs';
+import { codebaseMapStatus, requiredProjectArtifacts, sourceStatus } from './onboard.mjs';
 
 export function buildDirectiveContext(input) {
   try {
@@ -45,6 +45,10 @@ export function buildDirectiveContext(input) {
         result.warnings.push(`sources could not be listed: ${error.message}`);
       }
     }
+    if (granted.includes('profile')) {
+      try { result.codebaseMap = codebaseMapStatus(root); }
+      catch (error) { result.warnings.push(`codebase map status could not be listed: ${error.message}`); }
+    }
     if (granted.includes('knowledge')) {
       try {
         const { records, invalid } = readRecords(root);
@@ -77,4 +81,6 @@ export function buildDirectiveContext(input) {
 }
 
 export const ARTIFACT_VALIDATORS = {};
-export const extraRequiredArtifacts = () => [];
+export function extraRequiredArtifacts({ root, stage }) {
+  return requiredProjectArtifacts(root, stage.id);
+}

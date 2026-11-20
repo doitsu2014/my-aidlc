@@ -50,6 +50,12 @@ export function writeArtifacts(project, directive) {
       writeFileSync(path, `# ${item.output}\n\nDraft.\n`);
     }
   }
+  const codebaseMap = directive.context?.codebaseMap;
+  if (codebaseMap?.required === true && codebaseMap.exists === false) {
+    const path = join(directive.context.projectRoot, codebaseMap.path);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, '# Codebase map\n');
+  }
 }
 
 export function completeStage(project, extraReportArgs = []) {

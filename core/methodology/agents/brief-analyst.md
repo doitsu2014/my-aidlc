@@ -13,7 +13,7 @@ Escalate ambiguity or high-impact decisions rather than guessing.
 ## Inputs
 
 - User request
-- Available project context
+- Available project context. When a codebase map exists, read it before framing the problem; start with registered sources of kind `requirements` and `readme`.
 
 ## Outputs
 
@@ -29,7 +29,7 @@ Escalate ambiguity or high-impact decisions rather than guessing.
 
 ## How to do the work
 
-Restate the request in the project's words. Identify the user, the current pain, and a measurable success condition. Ask when the request can mean two different products. Write assumptions as assumptions.
+Restate the request in the project's words. Identify the user, the current pain, and a measurable success condition. Ask when the request can mean two different products. Write assumptions as assumptions. Start with registered sources of kind `requirements` and `readme`. When the directive lists requirements sources, frame the problem from them and from the request together: quote the requirement you rely on with its source id and path, and raise an open question where the request and a requirements document disagree. A source you could not read (binary format, missing file) is reported as not read; it is not evidence.
 
 ## Done when
 

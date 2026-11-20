@@ -7,7 +7,7 @@ import {
   assertNoSymlinkComponents, audit, configPath, engineRoot, loadConfig, orderedStages, readGraph, readJsonStrict, stateDir, statePath, writeJsonAtomic,
 } from './lib.mjs';
 import { resolveAgentModel, validateModelConfig } from './agent-models.mjs';
-import { ARTIFACT_VALIDATORS } from './context.mjs';
+import { ARTIFACT_VALIDATORS, extraRequiredArtifacts } from './context.mjs';
 import { artifactPathFor, expectedArtifacts, verifyArtifacts } from './artifacts.mjs';
 import { buildDirectiveContext } from './context.mjs';
 import { knowledgeGateCheck, writeIndex } from './knowledge.mjs';
@@ -579,6 +579,16 @@ export function orchestrateReport(root, options = {}) {
     if (!verified.ok) {
       const first = verified.problems[0];
       throw new Error(`Stage ${stage.id} cannot be completed: ${first.output} is ${first.problem} (${first.path})`);
+    }
+    const required = extraRequiredArtifacts({ root, graph, state, stage });
+    const requiredCheck = verifyArtifacts(root, required.map((item) => ({
+      output: item.path, path: join(root, item.path), relPath: item.path,
+    })), { validators: ARTIFACT_VALIDATORS, graph, state, stage });
+    if (!requiredCheck.ok) {
+      const missing = new Map(requiredCheck.problems.map((item) => [item.path, item.problem]));
+      const detail = required.filter((item) => missing.has(item.path))
+        .map((item) => `  missing: ${item.path} (${item.reason})`).join('\n');
+      throw new Error(`Stage ${stage.id} cannot be reported complete: ${missing.size} of ${required.length} expected artifacts are missing or invalid.\n${detail}`);
     }
     if (stage.id === 'knowledge-writeback') {
       const check = knowledgeGateCheck(root, graph, state);

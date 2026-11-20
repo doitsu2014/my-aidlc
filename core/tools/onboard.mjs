@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, extname, join, relative, resolve, sep } from 'node:path';
-import { assertNoSymlinkComponents, configPath, readJson, writeFileAtomic } from './lib.mjs';
+import { assertNoSymlinkComponents, configPath, engineRoot, readJson, writeFileAtomic } from './lib.mjs';
 
 export const SKIP_DIRS = new Set([
   '.git', 'node_modules', 'dist', 'build', 'coverage', '.aidlc', '.claude', '.dsh',
@@ -459,6 +459,36 @@ export function writeProjectProfile(root, scan, documentation = { candidates: []
   }
   writeGenerated(root, 'project-profile.md', lines.join('\n'));
   return { shared, profile };
+}
+
+export function requiredProjectArtifacts(root, stageId) {
+  if (stageId !== 'context-and-risk') return [];
+  try {
+    const status = codebaseMapStatus(root);
+    return status.required === true && !status.exists
+      ? [{ path: status.path, reason: `the codebase map is required for an existing project (kind ${readProjectProfile(root)?.kind}); write it from ${status.template}` }]
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+export function codebaseMapStatus(root) {
+  const path = '.aidlc/knowledge/_codebase-map.md';
+  const abs = join(resolve(root), path);
+  const template = join(engineRoot(), 'methodology', 'templates', 'codebase-map.md');
+  let profile = null;
+  try { profile = readProjectProfile(root); } catch {}
+  let stat;
+  try { stat = lstatSync(abs); } catch {}
+  const exists = Boolean(stat?.isFile() && !stat.isSymbolicLink() && stat.size > 0);
+  const required = !profile || profile.outdated ? null : ['brownfield', 'unknown'].includes(profile.kind);
+  return {
+    path, template, exists, required,
+    reason: required === null ? 'project not scanned' : required ? `project kind is ${profile.kind}` : 'project kind is greenfield',
+    bytes: exists ? stat.size : 0,
+    modifiedAt: exists ? stat.mtime.toISOString() : null,
+  };
 }
 
 export function readProjectProfile(root) {
