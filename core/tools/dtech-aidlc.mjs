@@ -3,7 +3,7 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'n
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { audit, configPath, loadConfig, configuredHarnesses, listHarnesses, loadHarnessManifest, projectHarnessFiles, parseArgs, readGraph, readJson, safeId, stateDir, statePath, auditPath, copyTreePreserving, orderedStages, engineRoot, repoRoot, assertSafeStateDir, ensureWithin, writeJsonAtomic, writeFileAtomic, assertNoSymlinkComponents } from './lib.mjs';
-import { projectionStatus, updateProjectionStamp, refreshProjection, projectionDoctorRows, projectionNotices, legacyMethodologyStatus } from './projection.mjs';
+import { projectionStatus, updateProjectionStamp, refreshProjection, projectionDoctorRows, projectionNotices, legacyMethodologyStatus, refreshLegacyMethodology } from './projection.mjs';
 import { GLOBAL_FLAGS, COMMAND_FLAGS, COMMAND_MAX_ARGS, commandKey, optionTypes } from './cli-spec.mjs';
 import {
   checkWorkflowState, deriveStatus, intentDir, listIntents, loadIntent, loadWorkflow, normalizeIntentText, orchestrateNext, orchestrateReport,
@@ -275,7 +275,8 @@ function main() {
       if (name && !configured.includes(name)) throw new Error(`Harness ${name} is not configured for this project (configured: ${configured.join(', ')})`);
       const harnesses = (name ? [name] : configured).map((item) => refreshProjection(root, loadHarnessManifest(item), VERSION, { dryRun: flags['dry-run'], force: flags.force }));
       const actions = harnesses.flatMap((item) => item.actions);
-      const result = { dryRun: Boolean(flags['dry-run']), engineVersion: VERSION, harnesses, legacyMethodology: null, needsAttention: actions.some((item) => ['kept-modified', 'kept-modified-obsolete', 'refused-ahead', 'refused-not-a-regular-file'].includes(item.action)) };
+      const legacyMethodology = refreshLegacyMethodology(root, { dryRun: flags['dry-run'] });
+      const result = { dryRun: Boolean(flags['dry-run']), engineVersion: VERSION, harnesses, legacyMethodology, needsAttention: actions.some((item) => ['kept-modified', 'kept-modified-obsolete', 'refused-ahead', 'refused-not-a-regular-file'].includes(item.action)) || legacyMethodology.keptModified.length > 0 };
       out(result);
       if (actions.some((item) => ['refused-ahead', 'refused-not-a-regular-file'].includes(item.action))) process.exitCode = 1;
       return;
@@ -407,7 +408,7 @@ function main() {
       },
       (ctx) => checkWorkflowState(ctx.root, ctx.graph),
       (ctx) => [{ status: !existsSync(auditPath(ctx.root)) || readFileSync(auditPath(ctx.root), 'utf8').split(/\r?\n/).filter(Boolean).every((line) => { try { JSON.parse(line); return true; } catch { return false; } }) ? 'pass' : 'fail', message: 'Audit log contains valid JSON lines' }],
-      (ctx) => existsSync(join(ctx.root, '.aidlc', 'methodology')) ? [{ status: 'warn', message: 'Unused methodology copy at .aidlc/methodology from an earlier version; run: dtech-aidlc harness refresh (edited files are kept and must be deleted by hand)' }] : [],
+      (ctx) => { const legacy = legacyMethodologyStatus(ctx.root); return legacy ? [{ status: 'warn', message: `Unused methodology copy at .aidlc/methodology from an earlier version; ${legacy.pristine.length} pristine file(s) can be removed by harness refresh, ${legacy.modified.length} modified or unknown file(s) will be kept` }] : []; },
     ];
     const checks = [];
     for (const fn of DOCTOR_CHECKS) {

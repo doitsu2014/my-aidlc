@@ -167,6 +167,41 @@ test('doctor validates configured skill projections and warns about PATH', (t) =
   assert.ok(JSON.parse(noPath.stdout).checks.some((row) => row.status === 'warn' && row.message.includes('not on PATH')));
 });
 
+test('refresh removes only history-confirmed legacy files and keeps modified or unknown files', (t) => {
+  const project = tempProject(t); initProject(project);
+  const legacy = join(project, '.aidlc/methodology');
+  mkdirSync(join(legacy, 'agents'), { recursive: true });
+  const history = JSON.parse(readFileSync(join(repo, 'core/data/projection-history.json'), 'utf8')).methodology;
+  const pristinePath = 'agents/brief-analyst.md';
+  const pristineHash = history[pristinePath][0];
+  const blob = '93ca303542e01c266ec30debb54e08f3abf4009d';
+  const pristineBytes = spawnSync('git', ['cat-file', 'blob', blob], { cwd: repo }).stdout;
+  assert.equal(createHash('sha256').update(pristineBytes.toString().replaceAll('\\r\\n', '\\n')).digest('hex'), pristineHash);
+  writeFileSync(join(legacy, pristinePath), pristineBytes);
+  writeFileSync(join(legacy, 'agents/edited.md'), 'edited');
+  writeFileSync(join(legacy, 'agents/unknown.md'), 'unknown');
+  const target = join(project, 'outside-note'); writeFileSync(target, 'outside');
+  symlinkSync(target, join(legacy, 'agents/link.md'));
+  const dryRun = json(project, 'harness', 'refresh', '--dry-run');
+  assert.deepEqual(dryRun.legacyMethodology.removed, [pristinePath]);
+  assert.deepEqual(dryRun.legacyMethodology.keptModified, ['agents/edited.md', 'agents/link.md', 'agents/unknown.md']);
+  assert.equal(dryRun.needsAttention, true);
+  assert.equal(existsSync(join(legacy, pristinePath)), true);
+  assert.equal(readFileSync(join(project, '.aidlc/audit.jsonl'), 'utf8').includes('methodology.legacy.cleaned'), false);
+  const result = json(project, 'harness', 'refresh');
+  assert.deepEqual(result.legacyMethodology.removed, [pristinePath]);
+  assert.deepEqual(result.legacyMethodology.keptModified, ['agents/edited.md', 'agents/link.md', 'agents/unknown.md']);
+  assert.equal(result.needsAttention, true);
+  assert.equal(existsSync(join(legacy, pristinePath)), false);
+  assert.equal(readFileSync(join(legacy, 'agents/edited.md'), 'utf8'), 'edited');
+  assert.equal(readFileSync(join(legacy, 'agents/unknown.md'), 'utf8'), 'unknown');
+  assert.equal(lstatSync(join(legacy, 'agents/link.md')).isSymbolicLink(), true);
+  assert.equal(readFileSync(target, 'utf8'), 'outside');
+  const audit = JSON.parse(readFileSync(join(project, '.aidlc/audit.jsonl'), 'utf8').trim().split(/\r?\n/).at(-1));
+  assert.equal(audit.event, 'methodology.legacy.cleaned');
+  assert.deepEqual(audit.removed, [pristinePath]);
+});
+
 test('legacy methodology status reports unknown entries and refresh dry-run preserves them', (t) => {
   const project = tempProject(t); initProject(project);
   const legacy = join(project, '.aidlc/methodology');
@@ -175,11 +210,13 @@ test('legacy methodology status reports unknown entries and refresh dry-run pres
   const status = json(project, 'harness', 'status').legacyMethodology;
   assert.deepEqual(status, { pristine: [], modified: ['agents/local.md'] });
   const refreshed = json(project, 'harness', 'refresh', '--dry-run');
-  assert.deepEqual(refreshed.legacyMethodology, null);
+  assert.deepEqual(refreshed.legacyMethodology, { removed: [], keptModified: ['agents/local.md'] });
+  assert.equal(refreshed.needsAttention, true);
   assert.equal(readFileSync(join(legacy, 'agents/local.md'), 'utf8'), 'project-owned');
   const report = json(project, 'doctor');
   assert.equal(report.checks.at(-1).status, 'warn');
   assert.match(report.checks.at(-1).message, /Unused methodology copy at \.aidlc\/methodology/);
+  assert.match(report.checks.at(-1).message, /1 modified or unknown file\(s\) will be kept/);
 });
 
 test('doctor skips projection and PATH rows without configured harnesses', (t) => {

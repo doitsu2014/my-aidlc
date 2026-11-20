@@ -122,6 +122,33 @@ export function refreshProjection(root, manifest, engineVersion, { dryRun = fals
   const state = actions.some((row) => row.action === 'refused-ahead') ? 'ahead' : actions.some((row) => row.action === 'refused-not-a-regular-file') ? 'modified' : after.state;
   return { harness: manifest.name, from: prior?.engineVersion ?? null, to: engineVersion, stateBefore: before.state, state, actions };
 }
+export function refreshLegacyMethodology(root, { dryRun = false } = {}) {
+  const base = join(root, '.aidlc', 'methodology');
+  assertNoSymlinkComponents(root, '.aidlc/methodology');
+  const status = legacyMethodologyStatus(root);
+  if (!status) return { removed: [], keptModified: [] };
+  const removed = [], history = projectionHistory().methodology ?? {};
+  for (const rel of status.pristine) {
+    const path = join(base, rel);
+    try {
+      if (!lstatSync(path).isFile() || !history[rel]?.includes(hashText(readFileSync(path)))) continue;
+      if (!dryRun) unlinkSync(path);
+      removed.push(rel);
+    } catch {}
+  }
+  if (!dryRun && removed.length) {
+    const prune = (dir) => {
+      for (const name of readdirSync(dir)) {
+        const path = join(dir, name);
+        try { if (lstatSync(path).isDirectory()) prune(path); } catch {}
+      }
+      try { rmdirSync(dir); } catch {}
+    };
+    prune(base);
+    audit(root, 'methodology.legacy.cleaned', { removed });
+  }
+  return { removed, keptModified: status.modified };
+}
 export function legacyMethodologyStatus(root) {
   const base = join(root, '.aidlc', 'methodology');
   if (!existsSync(base)) return null;
