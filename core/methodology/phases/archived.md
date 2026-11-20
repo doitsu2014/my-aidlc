@@ -8,7 +8,7 @@ agents:
 stages:
   - intent-record
   - knowledge-writeback
-gate: knowledge-writeback
+gate: intent-closure
 ---
 
 # Archived

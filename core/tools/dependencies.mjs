@@ -4,7 +4,7 @@ import {
   realpathSync, renameSync, rmSync, writeFileSync,
 } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
-import { tmpdir } from 'node:os';
+import { writeFileAtomic } from './lib.mjs';
 
 const MANIFEST = 'deps.json';
 const LOCK = 'deps.lock';
@@ -82,15 +82,21 @@ function readManifest(paths) {
 export function projectDependenciesPath(root) {
   return join(safeRoot(root), 'aidlc.deps.json');
 }
-export function importDependencies(root, file) {
+function readDeclaredManifest(file) {
   const source = resolve(file);
   if (!existsSync(source) || lstatSync(source).isSymbolicLink() || !lstatSync(source).isFile()) fail(`Dependency file is missing or unsafe: ${source}`);
   let data;
   try { data = JSON.parse(readFileSync(source, 'utf8')); } catch { fail('Invalid dependency manifest: malformed JSON'); }
-  validateManifest(data);
+  return validateManifest(data);
+}
+export function importDependencies(root, file) {
+  const source = resolve(file);
+  const data = readDeclaredManifest(source);
   return withLock(root, paths => {
+    const runtime = readManifest(paths);
+    const dropped = Object.keys(runtime.repos).filter((name) => !Object.hasOwn(data.repos, name)).sort();
     atomicWrite(paths.manifest, `${JSON.stringify(data, null, 2)}\n`);
-    return { file: source, repos: Object.keys(data.repos).sort() };
+    return { file: source, repos: Object.keys(data.repos).sort(), dropped };
   });
 }
 function atomicWrite(file, contents) {
@@ -98,11 +104,44 @@ function atomicWrite(file, contents) {
   try { writeFileSync(temp, contents, { flag: 'wx', mode: 0o600 }); renameSync(temp, file); }
   catch (error) { try { rmSync(temp, { force: true }); } catch {} throw error; }
 }
+function pidRunning(pid) {
+  try { process.kill(pid, 0); return true; }
+  catch (error) { return error.code !== 'ESRCH'; }
+}
+function lockIsStale(lockPath) {
+  let parsed;
+  try { parsed = JSON.parse(readFileSync(lockPath, 'utf8')); }
+  catch {
+    try { return Date.now() - lstatSync(lockPath).mtimeMs > 60_000; }
+    catch { return false; }
+  }
+  return parsed && typeof parsed.pid === 'number' && !pidRunning(parsed.pid);
+}
+function lockHeldMessage(lockPath) {
+  try {
+    const data = JSON.parse(readFileSync(lockPath, 'utf8'));
+    if (data && typeof data.pid === 'number') {
+      return `Dependency manager is locked by process ${data.pid} since ${data.at}. If no dtech-aidlc command is running, delete .aidlc/deps.lock.`;
+    }
+  } catch { /* unreadable */ }
+  return 'Dependency manager is locked by another process';
+}
 function withLock(root, action) {
   const paths = statePaths(root, true);
+  const open = () => openSync(paths.lock, 'wx', 0o600);
   let fd;
-  try { fd = openSync(paths.lock, 'wx', 0o600); }
-  catch (error) { if (error.code === 'EEXIST') fail('Dependency manager is locked by another process'); throw error; }
+  try { fd = open(); }
+  catch (error) {
+    if (error.code !== 'EEXIST') throw error;
+    if (lockIsStale(paths.lock)) {
+      rmSync(paths.lock, { force: true });
+      try { fd = open(); }
+      catch (retry) {
+        if (retry.code === 'EEXIST') fail(lockHeldMessage(paths.lock));
+        throw retry;
+      }
+    } else fail(lockHeldMessage(paths.lock));
+  }
   try {
     writeFileSync(fd, `${JSON.stringify({ pid: process.pid, at: new Date().toISOString() })}\n`);
     return action(paths);
@@ -170,7 +209,7 @@ function desiredCommit(paths, target, ref, url) {
     runGit(paths, ['-C', target, 'fetch', '--no-recurse-submodules', '--no-tags', 'origin', ref], { url });
     return runGit(paths, ['-C', target, 'rev-parse', '--verify', 'FETCH_HEAD^{commit}'], { url });
   }
-  runGit(paths, ['-C', target, 'fetch', '--no-recurse-submodules', '--no-tags', 'origin'], { url });
+  runGit(paths, ['-C', target, 'fetch', '--no-recurse-submodules', '--no-tags', 'origin', 'HEAD'], { url });
   return runGit(paths, ['-C', target, 'rev-parse', '--verify', 'FETCH_HEAD^{commit}'], { url });
 }
 function installCheckout(paths, name, url, ref) {
@@ -214,15 +253,34 @@ function recordFrom(paths, name, entry, commit, status) {
   return { name, url: entry.url, ...(entry.ref === undefined ? {} : { ref: entry.ref }), path: join(paths.repos, name), ...(status === undefined ? {} : { status }), ...(commit === undefined ? {} : { commit }) };
 }
 
+function applyToProjectFile(root, mutate) {
+  const declared = projectDependenciesPath(root);
+  if (!existsSync(declared)) return;
+  const data = readDeclaredManifest(declared);
+  mutate(data);
+  writeFileAtomic(declared, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o644 });
+  return data;
+}
 export function addDependency(root, name, url, ref) {
   checkName(name); validateUrl(url); checkRef(ref);
   return withLock(root, paths => {
-    const manifest = readManifest(paths), current = Object.hasOwn(manifest.repos, name) ? manifest.repos[name] : undefined;
-    if (current) {
-      if (current.url === url && current.ref === ref) return recordFrom(paths, name, current);
-      fail(`Dependency ${name} already exists with a different configuration`);
+    const declared = applyToProjectFile(root, (data) => {
+      const current = data.repos[name];
+      if (current) {
+        if (current.url === url && current.ref === ref) return;
+        fail(`Dependency ${name} already exists with a different configuration`);
+      }
+      data.repos[name] = { url, ...(ref === undefined ? {} : { ref }) };
+    });
+    const manifest = declared ?? readManifest(paths);
+    if (!declared) {
+      const current = Object.hasOwn(manifest.repos, name) ? manifest.repos[name] : undefined;
+      if (current) {
+        if (current.url === url && current.ref === ref) return recordFrom(paths, name, current);
+        fail(`Dependency ${name} already exists with a different configuration`);
+      }
+      manifest.repos[name] = { url, ...(ref === undefined ? {} : { ref }) };
     }
-    manifest.repos[name] = { url, ...(ref === undefined ? {} : { ref }) };
     atomicWrite(paths.manifest, `${JSON.stringify(manifest, null, 2)}\n`);
     return recordFrom(paths, name, manifest.repos[name]);
   });
@@ -268,10 +326,23 @@ export function pullDependencies(root, name) {
 export function removeDependency(root, name) {
   checkName(name);
   return withLock(root, paths => {
+    const declaredPath = projectDependenciesPath(root);
+    const inDeclared = existsSync(declaredPath) && Object.hasOwn(readDeclaredManifest(declaredPath).repos, name);
     const manifest = readManifest(paths);
-    if (!Object.hasOwn(manifest.repos, name)) fail(`Unknown dependency: ${name}`);
-    delete manifest.repos[name];
+    const inRuntime = Object.hasOwn(manifest.repos, name);
+    if (!inDeclared && !inRuntime) fail(`Unknown dependency: ${name}`);
+    if (inDeclared) applyToProjectFile(root, (data) => { delete data.repos[name]; });
+    if (inRuntime) delete manifest.repos[name];
     atomicWrite(paths.manifest, `${JSON.stringify(manifest, null, 2)}\n`);
+    if (existsSync(paths.lockfile)) {
+      try {
+        const lock = JSON.parse(readFileSync(paths.lockfile, 'utf8'));
+        if (lock?.schemaVersion === 1 && lock.repos && typeof lock.repos === 'object') {
+          delete lock.repos[name];
+          atomicWrite(paths.lockfile, `${JSON.stringify(lock, null, 2)}\n`);
+        }
+      } catch { /* leave an unparseable lock file alone */ }
+    }
     return { name, removed: true };
   });
 }

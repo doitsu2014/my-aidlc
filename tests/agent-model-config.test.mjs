@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, symlinkSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { writeArtifacts } from './helpers.mjs';
 
 const repo = resolve(import.meta.dirname, '..');
 const cli = join(repo, 'core/tools/dtech-aidlc.mjs');
@@ -11,7 +12,7 @@ const graphPath = join(repo, 'core/data/phase-graph.json');
 function temp() { return mkdtempSync(join(tmpdir(), 'aidlc-models-')); }
 function run(project, ...args) { return spawnSync(process.execPath, [cli, ...args, '--project', project], { cwd: project, encoding: 'utf8' }); }
 function json(project, ...args) { const result = run(project, ...args); assert.equal(result.status, 0, result.stderr || result.stdout); return JSON.parse(result.stdout); }
-function init(project) { json(project, 'init'); }
+function init(project) { json(project, 'init', '--harness', 'claude'); }
 
 test('config agents lists defaults, set/reset all aliases, and preserves config keys', t => {
   const project = temp(); t.after(() => rmSync(project, { recursive: true, force: true }));
@@ -70,6 +71,7 @@ test('next directive and scope include resolved model and provenance; doctor det
   json(project, 'config', 'agents', 'set', selected, 'fable');
   const scoped = json(project, 'scope', 'solo').stages.find(stage => stage.agent === selected);
   assert.equal(scoped.model, 'fable'); assert.equal(scoped.source, 'project');
+  writeArtifacts(project, next);
   json(project, 'orchestrate', 'report', '--result', 'complete');
   next = json(project, 'orchestrate', 'next');
   assert.equal(next.stage.modelSource, 'default');
@@ -89,4 +91,23 @@ test('refuses symlinked state directory and config file', t => {
   writeFileSync(join(outside, 'config.json'), '{"harness":"claude","scope":"solo","initializedAt":"x"}');
   symlinkSync(join(outside, 'config.json'), join(project, '.aidlc/config.json'));
   assert.notEqual(run(project, 'config', 'agents').status, 0);
+});
+
+test('deepseek-only project gets no model field and refuses config agents set; claude restores it', t => {
+  const project = temp(); t.after(() => rmSync(project, { recursive: true, force: true }));
+  json(project, 'init', '--harness', 'deepseek', '--scope', 'solo');
+  const next = json(project, 'orchestrate', 'next', '--intent', 'x');
+  assert.equal('model' in next.stage, false);
+  assert.equal('modelSource' in next.stage, false);
+  assert.ok(json(project, 'scope', 'solo').stages.every(stage => !('model' in stage)));
+  const rows = json(project, 'config', 'agents');
+  assert.ok(rows.every(row => row.model === null && row.source === 'unsupported'));
+  const path = join(project, '.aidlc/config.json'), before = readFileSync(path, 'utf8');
+  const refused = run(project, 'config', 'agents', 'set', 'brief-analyst', 'opus');
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr + refused.stdout, /claude harness only/);
+  assert.equal(readFileSync(path, 'utf8'), before);
+  assert.equal(run(project, 'config', 'agents', 'reset', 'brief-analyst').status, 0);
+  json(project, 'harness', 'add', 'claude');
+  assert.equal(json(project, 'orchestrate', 'next').stage.model, 'sonnet');
 });

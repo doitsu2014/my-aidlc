@@ -1,0 +1,38 @@
+# Test strategy
+
+Use this for the Develop output `test-strategy`. For each level say whether it applies and why. Map each acceptance criterion to a level. Name the exact commands.
+
+```markdown
+# Test strategy
+
+## Levels
+### Unit
+- Applies: yes | no
+- Why:
+### Integration
+- Applies: yes | no
+- Why:
+### End to end
+- Applies: yes | no
+- Why:
+### Performance
+- Applies: yes | no
+- Why:
+### Security
+- Applies: yes | no
+- Why:
+
+## Criterion to level
+| Criterion | Level |
+| AC-001 | unit |
+
+## Commands
+- Build:
+- Test:
+
+## Environments and data
+-
+
+## Unverified
+-
+```

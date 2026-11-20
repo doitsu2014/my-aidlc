@@ -1,8 +1,15 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { configPath, stateDir } from './lib.mjs';
+import { configPath, configuredHarnesses, loadHarnessManifest, MODEL_ALIASES, stateDir } from './lib.mjs';
+export { MODEL_ALIASES };
 
-export const MODEL_ALIASES = Object.freeze(['opus', 'sonnet', 'haiku', 'fable']);
+export function aliasChoices() { return `choose ${MODEL_ALIASES.slice(0, -1).join(', ')}, or ${MODEL_ALIASES.at(-1)}`; }
+// True when the project has no valid config, or when a configured harness supports model aliases.
+export function aliasesSupported(config) {
+  const harnesses = configuredHarnesses(config);
+  if (!harnesses.length) return true;
+  return harnesses.some((name) => loadHarnessManifest(name).modelAliases.length > 0);
+}
 function pathExists(path) { try { lstatSync(path); return true; } catch (error) { if (error.code === 'ENOENT') return false; throw error; } }
 
 export function validateModelConfig(root, graph) {
@@ -18,13 +25,28 @@ export function validateModelConfig(root, graph) {
     const ids = new Set(graph.agents.map(agent => agent.id));
     for (const [id, model] of Object.entries(config.agentModels)) {
       if (!ids.has(id)) throw new Error(`Unknown agent in agentModels: ${id}`);
-      if (!MODEL_ALIASES.includes(model)) throw new Error(`Invalid model alias for ${id}: ${String(model)}; choose opus, sonnet, haiku, or fable`);
+      if (!MODEL_ALIASES.includes(model)) throw new Error(`Invalid model alias for ${id}: ${String(model)}; ${aliasChoices()}`);
+    }
+  }
+  if (config.roles !== undefined) {
+    if (!config.roles || typeof config.roles !== 'object' || Array.isArray(config.roles)) throw new Error('Invalid roles: expected an object');
+    if (config.roles.owner !== undefined && (!Array.isArray(config.roles.owner) || config.roles.owner.some((name) => typeof name !== 'string'))) {
+      throw new Error('Invalid roles.owner: expected an array of names');
+    }
+    if (config.roles.approvers !== undefined) {
+      if (!config.roles.approvers || typeof config.roles.approvers !== 'object' || Array.isArray(config.roles.approvers)) {
+        throw new Error('Invalid roles.approvers: expected an object mapping gate ids to names');
+      }
+      for (const [gate, names] of Object.entries(config.roles.approvers)) {
+        if (!Array.isArray(names) || names.some((name) => typeof name !== 'string')) throw new Error(`Invalid roles.approvers.${gate}`);
+      }
     }
   }
   return config;
 }
 
 export function resolveAgentModel(agent, config) {
+  if (!aliasesSupported(config)) return { defaultModel: agent.model ?? agent.modelRecommendation?.model, model: null, source: 'unsupported' };
   const override = config.agentModels?.[agent.id];
   const defaultModel = agent.model ?? agent.modelRecommendation?.model;
   return { defaultModel, model: override ?? defaultModel, source: override === undefined ? 'default' : 'project' };

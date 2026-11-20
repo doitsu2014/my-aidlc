@@ -26,6 +26,7 @@ function check(root) {
 test('graph references existing methodology and next directive includes absolute paths', () => {
   const root = fixture();
   try {
+    spawnSync(process.execPath, [cli, 'init', '--harness', 'claude', '--scope', 'solo', '--project', root], { encoding: 'utf8' });
     const result = spawnSync(process.execPath, [cli, 'orchestrate', 'next', '--intent', 'fixture', '--project', root], { encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr);
     const stage = JSON.parse(result.stdout).stage;
@@ -37,15 +38,21 @@ test('graph references existing methodology and next directive includes absolute
 test('harness onboarding references the actual methodology projection and CLI graph', () => {
   for (const [harness, dir] of [['claude', '.claude'], ['deepseek', '.dsh']]) {
     const onboarding = readFileSync(join(repo, 'harness', harness, 'onboarding.md'), 'utf8');
-    assert.ok(onboarding.includes('`.aidlc/methodology/`'), `${harness} onboarding must reference the methodology projection`);
-    assert.ok(onboarding.includes('`core/data/phase-graph.json`'), `${harness} onboarding must identify the CLI graph`);
     assert.ok(!onboarding.includes(`\`${dir}/data/phase-graph.json\``), `${harness} onboarding must not point at a nonexistent projected graph`);
+    assert.equal(onboarding.includes('`.aidlc/methodology/`'), false);
+    assert.match(onboarding, /not copied into the project/);
   }
 });
 
 test('readGraph rejects invalid fixture schema, paths, models, and duplicate identifiers', () => {
   const mutations = [
     graph => { graph.schemaVersion = '1.0.0'; },
+    graph => { graph.schemaVersion = '1.2.0'; },
+    graph => { graph.depths.fast.stages.push('no-such-stage'); },
+    graph => { graph.depths.fast.stages = graph.depths.fast.stages.filter((id) => id !== 'build-and-verify'); },
+    graph => { graph.depths.fast.stages = graph.depths.fast.stages.filter((id) => id !== 'knowledge-writeback'); },
+    graph => { graph.depths.fast.produces['problem-framing'] = ['not-an-output']; },
+    graph => { graph.stages.find((stage) => stage.id === 'red-tests').repeat = 'twice'; },
     graph => { graph.phases[0].file = '../../outside.md'; },
     graph => { graph.phases[0].file = 'methodology/phases/missing.md'; },
     graph => { graph.agents[0].model = 'unknown'; },

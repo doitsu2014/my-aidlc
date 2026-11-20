@@ -5,6 +5,7 @@ import { mkdtempSync, mkdirSync, mkdtemp, readFileSync, writeFileSync, existsSyn
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
+import { readActiveState, writeArtifacts } from './helpers.mjs';
 
 const repo = resolve(import.meta.dirname, '..');
 const cli = join(repo, 'core/tools/dtech-aidlc.mjs');
@@ -62,16 +63,18 @@ test('init projects Claude and DeepSeek harnesses and does not overwrite local f
     const skillDir = harness === 'claude' ? 'dtech-aidlc' : 'aidlc';
     const projection = join(targetProject, base, 'skills', skillDir);
     assert.ok(existsSync(projection));
-    assert.ok(existsSync(join(projection, 'manifest.mjs')));
+    assert.equal(existsSync(join(projection, 'manifest.mjs')), false);
+    assert.equal(existsSync(join(projection, 'manifest.json')), false);
     assert.ok(existsSync(join(projection, 'SKILL.md')));
     assert.equal(existsSync(join(projection, 'skills', 'aidlc', 'SKILL.md')), false);
     const skill = readFileSync(join(projection, 'SKILL.md'), 'utf8');
     assert.match(skill, new RegExp(`^---\\r?\\nname: ${skillDir}\\r?\\n`, 'm'));
-    const manifestPath = join(repo, 'harness', harness, 'manifest.mjs');
-    const manifestSource = readFileSync(manifestPath, 'utf8');
-    const entryPath = harness === 'claude' ? '.claude/skills/dtech-aidlc/SKILL.md' : '.dsh/skills/aidlc/SKILL.md';
-    assert.ok(manifestSource.includes(entryPath));
-    assert.ok(existsSync(join(targetProject, '.aidlc', 'methodology')));
+    const manifestPath = join(repo, 'harness', harness, 'manifest.json');
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    assert.equal(manifest.skillDir, harness === 'claude' ? '.claude/skills/dtech-aidlc' : '.dsh/skills/aidlc');
+    assert.ok(existsSync(join(targetProject, manifest.skillDir, 'SKILL.md')));
+    assert.equal(existsSync(join(targetProject, '.aidlc', 'methodology')), false);
+    assert.ok(existsSync(join(details.methodology, 'contracts.md')));
     const config = JSON.parse(readFileSync(join(targetProject, '.aidlc', 'config.json'), 'utf8'));
     assert.equal(config.harness, harness);
     assert.equal(config.scope, 'team');
@@ -92,6 +95,9 @@ test('init rejects invalid scope and harness values without creating project sta
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /harness must be|scope must be/);
   }
+  const bare = runCli(project, 'init');
+  assert.notEqual(bare.status, 0);
+  assert.match(bare.stderr, /--harness is required for a new project/);
   assert.equal(existsSync(join(project, '.aidlc')), false);
 });
 
@@ -99,24 +105,32 @@ test('workflow keeps the original intent, advances in order, and records audit e
   const project = temporaryDirectory('aidlc-flow-');
   t.after(() => rmSync(project, { recursive: true, force: true }));
   const intent = 'Build an inventory API without changing existing auth behavior';
+  cliJson(project, 'init', '--harness', 'claude', '--scope', 'solo');
+  const projectedSkill = join(project, '.claude/skills/dtech-aidlc/SKILL.md');
+  writeFileSync(projectedSkill, `${readFileSync(projectedSkill, 'utf8')}\nlocal edit`);
   let next = cliJson(project, 'orchestrate', 'next', '--scope', 'solo', '--intent', intent);
   assert.equal(next.intent, intent);
   assert.equal(next.scope, 'solo');
   assert.equal(next.stage.id, 'problem-framing');
+  assert.ok(Array.isArray(next.warnings));
+  assert.ok(next.warnings.some((warning) => warning.includes('dtech-aidlc harness refresh')));
+  assert.equal(Object.hasOwn(next, 'notices'), false);
   assert.equal(cliJson(project, 'status').intent, intent);
 
+  writeArtifacts(project, next);
   const report = cliJson(project, 'orchestrate', 'report', '--result', 'complete');
   assert.equal(report.stage, 'problem-framing');
   next = cliJson(project, 'orchestrate', 'next');
   assert.equal(next.intent, intent);
   assert.equal(next.stage.id, 'context-and-risk');
-  const state = JSON.parse(readFileSync(join(project, '.aidlc', 'state.json'), 'utf8'));
+  const pointer = JSON.parse(readFileSync(join(project, '.aidlc', 'state.json'), 'utf8'));
+  assert.deepEqual(Object.keys(pointer).sort(), ['activeIntentId', 'updatedAt', 'version']);
+  const state = readActiveState(project);
   assert.equal(state.intent, intent);
   assert.equal(state.stages['problem-framing'].status, 'complete');
   assert.equal(state.stages['context-and-risk'].status, 'in_progress');
-  assert.equal(state.project, project);
-  const tracked = JSON.parse(readFileSync(join(project, '.aidlc', 'intents', state.intentId, 'state.json'), 'utf8'));
-  assert.equal(tracked.currentStage, 'context-and-risk');
+  assert.equal(Object.hasOwn(state, 'project'), false);
+  assert.equal(state.currentStage, 'context-and-risk');
   assert.match(readFileSync(join(project, '.aidlc', 'intents', state.intentId, 'intent.md'), 'utf8'), /inventory API/);
 
   const audit = readFileSync(join(project, '.aidlc', 'audit.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
@@ -128,17 +142,19 @@ test('workflow keeps the original intent, advances in order, and records audit e
 test('phase-final completion requires explicit approval; blocked and skipped reports do not', (t) => {
   const project = temporaryDirectory('aidlc-approval-');
   t.after(() => rmSync(project, { recursive: true, force: true }));
+  cliJson(project, 'init', '--harness', 'claude', '--scope', 'solo');
   cliJson(project, 'orchestrate', 'next', '--scope', 'solo', '--intent', 'Review approval boundaries');
   const ordered = ['problem-framing', 'context-and-risk', 'option-generation', 'direction-selection', 'implementation-design', 'red-tests', 'build-and-verify', 'intent-record', 'knowledge-writeback'];
   const phaseFinals = new Set(['context-and-risk', 'direction-selection', 'build-and-verify', 'knowledge-writeback']);
   for (const stage of ordered) {
     const current = cliJson(project, 'orchestrate', 'next');
     assert.equal(current.stage.id, stage);
+    writeArtifacts(project, current);
     if (phaseFinals.has(stage)) {
       const report = runCli(project, 'orchestrate', 'report', '--result', 'complete');
       assert.notEqual(report.status, 0);
       assert.match(report.stderr, /requires explicit --approval approved/);
-      const state = JSON.parse(readFileSync(join(project, '.aidlc', 'state.json'), 'utf8'));
+      const state = readActiveState(project);
       assert.notEqual(state.stages[stage]?.status, 'complete');
       const approved = cliJson(project, 'orchestrate', 'report', '--result', 'complete', '--approval', 'approved');
       assert.equal(approved.phaseGate, true);
@@ -156,9 +172,12 @@ test('phase-final completion requires explicit approval; blocked and skipped rep
 test('dependency commands validate identifiers, deduplicate edges, and expose dependency status', (t) => {
   const project = temporaryDirectory('aidlc-deps-');
   t.after(() => rmSync(project, { recursive: true, force: true }));
-  cliJson(project, 'orchestrate', 'next', '--intent', 'Track prerequisites');
+  cliJson(project, 'init', '--harness', 'claude', '--scope', 'solo');
+  let next = cliJson(project, 'orchestrate', 'next', '--intent', 'Track prerequisites');
+  writeArtifacts(project, next);
   cliJson(project, 'orchestrate', 'report', '--result', 'complete');
-  cliJson(project, 'orchestrate', 'next');
+  next = cliJson(project, 'orchestrate', 'next');
+  writeArtifacts(project, next);
   cliJson(project, 'orchestrate', 'report', '--result', 'complete', '--approval', 'approved');
   cliJson(project, 'deps', 'add', 'build-task', 'problem-framing');
   cliJson(project, 'deps', 'add', 'build-task', 'problem-framing');
@@ -174,7 +193,7 @@ test('dependency commands validate identifiers, deduplicate edges, and expose de
   }
 });
 
-test('local installer creates a working isolated launcher and refuses replacement', async (t) => {
+test('local installer creates a working isolated launcher and refuses replacement', { skip: process.platform === 'win32' && !process.env.RUN_INSTALLER_TESTS }, async (t) => {
   const scratch = await mkdtempAsync(join(tmpdir(), 'aidlc-installer-'));
   const prefix = join(scratch, 'prefix');
   t.after(() => rmSync(scratch, { recursive: true, force: true }));
@@ -188,6 +207,7 @@ test('local installer creates a working isolated launcher and refuses replacemen
   const rerun = spawnSync('sh', [installScript, '--from', repo, '--prefix', prefix], { cwd: scratch, encoding: 'utf8' });
   assert.notEqual(rerun.status, 0);
   assert.match(rerun.stderr, /already exists/);
+  for (const path of [join(prefix, 'lib', 'dtech-aidlc'), launcher, join(prefix, 'share/zsh/site-functions/_dtech-aidlc')]) assert.ok(rerun.stderr.includes(path));
   assert.ok(existsSync(launcher));
   const completion = join(prefix, 'share/zsh/site-functions/_dtech-aidlc');
   assert.equal(readFileSync(completion, 'utf8').startsWith('#compdef dtech-aidlc\n'), true);

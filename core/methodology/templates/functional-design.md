@@ -13,6 +13,7 @@ Use this for the Develop output `functional-design`. Follow the design views in 
 - Actors:
 - In scope:
 - Out of scope:
+- Existing components and conventions affected:
 
 ## 3. Functional decomposition
 ### FN-001 <function name>

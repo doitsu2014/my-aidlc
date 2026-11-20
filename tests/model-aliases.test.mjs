@@ -6,7 +6,8 @@ import { join, resolve } from 'node:path';
 const repo = resolve(import.meta.dirname, '..');
 const agentsDirectory = join(repo, 'core/methodology/agents');
 const phaseGraph = JSON.parse(readFileSync(join(repo, 'core/data/phase-graph.json'), 'utf8'));
-const validAliases = new Set(['opus', 'haiku', 'sonnet', 'fable']);
+import { MODEL_ALIASES } from '../core/tools/lib.mjs';
+const validAliases = new Set(MODEL_ALIASES);
 
 test('phase graph and agent Markdown use valid, matching model aliases', () => {
   const graphAgents = new Map(phaseGraph.agents.map((agent) => [agent.id, agent]));

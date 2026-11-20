@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "name": "deepseek",
+  "productName": "DeepSeek Harness",
+  "skillName": "aidlc",
+  "invoke": "/aidlc",
+  "skillDir": ".dsh/skills/aidlc",
+  "files": [
+    { "source": "skills/aidlc/SKILL.md", "target": "SKILL.md" },
+    { "source": "onboarding.md", "target": "onboarding.md" }
+  ],
+  "obsoleteFiles": ["manifest.mjs", "skills/aidlc/SKILL.md"],
+  "legacy": [],
+  "modelAliases": []
+}

@@ -18,7 +18,7 @@ Do not fabricate evidence, approvals, test results, user statements, system capa
 
 Each agent must:
 
-1. Use only the inputs and authority granted by its graph entry and the current approved scope.
+1. Use only the inputs and authority granted by its graph entry and the current approved scope. The graph entry grants three things: the earlier artifacts named in `inputs.artifacts` and `inputs.optionalArtifacts`, the project context parts named in `inputs.context`, and the human-supplied inputs named in `inputs.external`. The `orchestrate next` directive lists granted items under `stage.inputs` and `context`. Open what the directive lists, or record why an item was not needed. The project's working tree remains readable evidence; label what you take from it Observed.
 2. Produce its named outputs or clearly report why an output cannot be produced.
 3. Preserve provenance and report uncertainty, contradictions, and limitations rather than resolving material gaps silently.
 4. Keep suggestions separate from decisions and distinguish drafts from approved artifacts.
@@ -44,7 +44,7 @@ Acceptance criteria should be observable and tied to the user's intended outcome
 
 ## Change and scope contract
 
-The selected scope is the ordered phase list in the graph. Do not silently skip an included phase or extend into an excluded phase. If work in the current scope reveals a need for additional coverage, describe the reason, consequence, and proposed scope change; obtain the owner's decision before changing the plan. Preserve a record of important changes to requirements, scope, risks, contracts, and decisions.
+The selected scope is the ordered phase list in the graph. Depth is a named reduction of that list. Do not silently skip an included phase or extend into an excluded phase. If work in the current scope reveals a need for additional coverage, describe the reason, consequence, and proposed scope change; obtain the owner's decision before changing the plan. Preserve a record of important changes to requirements, scope, risks, contracts, and decisions. Approvals are attributable to the named project owner or a delegated approver recorded in `.aidlc/config.json` roles; identity is self-asserted (a flag or the git user name) and is not proof. The conductor never supplies a name.
 
 ## Data and recordkeeping contract
 

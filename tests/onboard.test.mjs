@@ -22,7 +22,11 @@ test('onboard detects a brownfield project and copies the BRD into shared', t =>
   const profile = JSON.parse(readFileSync(join(root, '.aidlc/shared/project-profile.json'), 'utf8'));
   assert.ok(profile.languages.some(row => row.name === 'javascript'));
   assert.ok(profile.languages.some(row => row.name === 'typescript'));
-  assert.match(readFileSync(join(root, '.aidlc/shared/brd/product-brd.md'), 'utf8'), /inventory/);
+  assert.equal(existsSync(join(root, '.aidlc/shared/brd')), false);
+  assert.equal(profile.schemaVersion, 2);
+  assert.ok(profile.documentation.detected.some(row => row.path === 'docs/product-brd.md' && row.kind === 'requirements'));
+  assert.equal(output.documentation.detected.some(row => row.path === 'docs/product-brd.md'), true);
+  assert.equal(output.brd, undefined);
   const skillPath = join(root, '.claude/skills/dtech-aidlc/SKILL.md');
   assert.ok(existsSync(skillPath), 'Claude Code /dtech-aidlc skill entry point must be projected at the manifest path');
   assert.match(readFileSync(skillPath, 'utf8'), /^---\r?\nname: dtech-aidlc\r?\n/m);
@@ -32,7 +36,7 @@ test('onboard detects a brownfield project and copies the BRD into shared', t =>
 test('onboard reports a project with no source as greenfield', t => {
   const root = mkdtempSync(join(tmpdir(), 'aidlc-green-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  const result = spawnSync(process.execPath, [cli, 'onboard', '--project', root], { encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [cli, 'onboard', '--harness', 'claude', '--project', root], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(JSON.parse(result.stdout).kind, 'greenfield');
 });
