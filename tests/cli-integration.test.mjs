@@ -5,6 +5,7 @@ import { mkdtempSync, mkdirSync, mkdtemp, readFileSync, writeFileSync, existsSyn
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { promisify } from 'node:util';
+import { readActiveState, writeArtifacts } from './helpers.mjs';
 
 const repo = resolve(import.meta.dirname, '..');
 const cli = join(repo, 'core/tools/dtech-aidlc.mjs');
@@ -99,24 +100,27 @@ test('workflow keeps the original intent, advances in order, and records audit e
   const project = temporaryDirectory('aidlc-flow-');
   t.after(() => rmSync(project, { recursive: true, force: true }));
   const intent = 'Build an inventory API without changing existing auth behavior';
+  cliJson(project, 'init', '--harness', 'claude', '--scope', 'solo');
   let next = cliJson(project, 'orchestrate', 'next', '--scope', 'solo', '--intent', intent);
   assert.equal(next.intent, intent);
   assert.equal(next.scope, 'solo');
   assert.equal(next.stage.id, 'problem-framing');
   assert.equal(cliJson(project, 'status').intent, intent);
 
+  writeArtifacts(project, next);
   const report = cliJson(project, 'orchestrate', 'report', '--result', 'complete');
   assert.equal(report.stage, 'problem-framing');
   next = cliJson(project, 'orchestrate', 'next');
   assert.equal(next.intent, intent);
   assert.equal(next.stage.id, 'context-and-risk');
-  const state = JSON.parse(readFileSync(join(project, '.aidlc', 'state.json'), 'utf8'));
+  const pointer = JSON.parse(readFileSync(join(project, '.aidlc', 'state.json'), 'utf8'));
+  assert.deepEqual(Object.keys(pointer).sort(), ['activeIntentId', 'updatedAt', 'version']);
+  const state = readActiveState(project);
   assert.equal(state.intent, intent);
   assert.equal(state.stages['problem-framing'].status, 'complete');
   assert.equal(state.stages['context-and-risk'].status, 'in_progress');
-  assert.equal(state.project, project);
-  const tracked = JSON.parse(readFileSync(join(project, '.aidlc', 'intents', state.intentId, 'state.json'), 'utf8'));
-  assert.equal(tracked.currentStage, 'context-and-risk');
+  assert.equal(Object.hasOwn(state, 'project'), false);
+  assert.equal(state.currentStage, 'context-and-risk');
   assert.match(readFileSync(join(project, '.aidlc', 'intents', state.intentId, 'intent.md'), 'utf8'), /inventory API/);
 
   const audit = readFileSync(join(project, '.aidlc', 'audit.jsonl'), 'utf8').trim().split('\n').map(JSON.parse);
@@ -128,17 +132,19 @@ test('workflow keeps the original intent, advances in order, and records audit e
 test('phase-final completion requires explicit approval; blocked and skipped reports do not', (t) => {
   const project = temporaryDirectory('aidlc-approval-');
   t.after(() => rmSync(project, { recursive: true, force: true }));
+  cliJson(project, 'init', '--harness', 'claude', '--scope', 'solo');
   cliJson(project, 'orchestrate', 'next', '--scope', 'solo', '--intent', 'Review approval boundaries');
   const ordered = ['problem-framing', 'context-and-risk', 'option-generation', 'direction-selection', 'implementation-design', 'red-tests', 'build-and-verify', 'intent-record', 'knowledge-writeback'];
   const phaseFinals = new Set(['context-and-risk', 'direction-selection', 'build-and-verify', 'knowledge-writeback']);
   for (const stage of ordered) {
     const current = cliJson(project, 'orchestrate', 'next');
     assert.equal(current.stage.id, stage);
+    writeArtifacts(project, current);
     if (phaseFinals.has(stage)) {
       const report = runCli(project, 'orchestrate', 'report', '--result', 'complete');
       assert.notEqual(report.status, 0);
       assert.match(report.stderr, /requires explicit --approval approved/);
-      const state = JSON.parse(readFileSync(join(project, '.aidlc', 'state.json'), 'utf8'));
+      const state = readActiveState(project);
       assert.notEqual(state.stages[stage]?.status, 'complete');
       const approved = cliJson(project, 'orchestrate', 'report', '--result', 'complete', '--approval', 'approved');
       assert.equal(approved.phaseGate, true);
@@ -156,9 +162,12 @@ test('phase-final completion requires explicit approval; blocked and skipped rep
 test('dependency commands validate identifiers, deduplicate edges, and expose dependency status', (t) => {
   const project = temporaryDirectory('aidlc-deps-');
   t.after(() => rmSync(project, { recursive: true, force: true }));
-  cliJson(project, 'orchestrate', 'next', '--intent', 'Track prerequisites');
+  cliJson(project, 'init', '--harness', 'claude', '--scope', 'solo');
+  let next = cliJson(project, 'orchestrate', 'next', '--intent', 'Track prerequisites');
+  writeArtifacts(project, next);
   cliJson(project, 'orchestrate', 'report', '--result', 'complete');
-  cliJson(project, 'orchestrate', 'next');
+  next = cliJson(project, 'orchestrate', 'next');
+  writeArtifacts(project, next);
   cliJson(project, 'orchestrate', 'report', '--result', 'complete', '--approval', 'approved');
   cliJson(project, 'deps', 'add', 'build-task', 'problem-framing');
   cliJson(project, 'deps', 'add', 'build-task', 'problem-framing');

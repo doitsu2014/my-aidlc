@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, copyFileSync, statSync, lstatSync, realpathSync, appendFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, copyFileSync, statSync, lstatSync, realpathSync, appendFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
 import { dirname, join, resolve, relative, isAbsolute, sep, parse as parsePath } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -81,6 +81,33 @@ export function readGraph() {
   for (const stage of graph.stages) {
     if (!phaseIds.has(stage.phase) || !agentIds.has(stage.agent)) invalid(`stage ${stage.id} references unknown phase or agent`);
     if (!Number.isInteger(stage.order) || !Array.isArray(stage.produces)) invalid(`invalid stage metadata: ${stage.id}`);
+    for (const output of stage.produces) {
+      if (typeof output !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(output)) invalid(`stage ${stage.id} produces an invalid output id`);
+    }
+  }
+  const produced = graph.stages.flatMap((stage) => stage.produces.map((output) => [output, stage.id]));
+  const seen = new Map();
+  for (const [output, stageId] of produced) {
+    if (seen.has(output)) invalid(`output ${output} is produced by more than one stage`);
+    seen.set(output, stageId);
+  }
+  if (graph.outputs !== undefined) {
+    if (!graph.outputs || typeof graph.outputs !== 'object' || Array.isArray(graph.outputs)) invalid('outputs must be an object');
+    for (const [id, entry] of Object.entries(graph.outputs)) {
+      if (!seen.has(id)) invalid(`outputs.${id} is not produced by any stage`);
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) invalid(`outputs.${id} must be an object`);
+      const keys = Object.keys(entry);
+      if (keys.some((key) => key !== 'kind' && key !== 'path')) invalid(`outputs.${id} has unknown keys`);
+      if (entry.kind !== undefined && entry.kind !== 'document' && entry.kind !== 'code-manifest') invalid(`outputs.${id} kind must be document or code-manifest`);
+      if (entry.path !== undefined) {
+        if (typeof entry.path !== 'string' || isAbsolute(entry.path) || entry.path.includes('\\') || entry.path.split('/').includes('..') || !entry.path.endsWith('.md')) {
+          invalid(`outputs.${id} path is invalid`);
+        }
+        if (/\{(?!intentId\}|phase\}|stage\}|output\})/.test(entry.path.replaceAll('{intentId}', '').replaceAll('{phase}', '').replaceAll('{stage}', '').replaceAll('{output}', ''))) {
+          invalid(`outputs.${id} path has invalid placeholders`);
+        }
+      }
+    }
   }
   for (const agent of graph.agents) {
     if (!phaseIds.has(agent.phase) || typeof agent.model !== 'string' || !graph.modelAliases.includes(agent.model)) invalid(`invalid phase or model for agent ${agent.id}`);
@@ -97,12 +124,52 @@ export function readGraph() {
   return graph;
 }
 export function loadConfig(root) { return readJson(configPath(root), {}); }
-export function loadState(root) { return readJson(statePath(root), null); }
-export function saveState(root, state) { mkdirSync(stateDir(root), { recursive: true }); writeFileSync(statePath(root), `${JSON.stringify(state, null, 2)}\n`, { flag: 'w', mode: 0o600 }); }
+function pathExists(path) {
+  try { lstatSync(path); return true; } catch (error) { if (error.code === 'ENOENT') return false; throw error; }
+}
+export function writeFileAtomic(path, text, { mode = 0o600 } = {}) {
+  if (pathExists(path) && lstatSync(path).isSymbolicLink()) throw new Error(`Refusing to write through symlink: ${path}`);
+  const temp = `${path}.${process.pid}.${Math.random().toString(16).slice(2)}.tmp`;
+  try {
+    writeFileSync(temp, text, { flag: 'wx', mode });
+    renameSync(temp, path);
+  } finally {
+    try { if (existsSync(temp)) unlinkSync(temp); } catch {}
+  }
+}
+export function writeJsonAtomic(path, value) {
+  writeFileAtomic(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+export function readJsonStrict(path) {
+  if (!existsSync(path)) return undefined;
+  try { return JSON.parse(readFileSync(path, 'utf8')); }
+  catch { throw new Error(`${path} cannot be parsed as JSON`); }
+}
+export function assertNoSymlinkComponents(root, relativePath) {
+  let current = resolve(root);
+  for (const part of relativePath.split(/[\\/]/).filter(Boolean)) {
+    current = join(current, part);
+    if (!pathExists(current)) break;
+    if (lstatSync(current).isSymbolicLink()) {
+      throw new Error(`Refusing to write through symlink: ${relative(root, current).split(sep).join('/')}`);
+    }
+  }
+}
+export function assertSafeStateDir(root) {
+  const dir = stateDir(root);
+  if (pathExists(dir) && lstatSync(dir).isSymbolicLink()) throw new Error('Refusing to access symlink .aidlc directory');
+  if (pathExists(dir) && !lstatSync(dir).isDirectory()) throw new Error('Refusing unsafe .aidlc path');
+  assertNoSymlinkComponents(root, '.aidlc/intents');
+  const intents = join(dir, 'intents');
+  if (pathExists(intents) && !lstatSync(intents).isDirectory()) throw new Error('Refusing unsafe .aidlc/intents path');
+}
 export function audit(root, event, details = {}) {
+  assertSafeStateDir(root);
+  const path = auditPath(root);
+  if (pathExists(path) && lstatSync(path).isSymbolicLink()) throw new Error('Refusing to write through symlink: .aidlc/audit.jsonl');
   mkdirSync(stateDir(root), { recursive: true });
   const row = { at: new Date().toISOString(), event, ...details };
-  appendFileSync(auditPath(root), `${JSON.stringify(row)}\n`, { mode: 0o600 });
+  appendFileSync(path, `${JSON.stringify(row)}\n`, { mode: 0o600 });
   return row;
 }
 export function safeId(value, label = 'name') {
@@ -114,17 +181,31 @@ export function ensureWithin(root, path) {
   if (!rel || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new Error(`Path must be inside ${root}`);
   return resolve(path);
 }
-export function parseArgs(args) {
-  const positional = [], flags = {};
+export function parseArgs(args, optionTypes = {}) {
+  const positional = [], flags = Object.create(null), unknown = [];
+  const known = (token) => Object.keys(optionTypes).some((name) => token === `--${name}` || token.startsWith(`--${name}=`));
   for (let i = 0; i < args.length; i++) {
-    const a = args[i];
-    if (!a.startsWith('--')) { positional.push(a); continue; }
-    const [key, inline] = a.slice(2).split(/=(.*)/s, 2);
-    if (inline !== undefined) flags[key] = inline;
-    else if (args[i + 1] && !args[i + 1].startsWith('--')) flags[key] = args[++i];
-    else flags[key] = true;
+    const arg = args[i];
+    if (arg === '--') { positional.push(...args.slice(i + 1)); break; }
+    if (!arg.startsWith('--')) { positional.push(arg); continue; }
+    const eq = arg.indexOf('=');
+    const key = arg.slice(2, eq < 0 ? undefined : eq);
+    const type = optionTypes[key];
+    if (!type) { unknown.push(key); continue; }
+    if (type === 'boolean') {
+      if (eq >= 0) throw new Error(`Option --${key} does not take a value`);
+      flags[key] = true;
+      continue;
+    }
+    const value = eq >= 0 ? arg.slice(eq + 1) : args[++i];
+    if (value === undefined || value === '' || value === '--' || known(value)) {
+      throw new Error(`Option --${key} requires a non-empty value`);
+    }
+    if (type === 'string' && Object.hasOwn(flags, key)) throw new Error(`Option --${key} was given more than once`);
+    if (type === 'list') (flags[key] ??= []).push(value);
+    else flags[key] = value;
   }
-  return { positional, flags };
+  return { positional, flags, unknown };
 }
 export function sourceRoot() { return repoRoot(); }
 export function projectHarness(root, name) {

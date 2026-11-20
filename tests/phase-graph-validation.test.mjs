@@ -26,6 +26,7 @@ function check(root) {
 test('graph references existing methodology and next directive includes absolute paths', () => {
   const root = fixture();
   try {
+    spawnSync(process.execPath, [cli, 'init', '--harness', 'claude', '--scope', 'solo', '--project', root], { encoding: 'utf8' });
     const result = spawnSync(process.execPath, [cli, 'orchestrate', 'next', '--intent', 'fixture', '--project', root], { encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr);
     const stage = JSON.parse(result.stdout).stage;

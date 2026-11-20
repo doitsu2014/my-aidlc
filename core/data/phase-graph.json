@@ -7,7 +7,7 @@
     {"id": "develop", "name": "Develop", "order": 3, "gate": "release-candidate", "file": "methodology/phases/develop.md", "agents": ["implementation-planner", "builder-verifier"], "stages": ["implementation-design", "red-tests", "build-and-verify"]},
     {"id": "launch", "name": "Launch", "order": 4, "gate": "launch-and-handoff", "file": "methodology/phases/launch.md", "agents": ["release-coordinator", "operations-handoff"], "stages": ["release-readiness", "operational-handoff"]},
     {"id": "curate", "name": "Curate", "order": 5, "gate": "closure", "file": "methodology/phases/curate.md", "agents": ["outcome-curator", "knowledge-steward"], "stages": ["outcome-review", "knowledge-maintenance"]},
-    {"id": "archived", "name": "Archived", "order": 6, "gate": "knowledge-writeback", "file": "methodology/phases/archived.md", "agents": ["record-keeper", "knowledge-archivist"], "stages": ["intent-record", "knowledge-writeback"]}
+    {"id": "archived", "name": "Archived", "order": 6, "gate": "intent-closure", "file": "methodology/phases/archived.md", "agents": ["record-keeper", "knowledge-archivist"], "stages": ["intent-record", "knowledge-writeback"]}
   ],
   "stages": [
     {"id": "problem-framing", "phase": "analyze", "order": 1, "agent": "brief-analyst", "produces": ["problem-statement", "success-measures", "stakeholder-map", "acceptance-criteria"]},
@@ -28,6 +28,11 @@
     "solo": ["analyze", "ideate", "develop", "archived"],
     "team": ["analyze", "ideate", "develop", "launch", "archived"],
     "enterprise": ["analyze", "ideate", "develop", "launch", "curate", "archived"]
+  },
+  "outputs": {
+    "failing-tests": { "kind": "code-manifest" },
+    "implementation": { "kind": "code-manifest" },
+    "knowledge-record": { "path": ".aidlc/knowledge/{intentId}.md" }
   },
   "agents": [
     {"id": "brief-analyst", "phase": "analyze", "model": "sonnet", "file": "methodology/agents/brief-analyst.md"},

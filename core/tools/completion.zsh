@@ -28,6 +28,7 @@ _dtech-aidlc() {
       commands=(
         'help:Show help'
         'version:Show version'
+        'onboard:Initialize and detect the project'
         'init:Initialize the project'
         'scope:Show stages in a scope'
         'status:Show the active intent'
@@ -36,19 +37,47 @@ _dtech-aidlc() {
         'config:Configure agent models'
         'repos:Manage dependency repositories'
         'deps:Manage workflow dependency edges'
+        'intent:List, pause, resume, or abandon intents'
+        'knowledge:Manage project knowledge and sources'
         'completion:Print shell completion'
       )
       _describe 'command' commands
       ;;
     args)
       case ${words[1]} in
-        init)
+        init|onboard)
           _arguments \
             '--harness[Coding harness]:harness:(claude deepseek)' \
             '--scope[Workflow scope]:scope:(solo team enterprise)'
           ;;
         scope)
           _arguments '1:scope:(solo team enterprise)'
+          ;;
+        status)
+          _arguments '--intent[Intent id]:intent:'
+          ;;
+        knowledge)
+          _arguments -C '1:action:(init sources list show check index)' '*::arg:->knowledgerest'
+          case $state in
+            knowledgerest)
+              case ${words[1]} in
+                sources) _arguments '1:sub:(list add remove)' '--kind[Source kind]:kind:(project docs requirements architecture adr api-spec runbook conventions readme)' '--description[Description]:description:' '2:id:' '3:path:' ;;
+                show) _arguments '1:id:' ;;
+              esac
+              ;;
+          esac
+          ;;
+        intent)
+          _arguments -C '1:action:(list pause resume abandon)' '*::arg:->intentrest'
+          case $state in
+            intentrest)
+              case ${words[1]} in
+                pause) _arguments '--detail[Reason]:detail:' ;;
+                resume) _arguments '1:id:' ;;
+                abandon) _arguments '--detail[Reason]:detail:' '1:id:' ;;
+              esac
+              ;;
+          esac
           ;;
         orchestrate)
           _arguments -C '1:action:->action' '*::arg:->rest'

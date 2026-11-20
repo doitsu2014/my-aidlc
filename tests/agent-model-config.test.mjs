@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, symlinkSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { writeArtifacts } from './helpers.mjs';
 
 const repo = resolve(import.meta.dirname, '..');
 const cli = join(repo, 'core/tools/dtech-aidlc.mjs');
@@ -70,6 +71,7 @@ test('next directive and scope include resolved model and provenance; doctor det
   json(project, 'config', 'agents', 'set', selected, 'fable');
   const scoped = json(project, 'scope', 'solo').stages.find(stage => stage.agent === selected);
   assert.equal(scoped.model, 'fable'); assert.equal(scoped.source, 'project');
+  writeArtifacts(project, next);
   json(project, 'orchestrate', 'report', '--result', 'complete');
   next = json(project, 'orchestrate', 'next');
   assert.equal(next.stage.modelSource, 'default');
