@@ -34,7 +34,7 @@ On rejection, revise the analysis artifacts and resubmit. Do not enter Ideate.
 
 ## Activities
 
-- Read the project request and any existing repository context before proposing a solution.
+- Read the project request, `PROJECT.md`, registered sources in `aidlc.knowledge.json`, and `.aidlc/knowledge/` records listed in the directive `context` before proposing a solution.
 - Name the people affected, the current behavior, and the outcome that would count as success.
 - Separate evidence, assumptions, constraints, and open questions.
 - Record the task in `.aidlc/intents/<intent-id>/` and keep progress in that folder's `state.json`.

@@ -5,7 +5,7 @@ export const TWO_WORD_COMMANDS = Object.freeze([
 export const COMMAND_FLAGS = Object.freeze({
   init: { harness: 'string', scope: 'string', docs: 'list', 'no-detect': 'boolean', rescan: 'boolean' },
   onboard: { harness: 'string', scope: 'string', docs: 'list', 'no-detect': 'boolean', rescan: 'boolean' },
-  'orchestrate next': { intent: 'string', description: 'string', scope: 'string' },
+  'orchestrate next': { intent: 'string', description: 'string', scope: 'string', 'intent-file': 'string' },
   'orchestrate report': { result: 'string', approval: 'string', detail: 'string', stage: 'string', 'approved-by': 'string', 'approval-note': 'string' },
   scope: {},
   status: { intent: 'string' },

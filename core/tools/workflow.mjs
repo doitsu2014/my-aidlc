@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { userInfo } from 'node:os';
@@ -9,6 +10,7 @@ import { resolveAgentModel, validateModelConfig } from './agent-models.mjs';
 import { ARTIFACT_VALIDATORS } from './context.mjs';
 import { artifactPathFor, expectedArtifacts, verifyArtifacts } from './artifacts.mjs';
 import { buildDirectiveContext } from './context.mjs';
+import { knowledgeGateCheck, writeIndex } from './knowledge.mjs';
 
 const ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const STATUSES = new Set(['in_progress', 'complete', 'blocked', 'skipped']);
@@ -17,8 +19,15 @@ export const intentDir = (root, id) => join(root, '.aidlc', 'intents', id);
 export const intentStatePath = (root, id) => join(intentDir(root, id), 'state.json');
 
 export function intentSlug(text) {
-  const base = String(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48);
-  return base || 'intent';
+  const source = String(text);
+  const folded = source.normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd').toLowerCase();
+  const letters = (folded.match(/[\p{L}\p{N}]/gu) || []).length;
+  const kept = (folded.match(/[a-z0-9]/g) || []).length;
+  let base = folded.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48).replace(/-+$/, '');
+  if (kept >= 3 && kept * 2 >= letters && base) return base;
+  const day = new Date().toISOString().slice(0, 10).replaceAll('-', '');
+  const hex = createHash('sha256').update(source.normalize('NFC')).digest('hex').slice(0, 6);
+  return `intent-${day}-${hex}`;
 }
 
 function intentIdsOnDisk(root) {
@@ -570,6 +579,10 @@ export function orchestrateReport(root, options = {}) {
     if (!verified.ok) {
       const first = verified.problems[0];
       throw new Error(`Stage ${stage.id} cannot be completed: ${first.output} is ${first.problem} (${first.path})`);
+    }
+    if (stage.id === 'knowledge-writeback') {
+      const check = knowledgeGateCheck(root, graph, state);
+      if (!check.ok) throw new Error(`Knowledge record is not ready: ${check.errors[0]} (${check.path})`);
     }
   }
   const now = new Date().toISOString();

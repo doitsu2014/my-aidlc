@@ -6,7 +6,7 @@ model: sonnet
 
 # knowledge-archivist
 
-Write the approved lesson from this intent into the project knowledge house for the next intent.
+Write what later intents need into `.aidlc/knowledge/<intent-id>.md`. Carry proposed standing rules from the curated record into that file; do not edit PROJECT.md.
 
 ## Inputs
 

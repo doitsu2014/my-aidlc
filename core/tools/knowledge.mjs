@@ -1,7 +1,7 @@
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { assertNoSymlinkComponents, assertSafeStateDir, safeId, writeFileAtomic } from './lib.mjs';
+import { assertNoSymlinkComponents, assertSafeStateDir, engineRoot, orderedStages, safeId, writeFileAtomic } from './lib.mjs';
 
 export const KNOWLEDGE_MANIFEST = 'aidlc.knowledge.json';
 export const SOURCE_KINDS = Object.freeze(['project', 'docs', 'requirements', 'architecture', 'adr', 'api-spec', 'runbook', 'conventions', 'readme']);
@@ -239,6 +239,92 @@ export function writeIndex(root) {
   for (const item of invalid) lines.push(`- INVALID ${item.file}: ${item.errors.join('; ')}`);
   writeFileAtomic(join(knowledgeDir(root), '_index.md'), `${lines.join('\n')}\n`, { mode: 0o644 });
   return { records, invalid, index: '.aidlc/knowledge/_index.md' };
+}
+
+export function expectedRecordFrontmatter(graph, state) {
+  const phases = graph.scopes[state.scope] ?? [];
+  const run = phases.filter((phase) => {
+    const stages = (graph.stages ?? []).filter((stage) => stage.phase === phase);
+    return stages.some((stage) => ['complete', 'skipped'].includes(state.stages?.[stage.id]?.status) || stage.id === 'knowledge-writeback');
+  });
+  return {
+    id: state.intentId,
+    origin: 'intent',
+    closed: new Date().toISOString().replace(/\.\d{3}Z$/, 'Z'),
+    scope: state.scope,
+    'phases-run': run.join(', '),
+  };
+}
+
+function knowledgeTemplatePath() {
+  const engine = join(engineRoot(), 'methodology', 'templates', 'knowledge-record.md');
+  if (existsSync(engine)) return engine;
+  return fileURLToPath(new URL('../methodology/templates/knowledge-record.md', import.meta.url));
+}
+
+export function knowledgeGateCheck(root, graph, state) {
+  const rel = `.aidlc/knowledge/${state.intentId}.md`;
+  const path = recordPath(root, state.intentId);
+  const template = knowledgeTemplatePath();
+  const errors = [];
+  if (!existsSync(path)) return { ok: false, path: rel, template, errors: ['missing file'] };
+  try {
+    const stat = lstatSync(path);
+    if (stat.isSymbolicLink() || !stat.isFile()) return { ok: false, path: rel, template, errors: ['is a symbolic link or not a regular file'] };
+  } catch {
+    return { ok: false, path: rel, template, errors: ['missing file'] };
+  }
+  const parsed = parseRecord(readFileSync(path, 'utf8'));
+  if (parsed.error) return { ok: false, path: rel, template, errors: [parsed.error] };
+  if (parsed.frontmatter.id !== state.intentId) errors.push(`id must be ${state.intentId}`);
+  if (parsed.frontmatter.origin !== 'intent') errors.push('origin must be intent');
+  if (!parsed.frontmatter.title || parsed.frontmatter.title.startsWith('<')) errors.push('title is empty');
+  if (parsed.title && parsed.title.startsWith('<')) errors.push('title is empty');
+  if (!parsed.frontmatter.closed) errors.push('closed must be a date such as 2026-11-20 or 2026-11-20T10:15:00Z');
+  if (parsed.frontmatter.scope && parsed.frontmatter.scope !== state.scope) errors.push(`scope must be ${state.scope}`);
+  for (const heading of ['Outcome', 'Decisions', 'Limitations', 'Follow-ups', 'Links']) {
+    if (!parsed.headings.has(heading)) errors.push(`missing heading ${heading}`);
+  }
+  return { ok: errors.length === 0, path: rel, template, errors };
+}
+
+const IGNORE_BLOCK = [
+  '# >>> dtech-aidlc managed block v1',
+  '/state.json',
+  '/state.v1.bak.json',
+  '/audit.jsonl',
+  '/config.json',
+  '/shared/',
+  '/repos/',
+  '*.tmp',
+  '# <<< dtech-aidlc managed block',
+].join('\n');
+
+export function ensureIgnoreFile(root) {
+  assertSafeStateDir(root);
+  assertNoSymlinkComponents(root, '.aidlc/.gitignore');
+  mkdirSync(join(root, '.aidlc'), { recursive: true });
+  const path = join(root, '.aidlc', '.gitignore');
+  if (!existsSync(path)) {
+    writeFileAtomic(path, `${IGNORE_BLOCK}\n`, { mode: 0o600 });
+    return { path: '.aidlc/.gitignore', result: 'created' };
+  }
+  const text = readFileSync(path, 'utf8');
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((line) => line.startsWith('# >>> dtech-aidlc managed block'));
+  const end = lines.findIndex((line) => line.startsWith('# <<< dtech-aidlc managed block'));
+  let next;
+  if (start >= 0 && end > start && lines.filter((line) => line.startsWith('# >>> dtech-aidlc managed block')).length === 1) {
+    next = [...lines.slice(0, start), ...IGNORE_BLOCK.split('\n'), ...lines.slice(end + 1)].join('\n');
+    if (!next.endsWith('\n')) next += '\n';
+  } else {
+    const rest = lines.filter((line) => !line.startsWith('# >>> dtech-aidlc managed block') && !line.startsWith('# <<< dtech-aidlc managed block'));
+    next = `${IGNORE_BLOCK}\n\n${rest.join('\n').replace(/^\n+/, '')}`;
+    if (!next.endsWith('\n')) next += '\n';
+  }
+  if (next === (text.endsWith('\n') ? text : `${text}\n`) || next === text) return { path: '.aidlc/.gitignore', result: 'unchanged' };
+  writeFileAtomic(path, next, { mode: 0o600 });
+  return { path: '.aidlc/.gitignore', result: 'updated' };
 }
 
 export function checkRecords(root) {

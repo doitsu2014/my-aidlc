@@ -39,7 +39,7 @@ if (await exists('core/data/phase-graph.json')) {
       }
       const phases = new Set((graph.phases ?? []).map((phase) => phase?.id).filter(Boolean));
       const agentIds = new Set((graph.agents ?? []).map((agent) => agent?.id).filter(Boolean));
-      if (graph.schemaVersion !== '1.1.0') errors.push('phase-graph schemaVersion must be 1.1.0');
+      if (graph.schemaVersion !== '1.2.0') errors.push('phase-graph schemaVersion must be 1.2.0');
       if (!Array.isArray(graph.modelAliases) || graph.modelAliases.join(',') !== 'opus,sonnet,haiku,fable') errors.push('phase-graph modelAliases must be opus, sonnet, haiku, fable');
       const stageIds = (graph.stages ?? []).map((stage) => stage?.id).filter(Boolean);
       for (const phase of graph.phases ?? []) if (!phase?.id || !phase?.name) errors.push('each phase must define id and name');

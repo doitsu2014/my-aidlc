@@ -1,7 +1,10 @@
 // buildDirectiveContext is synchronous, called once per orchestrate next that selects a stage, before any write.
 // input: { root, graph, config, state, stage, intentDir, isNewIntent, expectedArtifacts, artifactPathFor }
 import { resolve } from 'node:path';
-import { inspectSources, loadKnowledgeManifest, readRecords } from './knowledge.mjs';
+import { existsSync } from 'node:fs';
+import { inspectSources, loadKnowledgeManifest, readRecords, expectedRecordFrontmatter, recordPath } from './knowledge.mjs';
+import { engineRoot } from './lib.mjs';
+import { join } from 'node:path';
 import { sourceStatus } from './onboard.mjs';
 
 export function buildDirectiveContext(input) {
@@ -50,6 +53,18 @@ export function buildDirectiveContext(input) {
           records: records.map((record) => ({ id: record.id, title: record.title, path: record.file, origin: record.origin })),
           invalid,
         };
+        if (stage.id === 'knowledge-writeback' && state?.intentId) {
+          const abs = recordPath(root, state.intentId);
+          const template = existsSync(join(engineRoot(), 'methodology', 'templates', 'knowledge-record.md'))
+            ? join(engineRoot(), 'methodology', 'templates', 'knowledge-record.md')
+            : join(engineRoot(), 'methodology', 'templates', 'knowledge-record.md');
+          result.knowledge.record = {
+            path: `.aidlc/knowledge/${state.intentId}.md`,
+            exists: existsSync(abs),
+            template,
+            frontmatter: expectedRecordFrontmatter(input.graph, state),
+          };
+        }
       } catch (error) {
         result.warnings.push(`knowledge could not be listed: ${error.message}`);
         result.knowledge = null;

@@ -31,7 +31,7 @@ export function readGraph() {
   let graph;
   try { graph = JSON.parse(readFileSync(path, 'utf8')); } catch { throw new Error(`Invalid phase-graph.json: malformed JSON (${path})`); }
   const invalid = message => { throw new Error(`Invalid phase-graph.json: ${message}`); };
-  if (!graph || typeof graph !== 'object' || Array.isArray(graph) || graph.schemaVersion !== '1.1.0') invalid('schemaVersion must be 1.1.0');
+  if (!graph || typeof graph !== 'object' || Array.isArray(graph) || graph.schemaVersion !== '1.2.0') invalid('schemaVersion must be 1.2.0 (stage inputs are required; add an inputs object to each stage)');
   for (const key of ['phases', 'stages', 'agents']) if (!Array.isArray(graph[key])) invalid(`${key} must be an array`);
   if (!Array.isArray(graph.modelAliases) || graph.modelAliases.length === 0 || graph.modelAliases.some(x => !['opus', 'sonnet', 'haiku', 'fable'].includes(x)) || new Set(graph.modelAliases).size !== graph.modelAliases.length) invalid('modelAliases must be a unique allowlisted alias array');
   const unique = (rows, label) => {
@@ -81,6 +81,14 @@ export function readGraph() {
   for (const stage of graph.stages) {
     if (!phaseIds.has(stage.phase) || !agentIds.has(stage.agent)) invalid(`stage ${stage.id} references unknown phase or agent`);
     if (!Number.isInteger(stage.order) || !Array.isArray(stage.produces)) invalid(`invalid stage metadata: ${stage.id}`);
+    if (!stage.inputs || typeof stage.inputs !== 'object' || Array.isArray(stage.inputs) || !Array.isArray(stage.inputs.artifacts) || !Array.isArray(stage.inputs.context)) {
+      invalid(`stage ${stage.id} must declare inputs.artifacts and inputs.context`);
+    }
+    const contextParts = new Set(['request', 'project', 'sources', 'knowledge', 'profile', 'repos']);
+    for (const part of stage.inputs.context) if (!contextParts.has(part)) invalid(`stage ${stage.id} has unknown context part ${part}`);
+    for (const id of stage.inputs.artifacts) {
+      if (id !== '*' && (typeof id !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(id))) invalid(`stage ${stage.id} inputs.artifacts has invalid id`);
+    }
     for (const output of stage.produces) {
       if (typeof output !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(output)) invalid(`stage ${stage.id} produces an invalid output id`);
     }

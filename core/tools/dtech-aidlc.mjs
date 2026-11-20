@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { audit, configPath, loadConfig, parseArgs, readGraph, readJson, safeId, stateDir, statePath, auditPath, copyTreePreserving, copyHarnessProjection, orderedStages, engineRoot, repoRoot, assertSafeStateDir, ensureWithin } from './lib.mjs';
@@ -12,7 +12,7 @@ import { MODEL_ALIASES, resolveAgentModel, validateModelConfig, writeModelConfig
 import { addDependency, importDependencies, listDependencies, projectDependenciesPath, pullDependencies, removeDependency, validateDependencies } from './dependencies.mjs';
 import { detectDocumentation, onboardCommands, planRegistration, scanProject, sourceStatus, writeProjectProfile, writeSourcesSnapshot } from './onboard.mjs';
 import {
-  addSource, checkRecords, defaultKnowledgeManifest, initKnowledge, inspectSources, knowledgePreflight,
+  addSource, checkRecords, defaultKnowledgeManifest, ensureIgnoreFile, ensureKnowledgeDir, initKnowledge, inspectSources, knowledgePreflight,
   loadKnowledgeManifest, readRecords, removeSource, writeIndex, writeKnowledgeManifest,
 } from './knowledge.mjs';
 
@@ -344,10 +344,23 @@ function main() {
     const action = args.shift(), graph = readGraph();
     if (action === 'next') {
       knowledgePreflight(root);
-      const directive = orchestrateNext(root, { intent: flags.intent || flags.description || null, scope: flags.scope || null });
+      const sources = [flags.intent, flags.description, flags['intent-file']].filter((value) => value !== undefined);
+      if (sources.length > 1) throw new Error('Give the intent with only one of --intent, --description or --intent-file');
+      let intentText = flags.intent || flags.description || null;
+      if (flags['intent-file']) {
+        const path = resolve(process.cwd(), flags['intent-file']);
+        if (!existsSync(path)) throw new Error(`Intent file not found: ${path}`);
+        const stat = lstatSync(path);
+        if (stat.isSymbolicLink()) throw new Error(`Refusing to read symlink intent file: ${path}`);
+        if (!stat.isFile()) throw new Error(`Intent file is not a regular file: ${path}`);
+        const text = readFileSync(path, 'utf8');
+        if (Buffer.byteLength(text) > 100_000) throw new Error('Intent file is too large (max 100000 bytes)');
+        intentText = text;
+      }
+      const directive = orchestrateNext(root, { intent: intentText, scope: flags.scope || null });
       if (directive.stage) {
-        // KNW-05, KNW-09: ensureKnowledgeDir, ensureIgnoreFile, stripMachinePaths, writeIndex
-        // HRN-24: push projectionNotices(root, VERSION) onto directive.warnings
+        ensureKnowledgeDir(root);
+        ensureIgnoreFile(root);
       }
       return out(directive);
     }
@@ -356,7 +369,10 @@ function main() {
         stage: flags.stage, result: flags.result, approval: flags.approval, detail: flags.detail,
         approvedBy: flags['approved-by'], approvalNote: flags['approval-note'],
       });
-      // KNW-06: when result.stage is knowledge-writeback and result.result is complete, writeIndex(root) and add knowledgeRecord
+      if (result.stage === 'knowledge-writeback' && result.result === 'complete') {
+        writeIndex(root);
+        result.knowledgeRecord = `.aidlc/knowledge/${result.intentId}.md`;
+      }
       return out(result);
     }
     throw new Error('Use orchestrate next or orchestrate report');
