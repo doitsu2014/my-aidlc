@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, copyFileSync, statSync, lstatSync, realpathSync, appendFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
-import { dirname, join, resolve, relative, isAbsolute, sep, parse as parsePath } from 'node:path';
+import { dirname, join, resolve, relative, isAbsolute, sep, win32 } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 export function engineRoot() {
@@ -132,6 +132,47 @@ export function readGraph() {
   return graph;
 }
 export function loadConfig(root) { return readJson(configPath(root), {}); }
+export function listHarnesses() {
+  const dir = join(repoRoot(), 'harness');
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir, { withFileTypes: true }).filter((entry) => entry.isDirectory() && existsSync(join(dir, entry.name, 'manifest.json'))).map((entry) => entry.name).sort();
+}
+export function configuredHarnesses(config) {
+  const names = listHarnesses();
+  if (Array.isArray(config?.harnesses) && config.harnesses.length && config.harnesses.every((name) => names.includes(name))) return config.harnesses;
+  return names.includes(config?.harness) ? [config.harness] : [];
+}
+export function loadHarnessManifest(name) {
+  const invalid = (reason) => { throw new Error(`Invalid harness manifest for ${name}: ${reason}`); };
+  const dir = join(repoRoot(), 'harness', name), path = join(dir, 'manifest.json');
+  let manifest;
+  try { manifest = JSON.parse(readFileSync(path, 'utf8')); } catch { invalid('cannot read JSON'); }
+  const safe = (value) => typeof value === 'string' && value.length > 0 && !isAbsolute(value) && !win32.isAbsolute(value) && !value.split(/[\\/]/).includes('..');
+  if (manifest?.schemaVersion !== 1) invalid('schemaVersion must be 1');
+  if (manifest.name !== name) invalid('name must match its folder');
+  if (!safe(manifest.skillDir)) invalid('skillDir must be a safe relative path');
+  if (!Array.isArray(manifest.files) || !manifest.files.length) invalid('files must be a non-empty array');
+  const targets = new Set();
+  for (const file of manifest.files) {
+    if (!safe(file?.source)) invalid('source must be a safe relative path');
+    const source = join(dir, file.source);
+    try { if (lstatSync(source).isSymbolicLink() || !lstatSync(source).isFile()) invalid(`source is not a regular file: ${file.source}`); }
+    catch (error) { if (error.message.startsWith(`Invalid harness manifest for ${name}:`)) throw error; invalid(`source is missing: ${file.source}`); }
+    if (!safe(file?.target)) invalid('target must be a safe relative path');
+    if (targets.has(file.target)) invalid(`target is repeated: ${file.target}`);
+    targets.add(file.target);
+  }
+  for (const field of ['obsoleteFiles']) if (manifest[field] !== undefined && (!Array.isArray(manifest[field]) || manifest[field].some((path) => !safe(path)))) invalid(`${field} must contain safe relative paths`);
+  if (manifest.legacy !== undefined && (!Array.isArray(manifest.legacy) || manifest.legacy.some((entry) => !safe(entry?.dir) || entry.dir === manifest.skillDir || !Array.isArray(entry.files) || entry.files.some((path) => !safe(path))))) invalid('legacy paths must be safe relative paths');
+  return manifest;
+}
+export function projectHarnessFiles(manifest, root) {
+  assertNoSymlinkComponents(root, manifest.skillDir);
+  const sourceDir = join(repoRoot(), 'harness', manifest.name), targetDir = join(root, manifest.skillDir);
+  const created = [];
+  for (const file of manifest.files) created.push(...copyTreePreserving(join(sourceDir, file.source), join(targetDir, file.target)));
+  return created;
+}
 function pathExists(path) {
   try { lstatSync(path); return true; } catch (error) { if (error.code === 'ENOENT') return false; throw error; }
 }
@@ -214,14 +255,6 @@ export function parseArgs(args, optionTypes = {}) {
     else flags[key] = value;
   }
   return { positional, flags, unknown };
-}
-export function sourceRoot() { return repoRoot(); }
-export function projectHarness(root, name) {
-  const known = ['claude', 'deepseek'];
-  if (!known.includes(name)) throw new Error(`Unsupported harness "${name}". Choose claude or deepseek.`);
-  const src = join(repoRoot(), 'harness', name);
-  if (!existsSync(src)) throw new Error(`Harness source not found at ${src}; install dtech-aidlc with this harness projection available.`);
-  return src;
 }
 export function copyTreePreserving(source, target) {
   const srcStats = lstatSync(source);

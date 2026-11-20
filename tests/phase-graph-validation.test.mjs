@@ -38,9 +38,9 @@ test('graph references existing methodology and next directive includes absolute
 test('harness onboarding references the actual methodology projection and CLI graph', () => {
   for (const [harness, dir] of [['claude', '.claude'], ['deepseek', '.dsh']]) {
     const onboarding = readFileSync(join(repo, 'harness', harness, 'onboarding.md'), 'utf8');
-    assert.ok(onboarding.includes('`.aidlc/methodology/`'), `${harness} onboarding must reference the methodology projection`);
-    assert.ok(onboarding.includes('`core/data/phase-graph.json`'), `${harness} onboarding must identify the CLI graph`);
     assert.ok(!onboarding.includes(`\`${dir}/data/phase-graph.json\``), `${harness} onboarding must not point at a nonexistent projected graph`);
+    assert.equal(onboarding.includes('`.aidlc/methodology/`'), false);
+    assert.match(onboarding, /not copied into the project/);
   }
 });
 

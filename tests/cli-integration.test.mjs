@@ -63,16 +63,18 @@ test('init projects Claude and DeepSeek harnesses and does not overwrite local f
     const skillDir = harness === 'claude' ? 'dtech-aidlc' : 'aidlc';
     const projection = join(targetProject, base, 'skills', skillDir);
     assert.ok(existsSync(projection));
-    assert.ok(existsSync(join(projection, 'manifest.mjs')));
+    assert.equal(existsSync(join(projection, 'manifest.mjs')), false);
+    assert.equal(existsSync(join(projection, 'manifest.json')), false);
     assert.ok(existsSync(join(projection, 'SKILL.md')));
     assert.equal(existsSync(join(projection, 'skills', 'aidlc', 'SKILL.md')), false);
     const skill = readFileSync(join(projection, 'SKILL.md'), 'utf8');
     assert.match(skill, new RegExp(`^---\\r?\\nname: ${skillDir}\\r?\\n`, 'm'));
-    const manifestPath = join(repo, 'harness', harness, 'manifest.mjs');
-    const manifestSource = readFileSync(manifestPath, 'utf8');
-    const entryPath = harness === 'claude' ? '.claude/skills/dtech-aidlc/SKILL.md' : '.dsh/skills/aidlc/SKILL.md';
-    assert.ok(manifestSource.includes(entryPath));
-    assert.ok(existsSync(join(targetProject, '.aidlc', 'methodology')));
+    const manifestPath = join(repo, 'harness', harness, 'manifest.json');
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    assert.equal(manifest.skillDir, harness === 'claude' ? '.claude/skills/dtech-aidlc' : '.dsh/skills/aidlc');
+    assert.ok(existsSync(join(targetProject, manifest.skillDir, 'SKILL.md')));
+    assert.equal(existsSync(join(targetProject, '.aidlc', 'methodology')), false);
+    assert.ok(existsSync(join(details.methodology, 'contracts.md')));
     const config = JSON.parse(readFileSync(join(targetProject, '.aidlc', 'config.json'), 'utf8'));
     assert.equal(config.harness, harness);
     assert.equal(config.scope, 'team');
@@ -93,6 +95,9 @@ test('init rejects invalid scope and harness values without creating project sta
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /harness must be|scope must be/);
   }
+  const bare = runCli(project, 'init');
+  assert.notEqual(bare.status, 0);
+  assert.match(bare.stderr, /--harness is required for a new project/);
   assert.equal(existsSync(join(project, '.aidlc')), false);
 });
 
@@ -101,10 +106,15 @@ test('workflow keeps the original intent, advances in order, and records audit e
   t.after(() => rmSync(project, { recursive: true, force: true }));
   const intent = 'Build an inventory API without changing existing auth behavior';
   cliJson(project, 'init', '--harness', 'claude', '--scope', 'solo');
+  const projectedSkill = join(project, '.claude/skills/dtech-aidlc/SKILL.md');
+  writeFileSync(projectedSkill, `${readFileSync(projectedSkill, 'utf8')}\nlocal edit`);
   let next = cliJson(project, 'orchestrate', 'next', '--scope', 'solo', '--intent', intent);
   assert.equal(next.intent, intent);
   assert.equal(next.scope, 'solo');
   assert.equal(next.stage.id, 'problem-framing');
+  assert.ok(Array.isArray(next.warnings));
+  assert.ok(next.warnings.some((warning) => warning.includes('dtech-aidlc harness refresh')));
+  assert.equal(Object.hasOwn(next, 'notices'), false);
   assert.equal(cliJson(project, 'status').intent, intent);
 
   writeArtifacts(project, next);

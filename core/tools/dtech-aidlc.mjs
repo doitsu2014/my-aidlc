@@ -2,10 +2,11 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { audit, configPath, loadConfig, parseArgs, readGraph, readJson, safeId, stateDir, statePath, auditPath, copyTreePreserving, copyHarnessProjection, orderedStages, engineRoot, repoRoot, assertSafeStateDir, ensureWithin } from './lib.mjs';
+import { audit, configPath, loadConfig, configuredHarnesses, listHarnesses, loadHarnessManifest, projectHarnessFiles, parseArgs, readGraph, readJson, safeId, stateDir, statePath, auditPath, copyTreePreserving, orderedStages, engineRoot, repoRoot, assertSafeStateDir, ensureWithin, writeJsonAtomic, writeFileAtomic, assertNoSymlinkComponents } from './lib.mjs';
+import { projectionStatus, updateProjectionStamp, refreshProjection, projectionDoctorRows, projectionNotices, legacyMethodologyStatus } from './projection.mjs';
 import { GLOBAL_FLAGS, COMMAND_FLAGS, COMMAND_MAX_ARGS, commandKey, optionTypes } from './cli-spec.mjs';
 import {
-  checkWorkflowState, deriveStatus, intentDir, listIntents, loadIntent, loadWorkflow, orchestrateNext, orchestrateReport,
+  checkWorkflowState, deriveStatus, intentDir, listIntents, loadIntent, loadWorkflow, normalizeIntentText, orchestrateNext, orchestrateReport,
   persistWorkflow, quarantineCorruptPointer, readPointer, saveIntent, savePointer, unfinishedIds,
 } from './workflow.mjs';
 import { MODEL_ALIASES, resolveAgentModel, validateModelConfig, writeModelConfig } from './agent-models.mjs';
@@ -25,17 +26,19 @@ const HELP = [
   'Commands:',
   '  help, --help            Show help',
   '  version, --version      Show version',
-  '  onboard --harness NAME --scope NAME',
+  '  onboard [--harness NAME] [--scope NAME]  (--harness is required the first time)',
   '                          Initialize and detect the project in one command',
   '  onboard --rescan [--docs PATH]...',
   '                          Re-scan an initialized project and report documentation changes',
-  '  init [same options]     Alias of onboard',
+  '  init [--harness NAME] [--scope NAME]    Alias of onboard (--harness is required the first time)',
   '  scope [NAME]            List scopes or show stages in a scope',
   '  status [--intent ID]    Show current intent and stage progress',
   '  doctor                  Validate graph, state, config, and projection',
-  '  orchestrate next [--intent TEXT] [--description TEXT] [--scope NAME]',
+  '  orchestrate next [--intent TEXT] [--description TEXT] [--intent-file PATH|-] [--scope NAME]',
+  '                          Use --intent-file to avoid shell quoting; - reads standard input',
   '  orchestrate report --result complete|blocked|skipped [--approval approved] [--detail TEXT] [--stage ID]',
   '  config agents            List effective agent models',
+  '  config scope [NAME]     Show or set the default scope for new intents',
   '  config agents set <agent-id> <opus|sonnet|haiku|fable>',
   '  config agents reset <agent-id>',
   '  repos add <name> <url> [--ref REF]',
@@ -56,6 +59,9 @@ const HELP = [
   '  knowledge show <id>     Show one knowledge record',
   '  knowledge check         Validate knowledge records',
   '  knowledge index         Write .aidlc/knowledge/_index.md',
+  '  harness add NAME        Project another harness into this project',
+  '  harness status          Show the state of the projected skill files',
+  '  harness refresh [NAME] [--dry-run] [--force]  Update projected skill files to this engine version',
   'Global option: --project DIR  Use DIR as the project root instead of the current directory.',
   '',
   'Scope values: solo, team, enterprise. Harness values: claude, deepseek.',
@@ -65,7 +71,7 @@ const HELP = [
 function out(value) { process.stdout.write(typeof value === 'string' ? value : `${JSON.stringify(value, null, 2)}\n`); }
 function fail(message) { process.stderr.write(`dtech-aidlc: ${message}\n`); process.exitCode = 1; }
 function validateScope(scope) { if (!['solo', 'team', 'enterprise'].includes(scope)) throw new Error('scope must be solo, team, or enterprise'); return scope; }
-function validateHarness(name) { if (!['claude', 'deepseek'].includes(name)) throw new Error('harness must be claude or deepseek'); return name; }
+function validateHarness(name) { const names = listHarnesses(); if (!names.includes(name)) throw new Error(names.length ? `harness must be ${names.join(' or ')}` : `Harness source unavailable at ${join(repoRoot(), 'harness')}; projection requires installed source files.`); return name; }
 function knowledgeState(root) {
   try {
     const loaded = loadKnowledgeManifest(root);
@@ -176,24 +182,43 @@ function main() {
       try { ensureWithin(root, abs); }
       catch { throw new Error(`--docs path must be inside the project: ${item}`); }
     }
-    const harness = validateHarness(flags.harness || 'claude');
-    const scope = validateScope(flags.scope || 'solo');
-    const graph = readGraph();
-    const sourceRoot = join(repoRoot(), 'harness', harness);
-    if (!existsSync(sourceRoot)) throw new Error(`Harness source unavailable at ${sourceRoot}; projection requires installed source files.`);
+    const requestedScope = flags.scope === undefined ? undefined : validateScope(flags.scope);
+    const requestedHarness = flags.harness === undefined ? undefined : validateHarness(flags.harness);
+    const hasConfig = existsSync(configPath(root));
     const existingConfig = loadConfig(root);
-    if (existsSync(configPath(root)) && (existingConfig.harness !== harness || existingConfig.scope !== scope)) {
-      throw new Error(`Project already initialized with harness ${existingConfig.harness} and scope ${existingConfig.scope}; refusing conflicting configuration`);
+    let harnesses, scope;
+    if (hasConfig) {
+      harnesses = configuredHarnesses(existingConfig);
+      if (!harnesses.length || !['solo', 'team', 'enterprise'].includes(existingConfig.scope)) {
+        throw new Error('Invalid .aidlc/config.json: harness or scope is missing or unknown; correct the file');
+      }
+      scope = requestedScope ?? existingConfig.scope;
+      if (scope !== existingConfig.scope) throw new Error(`Project default scope is ${existingConfig.scope}. To change the default for new intents run: dtech-aidlc config scope ${scope}`);
+      if (requestedHarness && !harnesses.includes(requestedHarness)) throw new Error(`Project already uses harness ${harnesses.join(', ')}. To add another harness run: dtech-aidlc harness add ${requestedHarness}`);
+      harnesses = requestedHarness ? [requestedHarness] : harnesses;
+    } else {
+      if (!requestedHarness) throw new Error('--harness is required for a new project: choose claude or deepseek');
+      harnesses = [requestedHarness];
+      scope = requestedScope ?? 'solo';
     }
-    const project = existsSync(configPath(root)) ? existingConfig : { harness, scope, initializedAt: new Date().toISOString() };
-    const projectionRoot = harness === 'claude' ? join(root, '.claude', 'skills', 'dtech-aidlc') : join(root, '.dsh', 'skills', 'aidlc');
-    mkdirSync(stateDir(root), { recursive: true });
-    if (!existsSync(configPath(root))) writeFileSync(configPath(root), `${JSON.stringify(project, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
-    const copied = copyHarnessProjection(sourceRoot, projectionRoot);
-    const methodologySrc = join(engineRoot(), 'methodology');
-    let methodologyTarget = null;
-    if (existsSync(methodologySrc)) { methodologyTarget = join(root, '.aidlc', 'methodology'); copied.push(...copyTreePreserving(methodologySrc, methodologyTarget)); }
-    audit(root, 'project.initialized', { harness, scope, graphPhases: graph.phases.length, projection: relative(root, projectionRoot).split(sep).join('/') });
+    const graph = readGraph();
+    const projections = [], copied = [];
+    for (const [index, name] of harnesses.entries()) {
+      const manifest = loadHarnessManifest(name);
+      assertNoSymlinkComponents(root, manifest.skillDir);
+      if (!hasConfig && index === 0) {
+        const project = { harness: name, harnesses, scope, initializedAt: new Date().toISOString() };
+        mkdirSync(stateDir(root), { recursive: true });
+        writeFileSync(configPath(root), `${JSON.stringify(project, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+      }
+      copied.push(...projectHarnessFiles(manifest, root));
+      updateProjectionStamp(root, manifest, VERSION);
+      projections.push(projectionStatus(root, manifest, VERSION));
+    }
+    const harness = harnesses[0], manifest = loadHarnessManifest(harness);
+    const projectionRoot = join(root, manifest.skillDir);
+    const methodologyTarget = join(engineRoot(), 'methodology');
+    if (!hasConfig) audit(root, 'project.initialized', { harness, scope, graphPhases: graph.phases.length, projection: manifest.skillDir });
     const knowledge = initKnowledge(root, { createManifest: false });
     const scan = scanProject(root);
     const documentation = detectDocumentation(root, { explicit: docs, detect });
@@ -213,15 +238,68 @@ function main() {
     writeSourcesSnapshot(root, plan.manifest.sources);
     audit(root, 'project.onboarded', { kind: detected.profile.kind, languages: detected.profile.languages.map(row => row.name) });
     return out({
-      ...{ initialized: true, harness, scope, stateDir: stateDir(root), projection: projectionRoot, methodology: methodologyTarget, filesCreated: copied.length, knowledge },
+      ...{ initialized: true, harness, harnesses: configuredHarnesses(loadConfig(root)), scope, stateDir: stateDir(root), projection: projectionRoot, projections, methodology: methodologyTarget, filesCreated: copied.length, knowledge },
       kind: detected.profile.kind, shared: detected.shared, languages: detected.profile.languages,
       architecture: detected.profile.architecture, documentation: detected.profile.documentation,
       legacyBrdCopies: detected.profile.legacy?.brdCopies?.files,
     });
   }
+  if (cmd === 'harness') {
+    const action = args.shift();
+    if (action === 'add') {
+      const name = validateHarness(args[0]);
+      if (!existsSync(configPath(root))) throw new Error(`Project is not initialized; run: dtech-aidlc onboard --harness ${listHarnesses().join('|')} --scope <solo|team|enterprise>`);
+      const config = loadConfig(root), configured = configuredHarnesses(config);
+      if (!configured.length || !['solo', 'team', 'enterprise'].includes(config.scope)) throw new Error('Invalid .aidlc/config.json: harness or scope is missing or unknown; correct the file');
+      const manifest = loadHarnessManifest(name);
+      assertNoSymlinkComponents(root, manifest.skillDir);
+      const filesCreated = projectHarnessFiles(manifest, root);
+      updateProjectionStamp(root, manifest, VERSION);
+      if (!configured.includes(name)) {
+        const harnesses = [...configured, name];
+        config.harnesses = harnesses;
+        writeJsonAtomic(configPath(root), config);
+        audit(root, 'harness.added', { harness: name });
+        return out({ harness: name, harnesses, projection: join(root, manifest.skillDir), filesCreated: filesCreated.length });
+      }
+      return out({ harness: name, harnesses: configured, projection: join(root, manifest.skillDir), filesCreated: filesCreated.length });
+    }
+    if (action === 'status') {
+      const harnesses = existsSync(configPath(root)) ? configuredHarnesses(loadConfig(root)) : [];
+      return out({ engineVersion: VERSION, harnesses: harnesses.map((name) => projectionStatus(root, loadHarnessManifest(name), VERSION)), legacyMethodology: legacyMethodologyStatus(root) });
+    }
+    if (action === 'refresh') {
+      const configured = existsSync(configPath(root)) ? configuredHarnesses(loadConfig(root)) : [];
+      if (!configured.length) throw new Error(`Project is not initialized; run: dtech-aidlc onboard --harness ${listHarnesses().join('|')} --scope <solo|team|enterprise>`);
+      const name = args[0];
+      if (name && !configured.includes(name)) throw new Error(`Harness ${name} is not configured for this project (configured: ${configured.join(', ')})`);
+      const harnesses = (name ? [name] : configured).map((item) => refreshProjection(root, loadHarnessManifest(item), VERSION, { dryRun: flags['dry-run'], force: flags.force }));
+      const actions = harnesses.flatMap((item) => item.actions);
+      const result = { dryRun: Boolean(flags['dry-run']), engineVersion: VERSION, harnesses, legacyMethodology: null, needsAttention: actions.some((item) => ['kept-modified', 'kept-modified-obsolete', 'refused-ahead', 'refused-not-a-regular-file'].includes(item.action)) };
+      out(result);
+      if (actions.some((item) => ['refused-ahead', 'refused-not-a-regular-file'].includes(item.action))) process.exitCode = 1;
+      return;
+    }
+    throw new Error('Use harness status or harness refresh');
+  }
   if (cmd === 'config') {
     const section = args.shift();
-    if (section !== 'agents') throw new Error('Use config agents');
+    if (section === 'scope') {
+      const hasConfig = existsSync(configPath(root)), config = hasConfig ? loadConfig(root) : {};
+      const configured = ['solo', 'team', 'enterprise'].includes(config.scope) && configuredHarnesses(config).length > 0;
+      if (!args.length) return out({ scope: configured ? config.scope : 'solo', configured });
+      const scope = validateScope(args[0]);
+      if (!hasConfig) throw new Error('Initialize the project before changing the default scope');
+      if (!configured) throw new Error('Invalid .aidlc/config.json: harness or scope is missing or unknown; correct the file');
+      if (scope !== config.scope) {
+        const from = config.scope;
+        config.scope = scope;
+        writeJsonAtomic(configPath(root), config);
+        audit(root, 'config.scope.changed', { from, to: scope });
+      }
+      return out({ scope, appliesTo: 'new intents' });
+    }
+    if (section !== 'agents') throw new Error('Use config agents or config scope');
     const graph = readGraph(), config = validateModelConfig(root, graph), action = args.shift();
     if (!action) return out(graph.agents.map(agent => ({ id: agent.id, phase: agent.phase, ...resolveAgentModel(agent, config) })));
     if (action !== 'set' && action !== 'reset') throw new Error('Use config agents set or config agents reset');
@@ -229,7 +307,7 @@ function main() {
     if (!agent) throw new Error(`Unknown agent: ${id ?? '(missing agent ID)'}`);
     if (!existsSync(configPath(root))) throw new Error('Initialize the project before changing agent models');
     const stateConfig = config;
-    if (!['claude', 'deepseek'].includes(stateConfig.harness) || !['solo', 'team', 'enterprise'].includes(stateConfig.scope) || !stateConfig.initializedAt) throw new Error('Initialize the project before changing agent models');
+    if (!listHarnesses().includes(stateConfig.harness) || !['solo', 'team', 'enterprise'].includes(stateConfig.scope) || !stateConfig.initializedAt) throw new Error('Initialize the project before changing agent models');
     if (action === 'set') {
       const model = args.shift();
       if (!MODEL_ALIASES.includes(model)) throw new Error(`Invalid model alias: ${model ?? '(missing)'}; choose opus, sonnet, haiku, or fable`);
@@ -294,10 +372,11 @@ function main() {
       (ctx) => {
         try {
           const loaded = validateModelConfig(ctx.root, ctx.graph ?? readGraph());
-          const ok = !existsSync(configPath(ctx.root)) || (['claude', 'deepseek'].includes(loaded.harness) && ['solo', 'team', 'enterprise'].includes(loaded.scope));
+          const ok = !existsSync(configPath(ctx.root)) || (listHarnesses().includes(loaded.harness) && ['solo', 'team', 'enterprise'].includes(loaded.scope));
           return [{ status: ok ? 'pass' : 'fail', message: 'Project configuration and agent models' }];
         } catch (error) { return [{ status: 'fail', message: `Project configuration and agent models: ${error.message}` }]; }
       },
+      (ctx) => projectionDoctorRows(ctx.root, ctx.config, VERSION),
       (ctx) => {
         try { return [{ status: 'pass', message: `Dependency repositories: ${validateDependencies(ctx.root).length} registered` }]; }
         catch (error) { return [{ status: 'fail', message: `Dependency repositories: ${error.message}` }]; }
@@ -328,6 +407,7 @@ function main() {
       },
       (ctx) => checkWorkflowState(ctx.root, ctx.graph),
       (ctx) => [{ status: !existsSync(auditPath(ctx.root)) || readFileSync(auditPath(ctx.root), 'utf8').split(/\r?\n/).filter(Boolean).every((line) => { try { JSON.parse(line); return true; } catch { return false; } }) ? 'pass' : 'fail', message: 'Audit log contains valid JSON lines' }],
+      (ctx) => existsSync(join(ctx.root, '.aidlc', 'methodology')) ? [{ status: 'warn', message: 'Unused methodology copy at .aidlc/methodology from an earlier version; run: dtech-aidlc harness refresh (edited files are kept and must be deleted by hand)' }] : [],
     ];
     const checks = [];
     for (const fn of DOCTOR_CHECKS) {
@@ -347,20 +427,29 @@ function main() {
       const sources = [flags.intent, flags.description, flags['intent-file']].filter((value) => value !== undefined);
       if (sources.length > 1) throw new Error('Give the intent with only one of --intent, --description or --intent-file');
       let intentText = flags.intent || flags.description || null;
-      if (flags['intent-file']) {
+      if (flags['intent-file'] === '-') {
+        if (process.stdin.isTTY) throw new Error('--intent-file - reads the intent from standard input; pipe the text in');
+        let text;
+        try { text = readFileSync(0, 'utf8'); }
+        catch (error) { throw new Error(`Could not read the intent from standard input: ${error.message}`); }
+        if (Buffer.byteLength(text) > 100_000) throw new Error('Intent file is larger than 100000 bytes');
+        intentText = text;
+      } else if (flags['intent-file'] !== undefined) {
         const path = resolve(process.cwd(), flags['intent-file']);
         if (!existsSync(path)) throw new Error(`Intent file not found: ${path}`);
         const stat = lstatSync(path);
         if (stat.isSymbolicLink()) throw new Error(`Refusing to read symlink intent file: ${path}`);
         if (!stat.isFile()) throw new Error(`Intent file is not a regular file: ${path}`);
         const text = readFileSync(path, 'utf8');
-        if (Buffer.byteLength(text) > 100_000) throw new Error('Intent file is too large (max 100000 bytes)');
+        if (stat.size > 100_000) throw new Error('Intent file is larger than 100000 bytes');
         intentText = text;
       }
+      if (intentText !== null) intentText = normalizeIntentText(intentText);
       const directive = orchestrateNext(root, { intent: intentText, scope: flags.scope || null });
       if (directive.stage) {
         ensureKnowledgeDir(root);
         ensureIgnoreFile(root);
+        directive.warnings.push(...projectionNotices(root, VERSION));
       }
       return out(directive);
     }

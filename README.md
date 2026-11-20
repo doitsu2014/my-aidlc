@@ -49,6 +49,10 @@ sh scripts/install.sh --prefix "$HOME/.local" --from /path/to/dtech-aidlc
 
 The installer and generated launcher use POSIX `/bin/sh` syntax. Zsh completion is installed at `<prefix>/share/zsh/site-functions/_dtech-aidlc`. Add that directory to `fpath` before `compinit`. `dtech-aidlc completion zsh` prints the same function. `ash` does not provide this completion interface.
 
+## Environment variables
+
+`DTECH_AIDLC_HOME=<directory containing core/, harness/ and package.json>` makes the CLI read the graph, methodology, harness sources, and version from that directory. It must contain `core/data/phase-graph.json`. This setting applies per process, not per project, and is intended for testing a modified engine. Put project-specific rules in `PROJECT.md`, not in a copy of the methodology.
+
 ## Run without installing
 
 ```sh
@@ -96,6 +100,7 @@ Supported aliases are `opus`, `sonnet`, `haiku`, and `fable`. Overrides are stor
 ```json
 {
   "harness": "claude",
+  "harnesses": ["claude"],
   "scope": "solo",
   "initializedAt": "2026-01-01T00:00:00.000Z",
   "agentModels": {

@@ -19,7 +19,7 @@ Present a reasoned recommendation and make the human decision, scope boundary, a
 - Recommended direction
 - Decision record
 - Scope boundary
-- Architecture design, using `core/methodology/templates/architecture-design.md`
+- Architecture design, using [the architecture-design template](../templates/architecture-design.md)
 
 ## Must not
 

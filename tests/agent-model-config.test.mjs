@@ -12,7 +12,7 @@ const graphPath = join(repo, 'core/data/phase-graph.json');
 function temp() { return mkdtempSync(join(tmpdir(), 'aidlc-models-')); }
 function run(project, ...args) { return spawnSync(process.execPath, [cli, ...args, '--project', project], { cwd: project, encoding: 'utf8' }); }
 function json(project, ...args) { const result = run(project, ...args); assert.equal(result.status, 0, result.stderr || result.stdout); return JSON.parse(result.stdout); }
-function init(project) { json(project, 'init'); }
+function init(project) { json(project, 'init', '--harness', 'claude'); }
 
 test('config agents lists defaults, set/reset all aliases, and preserves config keys', t => {
   const project = temp(); t.after(() => rmSync(project, { recursive: true, force: true }));

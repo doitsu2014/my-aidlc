@@ -20,7 +20,7 @@ Escalate system-wide or high-risk design rather than deciding it alone.
 
 - Implementation plan
 - Interfaces and contracts
-- Functional design, using `core/methodology/templates/functional-design.md`
+- Functional design, using [the functional-design template](../templates/functional-design.md)
 
 ## Must not
 

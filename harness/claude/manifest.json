@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "name": "claude",
+  "productName": "Claude Code",
+  "skillName": "dtech-aidlc",
+  "invoke": "/dtech-aidlc",
+  "skillDir": ".claude/skills/dtech-aidlc",
+  "files": [
+    { "source": "skills/aidlc/SKILL.md", "target": "SKILL.md" },
+    { "source": "onboarding.md", "target": "onboarding.md" }
+  ],
+  "obsoleteFiles": ["manifest.mjs"],
+  "legacy": [
+    { "dir": ".claude/skills/aidlc", "files": ["SKILL.md", "manifest.mjs", "onboarding.md", "skills/aidlc/SKILL.md"] }
+  ]
+}

@@ -125,8 +125,8 @@ test('help lists global and previously undocumented options', () => {
   for (const line of [
     '  help, --help            Show help',
     '  version, --version      Show version',
-    '  onboard --harness NAME --scope NAME',
-    '  init [same options]     Alias of onboard',
+    '  onboard [--harness NAME] [--scope NAME]  (--harness is required the first time)',
+    '  init [--harness NAME] [--scope NAME]    Alias of onboard (--harness is required the first time)',
     '  scope [NAME]            List scopes or show stages in a scope',
     '  status [--intent ID]    Show current intent and stage progress',
     '  doctor                  Validate graph, state, config, and projection',

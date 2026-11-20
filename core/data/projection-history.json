@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "source": "git 91c9eea..867736e",
+  "harness": {
+    "claude": {
+      "SKILL.md": [
+        "1b6aebe53308e796d0ac355ae067c142e8cdd220037ffa6e0c4cfdbb8154f637",
+        "89b889881b09d4c665bef9a0accdfa85e20e5ef81cb6bdfaed10780a16c95b77",
+        "cefb675bfd8665a0ad7be8e8ee36fb755b52e5b25f9673682d53fc870bf44199"
+      ],
+      "onboarding.md": [
+        "1274fc95f3dc08a11b5285be67746b8ea852e0a49b923ea978955bef83a40ca7",
+        "8b53fbbaff067459573eb1e685e00baba81e91bcf38fb975253c957e73a9fbcb",
+        "cda9feacd891974caac7176ae6cec5f657f2e0233400623f6d90745452ef4c0d"
+      ],
+      "manifest.mjs": [
+        "89e29ebaa8618d35d8072756b86c6a26afdc8475361682d93bf26c5a43fc5f09",
+        "bf0857251f065d9ba4ab88f1fdf80afa53fca2ed9c00dbe86543c7a67e4f1bbe"
+      ]
+    },
+    "deepseek": {
+      "SKILL.md": [
+        "3bb520857d050379a73200ad54958b67c93efe1f86686e111cf6a99ec4982589",
+        "87d17d89a43b9f3432e1c1abc5c9a1eefb0dc157fe5c11c067bfec3930dcada6"
+      ],
+      "onboarding.md": [
+        "0b119b3c4d7f3010dedf42c6a9aa56ab8d44d525bcb1625a956016c11bbcf241",
+        "17c764a35afd131c7d57a1c207b56df452b978521103e20be080035018603f1f"
+      ],
+      "manifest.mjs": [
+        "3fe004c98d0a69caa36aa22ebf6b3acb7ef5941371081bddff7636b1976c98ed"
+      ]
+    }
+  },
+  "methodology": {
+    "README.md": [
+      "2acd093d8a0c92daaa151a5e69925f3b6275af2e056a6a53758021ccb86e9cc5",
+      "4c6820257bbe6eb70c667bd7f2549899cd0b5d0b47191b40c7b30e7c04ef8ea5",
+      "cb16eccee4bb4b9a6004c1330296d7b1d4702f6ea5ad87e0219c0ea5162f395b"
+    ],
+    "agents/brief-analyst.md": [
+      "1647bec6f69bb9438428c3b642f8394a9b3ef0f6628d1fbaeb0fe28ef69a9192",
+      "a188f0d4daf567faf80e1383de56fafc45f0132aa81134b2c5e8883cffcc7ae4",
+      "a59a03561293d79b6ceb09fc31466e1390872122d2d633864f663eac5da26af0"
+    ],
+    "agents/builder-verifier.md": [
+      "31bb8959137d20d8c14e306f38699d18cfd6066b1b9218f0120d08c5c561539d",
+      "3529ee4f9a33ff0c768c56ef5bd1991051ecf1f9b3e9f953a9560bcf7428a7e8",
+      "86d4fe80d642470f33516eee7a8ba58b32ae591b9b044471c54a6a4a5444bf77"
+    ],
+    "agents/context-risk-analyst.md": [
+      "0eef6ed4a7ce8ea5848e604d10b7563133429481243ac82dd21b5c90324c4daf",
+      "9a09ba8b42a09b00f7fdbd7f6be80a22bc2e912bb1ce05b9b61090b65534c0ad",
+      "efa9b7555dc46d5653cc8cef866aef208f31c01db11f3b610625932d698e1b88"
+    ],
+    "agents/decision-facilitator.md": [
+      "6fc3876cb0f70263285b012fe2e219528d21062f29fe541077637a24754ae9f6",
+      "99ade8dc56f54e08c2165e3a3fd0b91bb229374a596abdc05e264da147d0ac61",
+      "9f2a7fb4fd183344018de178e6956ba590bee53569615d9ede8503bf5a03a773"
+    ],
+    "agents/implementation-planner.md": [
+      "272cedf3885316141aa7e20c9213081ee14332d07713e6f6132aef3abec970f2",
+      "51d219248f229b76fbb860dd75d986e0ff0aaf9ae38702f009aa0cc7e7d0cf98",
+      "607b880b5099eb63d4bd8823085fa805debc956d3fdd5a5688de54e257e03759"
+    ],
+    "agents/knowledge-archivist.md": [
+      "39645e7bf38c7323c6bd480a4cb1f89eed40d5986aa438532733a650b29f6a4f",
+      "4cbd1881a150cef82a6961eaba7492e23d75a7ac8b93a9f8194c795bb6f4d2b0"
+    ],
+    "agents/knowledge-steward.md": [
+      "3a66a3f6f8bf99d9ae9cfd3606d28516bc3f7819514584f4a4cb64e8f9ee2a6f",
+      "5e477c024e3217e7b1bb1e994b1b1293561656538da715d61b12ed496928dff4",
+      "ae531ac2feb8a8baa1b1375f9ab00aacac5e3a8a000521b7adfb66e40eade040"
+    ],
+    "agents/operations-handoff.md": [
+      "264373037ae904b2f8baca2696a110d17201c092ad7639eef3370daaf130d439",
+      "471c2a13325348dad531c9d0c9320733c2467926d905485b1d81e87db6400f56"
+    ],
+    "agents/outcome-curator.md": [
+      "5d1d0764b88e89c0c55dfc63de44c8bf8d945d4a2abdd4aa4b0dcfb8b030e619",
+      "eca2ee90e3efb90c92c0fc241b6cacc86d48d543e1c04da520de0c1b8ed4603d"
+    ],
+    "agents/record-keeper.md": [
+      "156eecca12616e84c9e1a42b541903436ccb4597f098613047d182e864b429a8"
+    ],
+    "agents/release-coordinator.md": [
+      "1f69fca330ee560ac0871d99a705fb614154b17c6977791d16ef419d83a0d3b1",
+      "629d4d1a99a59fdff9264a145b8fbd8e4c4f3e3f59f668d7c97d58d1a48bb795",
+      "7aaa56eef23ddb93523eec127ae23ea3f663d93ba70ea30dfb26db766970e0fa"
+    ],
+    "agents/solution-explorer.md": [
+      "54bcaf1926dd8f8b8446d2aaebf3564c182c6f048b0af522173a0f88c31a0953",
+      "59c0fd23173b9d526e2692407bddf0ef8c96059ecb7a3fc298bd57aaa0ecd528",
+      "ba071106d59a168474c8c57c69d393e23f55a2a47785df1c4fc1bc29dcb233d7"
+    ],
+    "contracts.md": [
+      "51124f4f8bbe5598421f53e1eb880355ab23c214abe00f5ceeb6bd70945d1c6a",
+      "825023447b741614253039d56e2c1d9888c1057d3d07e4b6b93b0d1f22f23b9a"
+    ],
+    "phases/analyze.md": [
+      "21f0f7491d06b4b8e11f7e47ba46d409572fa6069f6545047d193a3ee2d639b2",
+      "4480f74d28af4c89d4cf4105f112373342174be86d93beae874f27b9f37d333f",
+      "4c029f50be5d5a7df6c0c5b5972c084c3fb4d919c6d700aad091d0aef75ae7f4",
+      "b61712b1790a4e97c701c8e7bef7d6a0522b4ab56c86f26c19018a52fa3097f6"
+    ],
+    "phases/archived.md": [
+      "266d827d37432f43e9289d14653a227e0ecaae629511d042645eae0ace52145c",
+      "d0815b57fd572dfe872753d8e7750d000de507944548b04bc2bb52c304dba406"
+    ],
+    "phases/curate.md": [
+      "8ae21f9308094b373a3ac74205eb85db6e26c8a0311cadb35a8a3821bf6dea55",
+      "8be96258f578f3de93105937e08eba03eab7c3a0437bbace8583f66bd78682a5"
+    ],
+    "phases/develop.md": [
+      "b3000df3726c8b44cef362913523c4e08b3622b1aba1eeb850372848f7cc9961",
+      "cad63f53670a06c7741608bafe654472b1b68bbe910ef28ac10b9a4ebb88f3af",
+      "fd36d499d7eaa2b79e8cfa3b4b37be68d5c995190f0c6ba545cac47234887a26"
+    ],
+    "phases/ideate.md": [
+      "29a740adbc8df4d7bb0a5d121c702eaaedfa81b64e69560a17ee71aa4fb62e5a",
+      "3e394c7ef584395251899f01fc1435b4721eb040cdf66441f0b35f563f05d31a",
+      "f3b89306e7873b268d135a9a6b840546a7c46babb6d76ff9908151e875cdd39e"
+    ],
+    "phases/launch.md": [
+      "6fcdf26f4f63fe559546db6e0e562c150e4ade78545ee14e7296221defda5d18",
+      "94c1032140cad69b316a725523dbf0930761351cccdda5ab38f96c6623a43b64"
+    ],
+    "templates/acceptance-criteria.md": [
+      "17b0d92f9b40b8649964a1c6cb3fcbf86bd9a7b3f9e2fe7df67c07ddb021d58b"
+    ],
+    "templates/architecture-design.md": [
+      "01fc08e7b98a6ea2a6c17e7c3df5b9a25173da6233b8b82d1e7b8e73183c2588",
+      "2158bf1699998347f0666f591b878d66b1a12325912c0fcda7b4a0744646fb2d"
+    ],
+    "templates/codebase-map.md": [
+      "9183b3dc3dfc318fcc9b0e1de890bb72a14b88dcf0d7b8ca5702a85e3b094e5c"
+    ],
+    "templates/functional-design.md": [
+      "3f77d8dc82a02080ccb3b48163f67fbff83ebbe3cd9a04fccc2ce287a1335a87",
+      "8e73e561d73b889fffe1d06e35f1815d891ece45c3bad3a978532792d9e628c3"
+    ],
+    "templates/knowledge-record.md": [
+      "f74ac01fd19545b6c40849a7f52681bace5c9af74f9db3ce1e42cc42b6c27316"
+    ]
+  }
+}

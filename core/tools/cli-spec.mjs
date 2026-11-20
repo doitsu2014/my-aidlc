@@ -15,6 +15,8 @@ export const COMMAND_FLAGS = Object.freeze({
   'intent resume': {},
   'intent abandon': { detail: 'string' },
   'config agents': {},
+  'config scope': {},
+  'harness add': {},
   'repos add': { ref: 'string' },
   'repos pull': { file: 'string' },
   'repos list': {},
@@ -29,6 +31,8 @@ export const COMMAND_FLAGS = Object.freeze({
   'knowledge show': {},
   'knowledge check': {},
   'knowledge index': {},
+  'harness status': {},
+  'harness refresh': { 'dry-run': 'boolean', force: 'boolean' },
 });
 export const COMMAND_MAX_ARGS = Object.freeze({
   init: 0,
@@ -47,6 +51,8 @@ export const COMMAND_MAX_ARGS = Object.freeze({
   'repos add': 2,
   'deps add': 2,
   'config agents': 3,
+  'config scope': 1,
+  'harness add': 1,
   'intent list': 0,
   'intent pause': 0,
   'intent resume': 1,
@@ -57,6 +63,8 @@ export const COMMAND_MAX_ARGS = Object.freeze({
   'knowledge show': 1,
   'knowledge check': 0,
   'knowledge index': 0,
+  'harness status': 0,
+  'harness refresh': 1,
 });
 export function commandKey(positionals) {
   return TWO_WORD_COMMANDS.includes(positionals[0]) && positionals[1]

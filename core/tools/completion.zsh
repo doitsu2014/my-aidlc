@@ -34,11 +34,12 @@ _dtech-aidlc() {
         'status:Show the active intent'
         'doctor:Validate project setup'
         'orchestrate:Advance or report a stage'
-        'config:Configure agent models'
+        'config:Configure agent models or default scope'
         'repos:Manage dependency repositories'
         'deps:Manage workflow dependency edges'
         'intent:List, pause, resume, or abandon intents'
         'knowledge:Manage project knowledge and sources'
+        'harness:Inspect and refresh projected skill files'
         'completion:Print shell completion'
       )
       _describe 'command' commands
@@ -100,8 +101,11 @@ _dtech-aidlc() {
               ;;
           esac
           ;;
+        harness)
+          _arguments -C '1:action:(add status refresh)' '--dry-run[Show planned changes]' '--force[Back up and replace edited files]' '1:name:(claude deepseek)'
+          ;;
         config)
-          _arguments -C '1:section:(agents)' '2:action:->action' '*::arg:->rest'
+          _arguments -C '1:section:(agents scope)' '2:action:->action' '*::arg:->rest'
           case ${words[2]} in
             set) _arguments '1:agent:(brief-analyst context-risk-analyst solution-explorer decision-facilitator implementation-planner builder-verifier release-coordinator operations-handoff outcome-curator knowledge-steward record-keeper knowledge-archivist)' '2:model:(opus sonnet haiku fable)' ;;
             reset) _arguments '1:agent:(brief-analyst context-risk-analyst solution-explorer decision-facilitator implementation-planner builder-verifier release-coordinator operations-handoff outcome-curator knowledge-steward record-keeper knowledge-archivist)' ;;

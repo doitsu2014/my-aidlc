@@ -36,7 +36,7 @@ test('onboard detects a brownfield project and copies the BRD into shared', t =>
 test('onboard reports a project with no source as greenfield', t => {
   const root = mkdtempSync(join(tmpdir(), 'aidlc-green-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  const result = spawnSync(process.execPath, [cli, 'onboard', '--project', root], { encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [cli, 'onboard', '--harness', 'claude', '--project', root], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(JSON.parse(result.stdout).kind, 'greenfield');
 });

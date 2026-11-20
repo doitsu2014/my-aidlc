@@ -20,10 +20,10 @@ export const intentStatePath = (root, id) => join(intentDir(root, id), 'state.js
 
 export function intentSlug(text) {
   const source = String(text);
-  const folded = source.normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd').toLowerCase();
+  const folded = source.normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[đĐ]/g, 'd').toLowerCase();
   const letters = (folded.match(/[\p{L}\p{N}]/gu) || []).length;
   const kept = (folded.match(/[a-z0-9]/g) || []).length;
-  let base = folded.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48).replace(/-+$/, '');
+  const base = folded.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48).replace(/-+$/, '');
   if (kept >= 3 && kept * 2 >= letters && base) return base;
   const day = new Date().toISOString().slice(0, 10).replaceAll('-', '');
   const hex = createHash('sha256').update(source.normalize('NFC')).digest('hex').slice(0, 6);
@@ -45,8 +45,15 @@ function corruptMessage(reason, root) {
   return `.aidlc/state.json ${reason}. No changes were made. Intents on disk: ${ids.length ? ids.join(', ') : 'none'}. Run 'dtech-aidlc doctor' for details. To point the project at one of them run 'dtech-aidlc intent resume <id>'.`;
 }
 
+export function normalizeIntentText(value) {
+  const text = String(value ?? '').replace(/^﻿/, '').replace(/\r\n/g, '\n').trim();
+  if (!text) throw new Error('Intent text is empty');
+  if (text.includes('\0')) throw new Error('Intent text contains a NUL character');
+  return text;
+}
+
 export function sameIntentText(a, b) {
-  const norm = (value) => String(value ?? '').trim().replace(/\s+/g, ' ');
+  const norm = (value) => String(value ?? '').normalize('NFC').trim().replace(/\s+/g, ' ');
   return norm(a) === norm(b);
 }
 
