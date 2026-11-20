@@ -2,6 +2,7 @@
 // input: { root, graph, config, state, stage, intentDir, isNewIntent, expectedArtifacts, artifactPathFor }
 import { resolve } from 'node:path';
 import { inspectSources, loadKnowledgeManifest, readRecords } from './knowledge.mjs';
+import { sourceStatus } from './onboard.mjs';
 
 export function buildDirectiveContext(input) {
   try {
@@ -21,6 +22,20 @@ export function buildDirectiveContext(input) {
         }
         if (granted.includes('sources')) {
           result.sources = inspected.sources.filter((item) => item.kind !== 'project').map((item) => ({ ...item, provenance: 'Observed' }));
+          try {
+            const knowledge = loaded.exists ? { status: 'present', sources: loaded.manifest.sources } : { status: 'absent' };
+            const status = sourceStatus(root, knowledge);
+            result.sourceChanges = {
+              scanned: status.scanned, scannedAt: status.scannedAt, missing: status.missing,
+              changed: status.changed, added: status.added, removed: status.removed, more: status.more,
+            };
+            result.warnings.push(...status.warnings);
+            if (status.warnings.some((row) => row.startsWith('No aidlc.knowledge.json was found'))) {
+              result.warnings = result.warnings.filter((row) => !(row.startsWith('Project file ') && row.includes('knowledge init')));
+            }
+          } catch (error) {
+            result.warnings.push(`source changes could not be listed: ${error.message}`);
+          }
         }
         result.warnings.push(...inspected.warnings);
       } catch (error) {

@@ -49,7 +49,7 @@ test('unknown options fail before writing and list allowed flags', (t) => {
     const result = runRaw(project, 'onboard', flag, 'x', '--project', project);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Unknown option --bogus for 'onboard'/);
-    assert.match(result.stderr, /Allowed options: --harness, --scope, --docs, --no-detect, --project/);
+    assert.match(result.stderr, /Allowed options: --harness, --scope, --docs, --no-detect, --rescan, --project/);
     assert.equal(existsSync(join(project, '.aidlc')), false);
   }
 });

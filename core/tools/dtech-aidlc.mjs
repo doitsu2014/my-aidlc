@@ -10,7 +10,7 @@ import {
 } from './workflow.mjs';
 import { MODEL_ALIASES, resolveAgentModel, validateModelConfig, writeModelConfig } from './agent-models.mjs';
 import { addDependency, importDependencies, listDependencies, projectDependenciesPath, pullDependencies, removeDependency, validateDependencies } from './dependencies.mjs';
-import { detectDocumentation, planRegistration, scanProject, writeProjectProfile } from './onboard.mjs';
+import { detectDocumentation, onboardCommands, planRegistration, scanProject, sourceStatus, writeProjectProfile, writeSourcesSnapshot } from './onboard.mjs';
 import {
   addSource, checkRecords, defaultKnowledgeManifest, initKnowledge, inspectSources, knowledgePreflight,
   loadKnowledgeManifest, readRecords, removeSource, writeIndex, writeKnowledgeManifest,
@@ -27,6 +27,8 @@ const HELP = [
   '  version, --version      Show version',
   '  onboard --harness NAME --scope NAME',
   '                          Initialize and detect the project in one command',
+  '  onboard --rescan [--docs PATH]...',
+  '                          Re-scan an initialized project and report documentation changes',
   '  init [same options]     Alias of onboard',
   '  scope [NAME]            List scopes or show stages in a scope',
   '  status [--intent ID]    Show current intent and stage progress',
@@ -64,6 +66,14 @@ function out(value) { process.stdout.write(typeof value === 'string' ? value : `
 function fail(message) { process.stderr.write(`dtech-aidlc: ${message}\n`); process.exitCode = 1; }
 function validateScope(scope) { if (!['solo', 'team', 'enterprise'].includes(scope)) throw new Error('scope must be solo, team, or enterprise'); return scope; }
 function validateHarness(name) { if (!['claude', 'deepseek'].includes(name)) throw new Error('harness must be claude or deepseek'); return name; }
+function knowledgeState(root) {
+  try {
+    const loaded = loadKnowledgeManifest(root);
+    return loaded.exists ? { status: 'present', sources: loaded.manifest.sources } : { status: 'absent' };
+  } catch (error) {
+    return { status: 'invalid', error: error.message };
+  }
+}
 function stageStatus(state, stage) { return state?.stages?.[stage.id]?.status ?? 'pending'; }
 function main() {
   const parsed = parseArgs(process.argv.slice(2), optionTypes());
@@ -90,6 +100,76 @@ function main() {
   if (cmd === 'onboard' || cmd === 'init') {
     const docs = [].concat(flags.docs ?? []);
     const detect = !flags['no-detect'];
+    if (flags.rescan) {
+      if (flags.harness || flags.scope || flags['no-detect']) {
+        throw new Error('--rescan re-scans an initialized project and does not take --harness, --scope or --no-detect');
+      }
+      if (!existsSync(configPath(root))) {
+        throw new Error('Project is not initialized; run dtech-aidlc onboard --harness <claude|deepseek> first');
+      }
+      const loaded = knowledgePreflight(root);
+      const commands = onboardCommands(root);
+      if (!loaded.exists && docs.length) {
+        const quoted = docs.map((path) => (/[^A-Za-z0-9._/-]/.test(path) ? `"${path}"` : path)).map((path) => `--docs ${path}`).join(' ');
+        throw new Error(`aidlc.knowledge.json does not exist; run \`${commands.create} ${quoted}\` instead`);
+      }
+      for (const item of docs) {
+        const abs = resolve(root, item);
+        if (!existsSync(abs)) throw new Error(`--docs path does not exist: ${item}`);
+        try { ensureWithin(root, abs); }
+        catch { throw new Error(`--docs path must be inside the project: ${item}`); }
+      }
+      const knowledgeState = loaded.exists ? { status: 'present', sources: loaded.manifest.sources } : { status: 'absent' };
+      const before = sourceStatus(root, knowledgeState);
+      const documentation = detectDocumentation(root, { explicit: docs, detect: true });
+      let plan = { manifest: loaded.exists ? loaded.manifest : defaultKnowledgeManifest(root), status: 'absent', added: [], wouldAdd: [], alreadyRegistered: [] };
+      if (loaded.exists) {
+        plan = planRegistration(loaded.manifest, defaultKnowledgeManifest(root), documentation.candidates);
+        if (plan.status === 'updated') {
+          writeKnowledgeManifest(root, plan.manifest);
+          const addedPaths = plan.manifest.sources.filter((source) => plan.added.includes(source.id)).map((source) => source.path);
+          audit(root, 'knowledge.sources.registered', { manifestStatus: 'updated', added: addedPaths });
+        }
+      } else {
+        plan.wouldAdd = documentation.candidates.map((row) => ({ path: row.path, kind: row.kind, command: commands.create }));
+        if (plan.wouldAdd.length) plan.registerAllCommand = commands.create;
+        plan.review = 'No documentation was detected';
+      }
+      const scan = scanProject(root);
+      const detected = writeProjectProfile(root, scan, documentation);
+      writeSourcesSnapshot(root, plan.manifest.sources);
+      const afterKnowledge = loaded.exists && plan.status === 'updated'
+        ? { status: 'present', sources: plan.manifest.sources }
+        : knowledgeState;
+      const after = sourceStatus(root, afterKnowledge);
+      audit(root, 'project.rescanned', {
+        kind: detected.profile.kind,
+        changed: before.changed.length + before.more.changed,
+        added: before.added.length + before.more.added,
+        removed: before.removed.length + before.more.removed,
+        missing: before.missing.length,
+      });
+      const knowledge = loaded.exists
+        ? { manifest: 'aidlc.knowledge.json', manifestStatus: plan.status, registered: plan.added, added: plan.added, wouldAdd: plan.wouldAdd, review: plan.review, warnings: after.warnings }
+        : { manifest: 'aidlc.knowledge.json', manifestStatus: 'absent', registered: [], added: [], wouldAdd: plan.wouldAdd, registerAllCommand: plan.registerAllCommand, review: plan.review, warnings: after.warnings };
+      return out({
+        rescanned: true,
+        kind: detected.profile.kind,
+        languages: detected.profile.languages,
+        architecture: detected.profile.architecture,
+        documentation: detected.profile.documentation,
+        knowledge,
+        changesSinceLastScan: {
+          scannedAt: before.scannedAt,
+          changed: before.changed,
+          added: before.added,
+          removed: before.removed,
+          more: before.more,
+        },
+        missing: before.missing,
+        ...(before.legacyBrdCopies ? { legacyBrdCopies: 1 } : {}),
+      });
+    }
     for (const item of docs) {
       const abs = resolve(root, item);
       if (!existsSync(abs)) throw new Error(`--docs path does not exist: ${item}`);
@@ -130,6 +210,7 @@ function main() {
     knowledge.registered = plan.added;
     knowledge.review = plan.status === 'absent' ? 'No documentation was detected' : undefined;
     const detected = writeProjectProfile(root, scan, documentation);
+    writeSourcesSnapshot(root, plan.manifest.sources);
     audit(root, 'project.onboarded', { kind: detected.profile.kind, languages: detected.profile.languages.map(row => row.name) });
     return out({
       ...{ initialized: true, harness, scope, stateDir: stateDir(root), projection: projectionRoot, methodology: methodologyTarget, filesCreated: copied.length, knowledge },
@@ -220,6 +301,30 @@ function main() {
       (ctx) => {
         try { return [{ status: 'pass', message: `Dependency repositories: ${validateDependencies(ctx.root).length} registered` }]; }
         catch (error) { return [{ status: 'fail', message: `Dependency repositories: ${error.message}` }]; }
+      },
+      (ctx) => {
+        const state = knowledgeState(ctx.root);
+        if (state.status === 'invalid') return [{ status: 'fail', message: `Knowledge: ${state.error}` }];
+        return [];
+      },
+      (ctx) => {
+        const state = knowledgeState(ctx.root);
+        if (state.status === 'invalid') return [];
+        const status = sourceStatus(ctx.root, state);
+        const commands = onboardCommands(ctx.root);
+        if (status.manifest === 'absent') {
+          const missing = status.warnings.some((row) => row.startsWith('No aidlc.knowledge.json was found'));
+          return [{ status: 'pass', message: missing
+            ? `Knowledge sources: no aidlc.knowledge.json; run ${commands.create}`
+            : 'Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan' }];
+        }
+        const missing = status.missing.length;
+        const changed = status.changed.length + status.added.length + status.removed.length + status.more.changed + status.more.added + status.more.removed;
+        const rowStatus = missing > 0 ? 'warn' : 'pass';
+        if (!status.scanned) {
+          return [{ status: rowStatus, message: `Knowledge sources: ${status.sources} registered, ${missing} missing; not scanned on this machine` }];
+        }
+        return [{ status: rowStatus, message: `Knowledge sources: ${status.sources} registered, ${missing} missing, ${changed} changed since last scan` }];
       },
       (ctx) => checkWorkflowState(ctx.root, ctx.graph),
       (ctx) => [{ status: !existsSync(auditPath(ctx.root)) || readFileSync(auditPath(ctx.root), 'utf8').split(/\r?\n/).filter(Boolean).every((line) => { try { JSON.parse(line); return true; } catch { return false; } }) ? 'pass' : 'fail', message: 'Audit log contains valid JSON lines' }],

@@ -1,6 +1,7 @@
+import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
 import { basename, extname, join, relative, resolve, sep } from 'node:path';
-import { assertNoSymlinkComponents, writeFileAtomic } from './lib.mjs';
+import { assertNoSymlinkComponents, configPath, readJson, writeFileAtomic } from './lib.mjs';
 
 export const SKIP_DIRS = new Set([
   '.git', 'node_modules', 'dist', 'build', 'coverage', '.aidlc', '.claude', '.dsh',
@@ -165,7 +166,12 @@ export function detectDocumentation(root, { explicit = [], detect = true } = {})
   const skipped = [];
   const byPath = new Map();
   const add = (rel, kind, origin) => {
-    if (!rel || byPath.has(rel)) return;
+    if (!rel) return;
+    const existing = byPath.get(rel);
+    if (existing) {
+      if (origin === 'explicit') existing.origin = 'explicit';
+      return;
+    }
     byPath.set(rel, candidate(project, rel, kind, origin));
   };
   if (detect) {
@@ -214,6 +220,160 @@ function writeGenerated(root, name, contents) {
   assertNoSymlinkComponents(root, `.aidlc/shared/${name}`);
   mkdirSync(join(resolve(root), '.aidlc', 'shared'), { recursive: true, mode: 0o700 });
   writeFileAtomic(join(resolve(root), '.aidlc', 'shared', name), contents, { mode: 0o600 });
+}
+
+const HASH_LIMIT = 20 * 1024 * 1024;
+const SNAPSHOT_CAP = 2000;
+
+function hashFile(root, rel, bytes) {
+  if (bytes > HASH_LIMIT) return null;
+  return createHash('sha256').update(readFileSync(join(resolve(root), ...rel.split('/')))).digest('hex');
+}
+
+export function enumerateSourceFiles(root, sources) {
+  const byPath = new Map();
+  const longestFirst = [...(sources ?? [])].sort((a, b) => String(b.path).length - String(a.path).length);
+  for (const source of longestFirst) {
+    for (const file of listFiles(root, source.path)) {
+      if (!byPath.has(file.path)) byPath.set(file.path, { ...file, source: source.id });
+    }
+  }
+  const files = [...byPath.values()].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  return { files: files.slice(0, SNAPSHOT_CAP), truncated: files.length > SNAPSHOT_CAP };
+}
+
+export function writeSourcesSnapshot(root, sources) {
+  const { files, truncated } = enumerateSourceFiles(root, sources);
+  const snapshot = {
+    schemaVersion: 1,
+    generated: true,
+    scannedAt: new Date().toISOString(),
+    truncated,
+    files: files.map((file) => ({
+      source: file.source,
+      path: file.path,
+      bytes: file.bytes,
+      mtimeMs: file.mtimeMs,
+      sha256: hashFile(root, file.path, file.bytes),
+    })),
+  };
+  writeGenerated(root, 'sources-snapshot.json', `${JSON.stringify(snapshot, null, 2)}\n`);
+  return snapshot;
+}
+
+export function onboardCommands(root) {
+  const config = readJson(configPath(root), {}) || {};
+  const harnessOk = typeof config.harness === 'string' && /^[a-z0-9-]+$/.test(config.harness);
+  const scopeOk = ['solo', 'team', 'enterprise'].includes(config.scope);
+  const create = harnessOk && scopeOk
+    ? `dtech-aidlc onboard --harness ${config.harness} --scope ${config.scope}`
+    : 'dtech-aidlc onboard --harness <claude|deepseek>';
+  const scan = existsSync(configPath(root)) ? 'dtech-aidlc onboard --rescan' : 'dtech-aidlc onboard --harness <claude|deepseek>';
+  return { create, scan };
+}
+
+function readSnapshot(root) {
+  const path = join(resolve(root), '.aidlc', 'shared', 'sources-snapshot.json');
+  try {
+    if (!existsSync(path) || lstatSync(path).isSymbolicLink()) return null;
+    const data = JSON.parse(readFileSync(path, 'utf8'));
+    if (!data || data.schemaVersion !== 1 || !Array.isArray(data.files)) return null;
+    return data;
+  } catch { return null; }
+}
+
+function capList(paths) {
+  const sorted = [...paths].sort();
+  return { list: sorted.slice(0, 20), more: Math.max(0, sorted.length - 20) };
+}
+
+function hasLegacyBrd(root) {
+  const dir = join(resolve(root), '.aidlc', 'shared', 'brd');
+  try { return existsSync(dir) && lstatSync(dir).isDirectory() && readdirSync(dir).length > 0; } catch { return false; }
+}
+
+export function sourceStatus(root, knowledge) {
+  const commands = onboardCommands(root);
+  const warnings = [];
+  const profile = readProjectProfile(root);
+  const snapshot = readSnapshot(root);
+  const scanned = Boolean(profile && !profile.outdated && snapshot);
+  const result = {
+    manifest: knowledge?.status ?? 'absent',
+    scanned,
+    scannedAt: snapshot?.scannedAt ?? null,
+    sources: knowledge?.status === 'present' ? knowledge.sources.length : 0,
+    missing: [],
+    changed: [],
+    added: [],
+    removed: [],
+    more: { changed: 0, added: 0, removed: 0 },
+    legacyBrdCopies: hasLegacyBrd(root),
+    warnings,
+  };
+  if (knowledge?.status === 'invalid') {
+    warnings.push(`aidlc.knowledge.json is invalid: ${knowledge.error}`);
+    return result;
+  }
+  if (knowledge?.status !== 'present') {
+    let detectedDocs = [];
+    try {
+      detectedDocs = JSON.parse(readFileSync(join(resolve(root), '.aidlc', 'shared', 'project-profile.json'), 'utf8'))?.documentation?.detected ?? [];
+    } catch { detectedDocs = []; }
+    if (!scanned || detectedDocs.length > 0) {
+      warnings.push(`No aidlc.knowledge.json was found, so no project documentation is registered for agents. Run \`${commands.create}\`.`);
+    }
+    return result;
+  }
+  if (!scanned) {
+    warnings.push(`This project has not been scanned on this machine by this version of dtech-aidlc, so the project profile and the document change check are unavailable. Run \`${commands.scan}\`.`);
+  }
+  for (const source of knowledge.sources) {
+    const abs = join(resolve(root), ...String(source.path).split('/'));
+    if (!existsSync(abs)) {
+      result.missing.push({ id: source.id, path: source.path });
+      warnings.push(`Registered knowledge source ${source.id} (${source.path}) does not exist. Fix the path in aidlc.knowledge.json.`);
+    }
+  }
+  if (scanned && snapshot) {
+    const current = enumerateSourceFiles(root, knowledge.sources);
+    const prev = new Map(snapshot.files.map((file) => [file.path, file]));
+    const now = new Map(current.files.map((file) => [file.path, file]));
+    const changed = [];
+    const added = [];
+    const removed = [];
+    for (const [path, file] of now) {
+      const before = prev.get(path);
+      if (!before) {
+        if (!snapshot.truncated) added.push(path);
+        continue;
+      }
+      const sizeOrTime = before.bytes !== file.bytes || before.mtimeMs !== file.mtimeMs;
+      if (!sizeOrTime) continue;
+      if (before.sha256 == null) changed.push(path);
+      else {
+        const digest = hashFile(root, path, file.bytes);
+        if (digest !== before.sha256) changed.push(path);
+      }
+    }
+    if (!snapshot.truncated) {
+      for (const path of prev.keys()) if (!now.has(path)) removed.push(path);
+    }
+    const changedCap = capList(changed);
+    const addedCap = capList(added);
+    const removedCap = capList(removed);
+    result.changed = changedCap.list;
+    result.added = addedCap.list;
+    result.removed = removedCap.list;
+    result.more = { changed: changedCap.more, added: addedCap.more, removed: removedCap.more };
+    const total = changed.length + added.length + removed.length;
+    if (total > 0) {
+      const sample = [...changed, ...added, ...removed].sort().slice(0, 5).join(', ');
+      const day = String(snapshot.scannedAt).slice(0, 10);
+      warnings.push(`${total} registered documents changed since the last scan on ${day} (${sample}). Re-read them before relying on earlier conclusions. Run \`dtech-aidlc onboard --rescan\` to acknowledge.`);
+    }
+  }
+  return result;
 }
 
 export function writeProjectProfile(root, scan, documentation = { candidates: [], skipped: [], truncated: false }) {

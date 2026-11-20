@@ -48,7 +48,10 @@ _dtech-aidlc() {
         init|onboard)
           _arguments \
             '--harness[Coding harness]:harness:(claude deepseek)' \
-            '--scope[Workflow scope]:scope:(solo team enterprise)'
+            '--scope[Workflow scope]:scope:(solo team enterprise)' \
+            '--rescan[Re-scan an initialized project]' \
+            '--docs[Documentation path]:path:_files' \
+            '--no-detect[Skip automatic documentation detection]'
           ;;
         scope)
           _arguments '1:scope:(solo team enterprise)'
