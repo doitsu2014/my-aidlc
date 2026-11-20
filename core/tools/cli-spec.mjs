@@ -3,8 +3,8 @@ export const TWO_WORD_COMMANDS = Object.freeze([
   'orchestrate', 'config', 'repos', 'deps', 'completion', 'intent', 'knowledge', 'harness',
 ]);
 export const COMMAND_FLAGS = Object.freeze({
-  init: { harness: 'string', scope: 'string' },
-  onboard: { harness: 'string', scope: 'string' },
+  init: { harness: 'string', scope: 'string', docs: 'list', 'no-detect': 'boolean' },
+  onboard: { harness: 'string', scope: 'string', docs: 'list', 'no-detect': 'boolean' },
   'orchestrate next': { intent: 'string', description: 'string', scope: 'string' },
   'orchestrate report': { result: 'string', approval: 'string', detail: 'string', stage: 'string', 'approved-by': 'string', 'approval-note': 'string' },
   scope: {},

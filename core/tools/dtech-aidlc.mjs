@@ -2,7 +2,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { audit, configPath, loadConfig, parseArgs, readGraph, readJson, safeId, stateDir, statePath, auditPath, copyTreePreserving, copyHarnessProjection, orderedStages, engineRoot, repoRoot, assertSafeStateDir } from './lib.mjs';
+import { audit, configPath, loadConfig, parseArgs, readGraph, readJson, safeId, stateDir, statePath, auditPath, copyTreePreserving, copyHarnessProjection, orderedStages, engineRoot, repoRoot, assertSafeStateDir, ensureWithin } from './lib.mjs';
 import { GLOBAL_FLAGS, COMMAND_FLAGS, COMMAND_MAX_ARGS, commandKey, optionTypes } from './cli-spec.mjs';
 import {
   checkWorkflowState, deriveStatus, intentDir, listIntents, loadIntent, loadWorkflow, orchestrateNext, orchestrateReport,
@@ -10,10 +10,10 @@ import {
 } from './workflow.mjs';
 import { MODEL_ALIASES, resolveAgentModel, validateModelConfig, writeModelConfig } from './agent-models.mjs';
 import { addDependency, importDependencies, listDependencies, projectDependenciesPath, pullDependencies, removeDependency, validateDependencies } from './dependencies.mjs';
-import { scanProject, writeProjectProfile } from './onboard.mjs';
+import { detectDocumentation, planRegistration, scanProject, writeProjectProfile } from './onboard.mjs';
 import {
-  addSource, checkRecords, initKnowledge, inspectSources, knowledgePreflight, loadKnowledgeManifest,
-  readRecords, removeSource, writeIndex,
+  addSource, checkRecords, defaultKnowledgeManifest, initKnowledge, inspectSources, knowledgePreflight,
+  loadKnowledgeManifest, readRecords, removeSource, writeIndex, writeKnowledgeManifest,
 } from './knowledge.mjs';
 
 const VERSION = readJson(join(repoRoot(), 'package.json'))?.version || readJson(join(engineRoot(), 'version.json'))?.version || '0.1.0';
@@ -27,8 +27,7 @@ const HELP = [
   '  version, --version      Show version',
   '  onboard --harness NAME --scope NAME',
   '                          Initialize and detect the project in one command',
-  '  init --harness NAME --scope NAME',
-  '                          Initialize .aidlc and project harness/methodology',
+  '  init [same options]     Alias of onboard',
   '  scope [NAME]            List scopes or show stages in a scope',
   '  status [--intent ID]    Show current intent and stage progress',
   '  doctor                  Validate graph, state, config, and projection',
@@ -89,6 +88,14 @@ function main() {
   const root = resolve(flags.project || process.cwd());
   if (cmd !== 'completion') assertSafeStateDir(root);
   if (cmd === 'onboard' || cmd === 'init') {
+    const docs = [].concat(flags.docs ?? []);
+    const detect = !flags['no-detect'];
+    for (const item of docs) {
+      const abs = resolve(root, item);
+      if (!existsSync(abs)) throw new Error(`--docs path does not exist: ${item}`);
+      try { ensureWithin(root, abs); }
+      catch { throw new Error(`--docs path must be inside the project: ${item}`); }
+    }
     const harness = validateHarness(flags.harness || 'claude');
     const scope = validateScope(flags.scope || 'solo');
     const graph = readGraph();
@@ -108,11 +115,28 @@ function main() {
     if (existsSync(methodologySrc)) { methodologyTarget = join(root, '.aidlc', 'methodology'); copied.push(...copyTreePreserving(methodologySrc, methodologyTarget)); }
     audit(root, 'project.initialized', { harness, scope, graphPhases: graph.phases.length, projection: relative(root, projectionRoot).split(sep).join('/') });
     const knowledge = initKnowledge(root, { createManifest: false });
-    const result = { initialized: true, harness, scope, stateDir: stateDir(root), projection: projectionRoot, methodology: methodologyTarget, filesCreated: copied.length, knowledge };
-    if (cmd === 'init') return out(result);
-    const detected = writeProjectProfile(root, scanProject(root));
+    const scan = scanProject(root);
+    const documentation = detectDocumentation(root, { explicit: docs, detect });
+    const existing = loadKnowledgeManifest(root);
+    const plan = planRegistration(existing.exists ? existing.manifest : null, defaultKnowledgeManifest(root), documentation.candidates);
+    if (plan.status === 'created' || plan.status === 'updated') {
+      writeKnowledgeManifest(root, plan.manifest);
+      audit(root, 'knowledge.sources.registered', { added: plan.added, status: plan.status });
+    }
+    knowledge.manifestStatus = plan.status;
+    knowledge.added = plan.added;
+    knowledge.wouldAdd = plan.wouldAdd;
+    knowledge.alreadyRegistered = plan.alreadyRegistered;
+    knowledge.registered = plan.added;
+    knowledge.review = plan.status === 'absent' ? 'No documentation was detected' : undefined;
+    const detected = writeProjectProfile(root, scan, documentation);
     audit(root, 'project.onboarded', { kind: detected.profile.kind, languages: detected.profile.languages.map(row => row.name) });
-    return out({ ...result, kind: detected.profile.kind, shared: detected.shared, languages: detected.profile.languages, architecture: detected.profile.architecture, brd: detected.profile.brdCopied });
+    return out({
+      ...{ initialized: true, harness, scope, stateDir: stateDir(root), projection: projectionRoot, methodology: methodologyTarget, filesCreated: copied.length, knowledge },
+      kind: detected.profile.kind, shared: detected.shared, languages: detected.profile.languages,
+      architecture: detected.profile.architecture, documentation: detected.profile.documentation,
+      legacyBrdCopies: detected.profile.legacy?.brdCopies?.files,
+    });
   }
   if (cmd === 'config') {
     const section = args.shift();

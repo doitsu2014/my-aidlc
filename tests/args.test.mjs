@@ -45,11 +45,11 @@ test('parseArgs covers typed flags, unknowns, and the terminator', () => {
 
 test('unknown options fail before writing and list allowed flags', (t) => {
   const project = tempProject(t, 'aidlc-args-unknown-');
-  for (const flag of ['--bogus', '--docs']) {
+  for (const flag of ['--bogus']) {
     const result = runRaw(project, 'onboard', flag, 'x', '--project', project);
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /Unknown option --(?:bogus|docs) for 'onboard'/);
-    assert.match(result.stderr, /Allowed options: --harness, --scope, --project/);
+    assert.match(result.stderr, /Unknown option --bogus for 'onboard'/);
+    assert.match(result.stderr, /Allowed options: --harness, --scope, --docs, --no-detect, --project/);
     assert.equal(existsSync(join(project, '.aidlc')), false);
   }
 });
@@ -126,7 +126,7 @@ test('help lists global and previously undocumented options', () => {
     '  help, --help            Show help',
     '  version, --version      Show version',
     '  onboard --harness NAME --scope NAME',
-    '  init --harness NAME --scope NAME',
+    '  init [same options]     Alias of onboard',
     '  scope [NAME]            List scopes or show stages in a scope',
     '  status [--intent ID]    Show current intent and stage progress',
     '  doctor                  Validate graph, state, config, and projection',

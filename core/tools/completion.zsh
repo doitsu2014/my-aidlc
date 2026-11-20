@@ -29,7 +29,7 @@ _dtech-aidlc() {
         'help:Show help'
         'version:Show version'
         'onboard:Initialize and detect the project'
-        'init:Initialize the project'
+        'init:Alias of onboard'
         'scope:Show stages in a scope'
         'status:Show the active intent'
         'doctor:Validate project setup'
