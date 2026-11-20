@@ -47,6 +47,12 @@ test('harness onboarding references the actual methodology projection and CLI gr
 test('readGraph rejects invalid fixture schema, paths, models, and duplicate identifiers', () => {
   const mutations = [
     graph => { graph.schemaVersion = '1.0.0'; },
+    graph => { graph.schemaVersion = '1.2.0'; },
+    graph => { graph.depths.fast.stages.push('no-such-stage'); },
+    graph => { graph.depths.fast.stages = graph.depths.fast.stages.filter((id) => id !== 'build-and-verify'); },
+    graph => { graph.depths.fast.stages = graph.depths.fast.stages.filter((id) => id !== 'knowledge-writeback'); },
+    graph => { graph.depths.fast.produces['problem-framing'] = ['not-an-output']; },
+    graph => { graph.stages.find((stage) => stage.id === 'red-tests').repeat = 'twice'; },
     graph => { graph.phases[0].file = '../../outside.md'; },
     graph => { graph.phases[0].file = 'methodology/phases/missing.md'; },
     graph => { graph.agents[0].model = 'unknown'; },

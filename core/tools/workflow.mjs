@@ -4,7 +4,7 @@ import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync
 import { userInfo } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
-  assertNoSymlinkComponents, audit, configPath, engineRoot, loadConfig, orderedStages, readGraph, readJsonStrict, stateDir, statePath, writeJsonAtomic,
+  assertNoSymlinkComponents, audit, configPath, engineRoot, loadConfig, orderedStages, readGraph, readJsonStrict, resolveDepth, stateDir, statePath, writeJsonAtomic,
 } from './lib.mjs';
 import { resolveAgentModel, validateModelConfig } from './agent-models.mjs';
 import { ARTIFACT_VALIDATORS, extraRequiredArtifacts } from './context.mjs';
@@ -59,7 +59,7 @@ export function sameIntentText(a, b) {
 
 export function deriveStatus(state, graph) {
   if (state.closed?.kind === 'abandoned') return 'abandoned';
-  const stages = orderedStages(graph, state.scope);
+  const stages = orderedStages(graph, state.scope, state.depth || 'full');
   if (stages.length && stages.every((stage) => ['complete', 'skipped'].includes(state.stages?.[stage.id]?.status))) return 'complete';
   return 'active';
 }
@@ -241,7 +241,7 @@ export function persistWorkflow(root, state, graph) {
 }
 
 function progressOf(state, graph) {
-  const stages = orderedStages(graph, state.scope);
+  const stages = orderedStages(graph, state.scope, state.depth || 'full');
   const done = stages.filter((stage) => ['complete', 'skipped'].includes(state.stages?.[stage.id]?.status)).length;
   return { done, total: stages.length };
 }
@@ -261,7 +261,9 @@ function listRow(state, graph, current) {
     status: derived === 'complete' || derived === 'abandoned' ? derived : (current ? 'active' : 'paused'),
     current: Boolean(current) && unfinished,
     currentStage: state.currentStage ?? null,
+    assignee: state.assignee ?? null,
     progress: progressOf(state, graph),
+    units: Array.isArray(state.units) ? state.units : undefined,
     createdAt: state.createdAt ?? null,
     updatedAt: state.updatedAt ?? null,
   };
@@ -314,11 +316,11 @@ export function checkWorkflowState(root, graph) {
     for (const problem of problems) rows.push({ status: 'fail', message: `Intent ${id}: ${problem}` });
     if (problems.length) continue;
     const state = loadIntent(root, graph, id);
-    const stages = orderedStages(graph, state.scope);
+    const stages = orderedStages(graph, state.scope, state.depth || 'full');
     const inScope = new Set(stages.map((stage) => stage.id));
     const graphIds = new Set(graph.stages.map((stage) => stage.id));
     for (const stageId of Object.keys(state.stages)) {
-      if (graphIds.has(stageId) && !inScope.has(stageId)) rows.push({ status: 'fail', message: `Intent ${id}: stage ${stageId} is not part of scope ${state.scope}` });
+      if (graphIds.has(stageId) && !inScope.has(stageId)) continue;
       if (!graphIds.has(stageId)) rows.push({ status: 'warn', message: `Intent ${id}: stage ${stageId} is not in the current graph` });
     }
     let unfinishedSeen = false;
@@ -333,7 +335,7 @@ export function checkWorkflowState(root, graph) {
       rows.push({ status: 'fail', message: `Intent ${id}: currentStage ${state.currentStage} is not the first unfinished stage` });
     }
     for (const stage of stages) {
-      const info = gateInfo(graph, state.scope, stage);
+      const info = gateInfo(graph, state.scope, stage, state.depth || 'full');
       if (stage.id !== info.finalStage) continue;
       const status = state.stages[stage.id]?.status;
       if (status !== 'complete' && status !== 'skipped') continue;
@@ -374,9 +376,103 @@ function validateScope(scope) {
   return scope;
 }
 
-export function gateInfo(graph, scope, stage) {
+function workUnitsOf(state) {
+  return Array.isArray(state.units) && state.units.length ? state.units : [{ id: null, status: 'in_progress' }];
+}
+
+function applyWorkUnits(root, graph, state) {
+  if (Array.isArray(state.units) && state.units.length) return;
+  const design = expectedArtifacts(root, graph, { ...state, currentUnit: undefined, depth: state.depth || 'full' }, graph.stages.find((item) => item.id === 'implementation-design') || { produces: [] });
+  const jsonPath = design.find((item) => item.output === 'work-units')?.path?.replace(/\.md$/, '.json');
+  if (!jsonPath || !existsSync(jsonPath)) return;
+  try {
+    const data = JSON.parse(readFileSync(jsonPath, 'utf8'));
+    const units = Array.isArray(data.units) ? data.units : data;
+    if (!Array.isArray(units) || !units.length) return;
+    state.units = units.map((row, index) => ({
+      id: String(row.id || `U-${String(index + 1).padStart(2, '0')}`),
+      status: 'in_progress',
+      dependsOn: row.dependsOn || [],
+    }));
+  } catch { /* leave implicit unit */ }
+}
+
+function unitFinished(unit) {
+  return ['complete', 'skipped'].includes(unit.status);
+}
+
+function lastRepeatOfPhase(graph, state, stage) {
+  const stages = orderedStages(graph, state.scope, state.depth || 'full').filter((item) => item.phase === stage.phase && item.repeat === 'work-unit');
+  return stages.at(-1)?.id === stage.id;
+}
+
+function selectNextStage(graph, state, stages) {
+  const units = workUnitsOf(state);
+  const repeating = stages.filter((stage) => stage.repeat === 'work-unit');
+  const firstRepeat = repeating[0];
+  const lastRepeat = repeating.at(-1);
+  const before = firstRepeat ? stages.slice(0, stages.indexOf(firstRepeat)) : stages;
+  const after = lastRepeat ? stages.slice(stages.indexOf(lastRepeat) + 1) : [];
+  const unfinishedBefore = before.find((stage) => !['complete', 'skipped'].includes(stageStatus(state, stage)));
+  if (unfinishedBefore) {
+    state.currentUnit = undefined;
+    return unfinishedBefore;
+  }
+  if (firstRepeat) {
+    const pending = units.find((unit) => !unitFinished(unit));
+    if (pending) {
+      state.currentUnit = pending.id || undefined;
+      const unfinishedRepeat = repeating.find((stage) => {
+        const row = state.stages[stage.id];
+        const key = pending.id || '_';
+        const done = row?.units?.[key]?.status;
+        return !['complete', 'skipped'].includes(done || (pending.id ? undefined : row?.status));
+      });
+      if (unfinishedRepeat) return unfinishedRepeat;
+    }
+  }
+  state.currentUnit = undefined;
+  return after.find((stage) => !['complete', 'skipped'].includes(stageStatus(state, stage)));
+}
+
+function allowedApprovers(config, gateId) {
+  const roles = config?.roles;
+  if (!roles || typeof roles !== 'object') return null;
+  const named = roles.approvers?.[gateId];
+  if (Array.isArray(named) && named.length) return named;
+  if (Array.isArray(roles.owner) && roles.owner.length) return roles.owner;
+  return null;
+}
+
+export function changeIntentDepth(root, name, options = {}) {
+  const graph = readGraph();
+  const depth = resolveDepth(graph, name);
+  const loaded = loadWorkflow(root, graph, { migrate: true });
+  if (!loaded.state) throw new Error('No active intent');
+  if (!options.approvedBy) throw new Error('intent depth requires --approved-by NAME');
+  if (!options.detail) throw new Error('intent depth requires --detail TEXT');
+  const from = loaded.state.depth || 'full';
+  loaded.state.depth = depth;
+  persistWorkflow(root, loaded.state, graph);
+  const who = resolveApprover(root, options.approvedBy);
+  audit(root, 'depth.changed', { intentId: loaded.state.intentId, from, to: depth, by: who.by, bySource: who.bySource, detail: options.detail });
+  return { intentId: loaded.state.intentId, from, to: depth };
+}
+
+export function assignIntent(root, name) {
+  const graph = readGraph();
+  const loaded = loadWorkflow(root, graph, { migrate: true });
+  if (!loaded.state) throw new Error('No active intent');
+  const assignee = String(name || '').trim();
+  if (!assignee) throw new Error('intent assign requires a name');
+  loaded.state.assignee = assignee;
+  persistWorkflow(root, loaded.state, graph);
+  return { intentId: loaded.state.intentId, assignee };
+}
+
+export function gateInfo(graph, scope, stage, depth = 'full') {
   const phase = graph.phases.find((item) => item.id === stage.phase);
-  const stages = orderedStages(graph, scope).filter((item) => item.phase === stage.phase);
+  const stages = orderedStages(graph, scope, depth).filter((item) => item.phase === stage.phase);
   const finalStage = stages.at(-1)?.id;
   return { id: phase?.gate ?? null, phase: stage.phase, finalStage };
 }
@@ -393,16 +489,22 @@ function nearestConfigParent(root) {
   }
 }
 
+function completePayload(state, graph, extra = {}) {
+  const skippedStages = orderedStages(graph, state.scope).filter((stage) => state.stages?.[stage.id]?.status === 'skipped').map((stage) => stage.id);
+  const approvals = Object.entries(state.gates ?? {}).map(([gate, row]) => ({ gate, by: row.by, at: row.at }));
+  return { complete: true, intent: state.intent, intentId: state.intentId, skippedStages, approvals, ...extra };
+}
+
 function requireInitialized(root) {
   if (existsSync(configPath(root))) return;
   const parent = nearestConfigParent(root);
   throw new Error(`Project is not initialized at ${root}. Run 'dtech-aidlc onboard --harness <claude|deepseek> --scope <solo|team|enterprise>' there first.${parent ? ` An initialized project exists at ${parent}; run the command there or pass --project ${parent}.` : ''}`);
 }
 
-function draftIntent(root, scope, intent, graph, scopeSource, projectScope) {
+function draftIntent(root, scope, intent, graph, scopeSource, projectScope, depth = 'full') {
   const intentId = freeIntentId(root, intentSlug(intent));
   return {
-    version: 2, intentId, intent, scope, scopeSource, status: 'active', currentStage: null, stages: {}, dependencies: {},
+    version: 2, intentId, intent, scope, scopeSource, depth, status: 'active', currentStage: null, stages: {}, dependencies: {},
     createdAt: new Date().toISOString(),
   };
 }
@@ -410,7 +512,7 @@ function draftIntent(root, scope, intent, graph, scopeSource, projectScope) {
 export function buildDirective({ root, graph, config, state, stage, warnings = [], context, rework }) {
   const model = stage.agent ? resolveAgentModel(graph.agents.find((agent) => agent.id === stage.agent), config) : {};
   const phase = graph.phases.find((item) => item.id === stage.phase);
-  const gate = gateInfo(graph, state.scope, stage);
+  const gate = gateInfo(graph, state.scope, stage, state.depth || 'full');
   const phaseGate = stage.id === gate.finalStage;
   const expected = expectedArtifacts(root, graph, state, stage);
   const directive = {
@@ -418,7 +520,10 @@ export function buildDirective({ root, graph, config, state, stage, warnings = [
     intentId: state.intentId,
     intentDir: intentDir(root, state.intentId),
     scope: state.scope,
+    depth: state.depth || 'full',
     scopeSource: state.scopeSource ?? 'config',
+    ...(state.currentUnit ? { currentUnit: state.currentUnit } : {}),
+    ...(state.assignee ? { assignee: state.assignee } : {}),
     warnings,
     gate,
     approvalRequiredAfter: gate.finalStage,
@@ -427,7 +532,7 @@ export function buildDirective({ root, graph, config, state, stage, warnings = [
       ...stage,
       phaseGate,
       phaseFile: phase ? join(engineRoot(), phase.file) : null,
-      ...(stage.agent ? { agentFile: join(engineRoot(), graph.agents.find((item) => item.id === stage.agent).file), model: model.model, modelSource: model.source } : {}),
+      ...(stage.agent ? { agentFile: join(engineRoot(), graph.agents.find((item) => item.id === stage.agent).file), ...(model.source === 'unsupported' ? {} : { model: model.model, modelSource: model.source }) } : {}),
       ...(rework ? { rework } : {}),
     },
   };
@@ -450,24 +555,30 @@ export function orchestrateNext(root, options = {}, hooks = {}) {
 
   if (!requested) {
     if (!state || finished) {
-      if (state && deriveStatus(state, graph) === 'complete') return { complete: true, intent: state.intent, intentId: state.intentId };
+      if (state && deriveStatus(state, graph) === 'complete') return completePayload(state, graph);
       const paused = unfinishedIds(root, graph);
       throw new Error(`No active intent. Start one with: dtech-aidlc orchestrate next --intent "..."${paused.length ? ` Paused intents: ${paused.join(', ')}. Continue one with: dtech-aidlc intent resume <id>.` : ''}`);
     }
   } else if (!state || finished) {
     if (state && deriveStatus(state, graph) === 'complete' && sameIntentText(requested, state.intent)) {
-      return { complete: true, intent: state.intent, intentId: state.intentId, hint: 'This intent is already complete. Use a different --intent text to start new work.' };
+      return completePayload(state, graph, { hint: 'This intent is already complete. Use a different --intent text to start new work.' });
     }
     requireInitialized(root);
     const scope = validateScope(options.scope || config.scope || 'solo');
     scopeSource = options.scope ? 'flag' : 'config';
-    state = draftIntent(root, scope, requested, graph, scopeSource, projectScope);
+    const depth = resolveDepth(graph, options.depth);
+    if (options.depth && options.depth !== 'full' && !options.approvedBy) {
+      throw new Error('Creating an intent with --depth requires --approved-by NAME');
+    }
+    state = draftIntent(root, scope, requested, graph, scopeSource, projectScope, depth);
     isNewIntent = true;
     if (options.scope && projectScope && options.scope !== projectScope) {
       warnings.push(`Intent scope '${scope}' overrides the project scope '${projectScope}' from .aidlc/config.json (given by --scope).`);
     }
+  } else if (options.depth && resolveDepth(graph, options.depth) !== (state.depth || 'full')) {
+    throw new Error(`Intent '${state.intentId}' uses depth ${state.depth || 'full'}; the depth cannot change after an intent starts. Use 'dtech-aidlc intent depth'.`);
   } else if (!sameIntentText(requested, state.intent)) {
-    const stages = orderedStages(graph, state.scope);
+    const stages = orderedStages(graph, state.scope, state.depth || 'full');
     const nextUnfinished = stages.find((stage) => !['complete', 'skipped'].includes(stageStatus(state, stage)));
     const { done, total } = progressOf(state, graph);
     throw new Error(`Intent '${state.intentId}' is still in progress (stage ${state.currentStage || nextUnfinished?.id}, ${done} of ${total} stages finished). Finish it, set it aside with 'dtech-aidlc intent pause', or close it with 'dtech-aidlc intent abandon --detail "<reason>"', then start the new intent.`);
@@ -479,11 +590,12 @@ export function orchestrateNext(root, options = {}, hooks = {}) {
     warnings = [`Project has an active intent but no .aidlc/config.json. Run dtech-aidlc onboard --harness <claude|deepseek> --scope ${state.scope} to complete setup.`];
   }
 
-  const stages = orderedStages(graph, state.scope);
-  const next = stages.find((stage) => !['complete', 'skipped'].includes(stageStatus(state, stage)));
+  const stages = orderedStages(graph, state.scope, state.depth || 'full');
+  applyWorkUnits(root, graph, state);
+  const next = selectNextStage(graph, state, stages);
   if (!next) {
-    if (!isNewIntent) persistWorkflow(root, { ...state, currentStage: null }, graph);
-    return { complete: true, intent: state.intent, intentId: state.intentId };
+    if (!isNewIntent) persistWorkflow(root, { ...state, currentStage: null, currentUnit: undefined }, graph);
+    return completePayload(state, graph);
   }
 
   const row = state.stages[next.id] ?? {};
@@ -502,7 +614,7 @@ export function orchestrateNext(root, options = {}, hooks = {}) {
     state.stages[next.id] ??= { status: 'in_progress', startedAt: new Date().toISOString() };
   }
   state.currentStage = next.id;
-  const gate = gateInfo(graph, state.scope, next);
+  const gate = gateInfo(graph, state.scope, next, state.depth || 'full');
   const stageForContext = { ...next, phaseGate: next.id === gate.finalStage };
   const expected = expectedArtifacts(root, graph, state, next);
   const contextInput = {
@@ -518,6 +630,10 @@ export function orchestrateNext(root, options = {}, hooks = {}) {
     saveIntent(root, state, graph);
     savePointer(root, state.intentId);
     audit(root, 'intent.created', { intent: state.intent, intentId: state.intentId, scope: state.scope, scopeSource, projectScope });
+    if ((state.depth || 'full') !== 'full') {
+      const who = resolveApprover(root, options.approvedBy);
+      audit(root, 'depth.chosen', { intentId: state.intentId, depth: state.depth, by: who.by, bySource: who.bySource, detail: options.detail ?? null });
+    }
   } else {
     persistWorkflow(root, state, graph);
   }
@@ -563,9 +679,9 @@ export function orchestrateReport(root, options = {}) {
   if (options.approval === 'approved' && result === 'blocked') {
     throw new Error('--approval approved cannot be combined with --result blocked; a blocked report never passes a gate');
   }
-  const stages = orderedStages(graph, state.scope);
+  const stages = orderedStages(graph, state.scope, state.depth || 'full');
   if (!stages.some((item) => item.id === stage.id)) throw new Error(`Stage ${stage.id} is not included in the active ${state.scope} scope`);
-  const gate = gateInfo(graph, state.scope, stage);
+  const gate = gateInfo(graph, state.scope, stage, state.depth || 'full');
   const phaseGate = stage.id === gate.finalStage;
   if (!phaseGate && (options.approval || options.approvedBy || options.approvalNote)) {
     throw new Error(`Stage ${stage.id} is not a phase gate; --approval, --approved-by and --approval-note are only accepted on ${gate.finalStage}, the last stage of the ${gate.phase} phase`);
@@ -609,17 +725,36 @@ export function orchestrateReport(root, options = {}) {
   let approver = { by: null, bySource: null };
   if (phaseGate && options.approval) {
     approver = resolveApprover(root, options.approvedBy);
+    const allowed = allowedApprovers(loadConfig(root), gate.id);
+    if (allowed && !allowed.includes(approver.by)) {
+      throw new Error(`Approver '${approver.by}' is not allowed for gate ${gate.id}. Allowed: ${allowed.join(', ')}`);
+    }
     recordedApproval = options.approval;
     approvalRecord = { decision: options.approval, by: approver.by, bySource: approver.bySource, note: options.approvalNote ?? null };
   }
   const reports = [...(previous.reports || []), { at: now, result, detail: options.detail ?? null, ...(approvalRecord ? { approval: approvalRecord } : {}) }];
+  const unitKey = state.currentUnit || '_';
+  const unitMap = { ...(previous.units || {}) };
+  if (stage.repeat === 'work-unit') unitMap[unitKey] = { status: result, reportedAt: now };
+  const units = workUnitsOf(state);
+  const repeatingDone = stage.repeat === 'work-unit' && units.every((unit) => {
+    const key = unit.id || '_';
+    const status = (stage.id === state.currentStage && key === unitKey) ? result : previous.units?.[key]?.status;
+    return ['complete', 'skipped'].includes(status);
+  });
+  const stageStatusValue = stage.repeat === 'work-unit' && !repeatingDone ? 'in_progress' : result;
+  if (stage.repeat === 'work-unit' && repeatingDone && state.units) {
+    const current = state.units.find((unit) => (unit.id || null) === (state.currentUnit || null));
+    if (current && lastRepeatOfPhase(graph, state, stage)) current.status = result === 'skipped' ? 'skipped' : 'complete';
+  }
   state.stages[stage.id] = {
     ...previous,
-    status: result,
+    status: stageStatusValue,
     reportedAt: now,
     detail: options.detail ?? null,
     reports,
-    ...(result === 'complete' ? { artifacts: verified.artifacts } : {}),
+    units: unitMap,
+    ...(result === 'complete' ? { artifacts: [...(previous.artifacts || []), ...verified.artifacts] } : {}),
   };
   if (approvalRecord) {
     const phaseStages = stages.filter((item) => item.phase === stage.phase);

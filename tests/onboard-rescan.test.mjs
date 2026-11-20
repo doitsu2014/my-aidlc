@@ -211,6 +211,64 @@ function requireAidlcFiles(root) {
   return files;
 }
 
+test('requiredProjectArtifacts requires the codebase map on brownfield context-and-risk', (t) => {
+  const root = docsFixture();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  json(root, 'onboard', '--harness', 'claude', '--scope', 'solo');
+  const missing = requiredProjectArtifacts(root, 'context-and-risk');
+  assert.equal(missing.length, 1);
+  assert.equal(missing[0].path, '.aidlc/knowledge/_codebase-map.md');
+  writeFileSync(join(root, '.aidlc/knowledge/_codebase-map.md'), '# map\n');
+  assert.deepEqual(requiredProjectArtifacts(root, 'context-and-risk'), []);
+  assert.deepEqual(requiredProjectArtifacts(root, 'red-tests'), []);
+  const empty = mkdtempSync(join(tmpdir(), 'aidlc-green-'));
+  t.after(() => rmSync(empty, { recursive: true, force: true }));
+  json(empty, 'onboard', '--harness', 'claude', '--scope', 'solo');
+  assert.deepEqual(requiredProjectArtifacts(empty, 'context-and-risk'), []);
+  const unscanned = mkdtempSync(join(tmpdir(), 'aidlc-none-'));
+  t.after(() => rmSync(unscanned, { recursive: true, force: true }));
+  assert.deepEqual(requiredProjectArtifacts(unscanned, 'context-and-risk'), []);
+});
+
+test('context-and-risk report is refused without the map and accepted after it is written', (t) => {
+  const root = docsFixture();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  json(root, 'onboard', '--harness', 'claude', '--scope', 'solo');
+  json(root, 'orchestrate', 'next', '--intent', 'map-gate');
+  completeStage(root);
+  rmSync(join(root, '.aidlc/knowledge/_codebase-map.md'), { force: true });
+  const directive = json(root, 'orchestrate', 'next');
+  assert.equal(directive.stage.id, 'context-and-risk');
+  const items = Array.isArray(directive.artifacts) ? directive.artifacts : (directive.artifacts?.expected ?? []);
+  for (const item of items) {
+    const dest = item.path.includes(':') || item.path.startsWith('/') ? item.path : join(root, item.path);
+    mkdirSync(join(dest, '..'), { recursive: true });
+    writeFileSync(dest, `# ${item.output}\n`);
+  }
+  const before = requireAidlcFiles(root);
+  const refused = run(root, 'orchestrate', 'report', '--result', 'complete', '--approval', 'approved', '--approved-by', 'X');
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /cannot be reported complete/);
+  assert.match(refused.stderr, /missing: \.aidlc\/knowledge\/_codebase-map\.md/);
+  assert.deepEqual(requireAidlcFiles(root), before);
+  const blocked = run(root, 'orchestrate', 'report', '--result', 'blocked', '--detail', 'waiting');
+  assert.equal(blocked.status, 0, blocked.stderr);
+  json(root, 'orchestrate', 'next');
+  writeFileSync(join(root, '.aidlc/knowledge/_codebase-map.md'), '# map\n');
+  const passed = run(root, 'orchestrate', 'report', '--result', 'complete', '--approval', 'approved', '--approved-by', 'X');
+  assert.equal(passed.status, 0, passed.stderr);
+});
+
+test('completeStage writes the codebase map for brownfield context-and-risk', (t) => {
+  const root = docsFixture();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  json(root, 'onboard', '--harness', 'claude', '--scope', 'solo');
+  json(root, 'orchestrate', 'next', '--intent', 'helper-map');
+  completeStage(root);
+  completeStage(root);
+  assert.equal(existsSync(join(root, '.aidlc/knowledge/_codebase-map.md')), true);
+});
+
 test('doctor reports a knowledge sources row', (t) => {
   const root = docsFixture();
   t.after(() => rmSync(root, { recursive: true, force: true }));

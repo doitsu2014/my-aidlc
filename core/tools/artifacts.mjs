@@ -1,18 +1,22 @@
 import { createHash } from 'node:crypto';
 import { existsSync, lstatSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
-import { ensureWithin } from './lib.mjs';
+import { ensureWithin, stageProduces } from './lib.mjs';
 
 const DEFAULT = '.aidlc/intents/{intentId}/{phase}/{stage}/{output}.md';
 
 function fill(template, vars) {
-  return template.replaceAll('{intentId}', vars.intentId).replaceAll('{phase}', vars.phase).replaceAll('{stage}', vars.stage).replaceAll('{output}', vars.output);
+  return template.replaceAll('{intentId}', vars.intentId).replaceAll('{phase}', vars.phase).replaceAll('{stage}', vars.stage).replaceAll('{output}', vars.output).replaceAll('{unitId}', vars.unitId ?? '');
 }
 
 export function expectedArtifacts(root, graph, state, stage) {
-  return (stage.produces ?? []).map((output) => {
+  return (stageProduces(graph, stage, state.depth || 'full')).map((output) => {
     const meta = graph.outputs?.[output] ?? {};
-    const relPath = fill(meta.path || DEFAULT, { intentId: state.intentId, phase: stage.phase, stage: stage.id, output });
+    const unitId = state.currentUnit || '';
+    const template = (meta.path || DEFAULT).includes('{unitId}') || !unitId
+      ? (meta.path || DEFAULT)
+      : (unitId ? `.aidlc/intents/{intentId}/{phase}/{stage}/{unitId}/{output}.md` : (meta.path || DEFAULT));
+    const relPath = fill(template.replace(/\/{unitId}/g, unitId ? `/${unitId}` : ''), { intentId: state.intentId, phase: stage.phase, stage: stage.id, output, unitId });
     const path = ensureWithin(root, join(root, ...relPath.split('/')));
     return { output, kind: meta.kind || 'document', path, relPath };
   });

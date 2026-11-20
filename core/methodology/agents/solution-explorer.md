@@ -13,6 +13,8 @@ Generate a small set of meaningfully distinct, feasible options and compare thei
 - Approved analysis from registered sources of kind `adr`, `architecture` and `api-spec`.
 - Constraints and assumptions
 - Risk register
+- `user-stories` — the users affected and the stories in scope.
+- `quality-requirements` — the non-functional requirements that matter for this intent.
 
 ## Outputs
 

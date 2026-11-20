@@ -1,7 +1,7 @@
 // buildDirectiveContext is synchronous, called once per orchestrate next that selects a stage, before any write.
 // input: { root, graph, config, state, stage, intentDir, isNewIntent, expectedArtifacts, artifactPathFor }
 import { resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { inspectSources, loadKnowledgeManifest, readRecords, expectedRecordFrontmatter, recordPath } from './knowledge.mjs';
 import { engineRoot } from './lib.mjs';
 import { join } from 'node:path';
@@ -80,7 +80,20 @@ export function buildDirectiveContext(input) {
   }
 }
 
-export const ARTIFACT_VALIDATORS = {};
+export const ARTIFACT_VALIDATORS = {
+  'work-units': (absolutePath, text) => {
+    const jsonPath = absolutePath.replace(/\.md$/, '.json');
+    if (!existsSync(jsonPath)) return [];
+    try {
+      const data = JSON.parse(readFileSync(jsonPath, 'utf8'));
+      const units = Array.isArray(data.units) ? data.units : data;
+      if (!Array.isArray(units) || units.some((row) => !row?.id)) return ['work-units.json must list units with id'];
+    } catch {
+      return ['work-units.json is not valid JSON'];
+    }
+    return [];
+  },
+};
 export function extraRequiredArtifacts({ root, stage }) {
   return requiredProjectArtifacts(root, stage.id);
 }

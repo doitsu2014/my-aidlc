@@ -193,7 +193,7 @@ test('dependency commands validate identifiers, deduplicate edges, and expose de
   }
 });
 
-test('local installer creates a working isolated launcher and refuses replacement', async (t) => {
+test('local installer creates a working isolated launcher and refuses replacement', { skip: process.platform === 'win32' && !process.env.RUN_INSTALLER_TESTS }, async (t) => {
   const scratch = await mkdtempAsync(join(tmpdir(), 'aidlc-installer-'));
   const prefix = join(scratch, 'prefix');
   t.after(() => rmSync(scratch, { recursive: true, force: true }));
@@ -207,6 +207,7 @@ test('local installer creates a working isolated launcher and refuses replacemen
   const rerun = spawnSync('sh', [installScript, '--from', repo, '--prefix', prefix], { cwd: scratch, encoding: 'utf8' });
   assert.notEqual(rerun.status, 0);
   assert.match(rerun.stderr, /already exists/);
+  for (const path of [join(prefix, 'lib', 'dtech-aidlc'), launcher, join(prefix, 'share/zsh/site-functions/_dtech-aidlc')]) assert.ok(rerun.stderr.includes(path));
   assert.ok(existsSync(launcher));
   const completion = join(prefix, 'share/zsh/site-functions/_dtech-aidlc');
   assert.equal(readFileSync(completion, 'utf8').startsWith('#compdef dtech-aidlc\n'), true);

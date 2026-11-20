@@ -79,7 +79,7 @@ test('new intents require initialization and record scopeSource', (t) => {
   mkdirSync(join(project, 'src'));
   const nested = run(join(project, 'src'), 'orchestrate', 'next', '--intent', 'x');
   assert.equal(nested.status, 1);
-  assert.match(nested.stderr, new RegExp(project));
+  assert.match(nested.stderr, new RegExp(project.replace(/[\\^$*+?.()|[\]{}]/g, '\\$&')));
   assert.match(nested.stderr, /--project/);
   assert.equal(existsSync(join(project, 'src', '.aidlc')), false);
 

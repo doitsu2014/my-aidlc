@@ -2,7 +2,7 @@
 
 This directory defines a human-governed, phase-based workflow for taking a project from an initial request through delivery and learning. Begin with what the user actually asked for and make uncertainty visible.
 
-Human-readable definitions live in [`phases/`](phases/) (one file per phase) and [`agents/`](agents/) (one file per agent). [`../data/phase-graph.json`](../data/phase-graph.json) is the machine index (schema 1.1.0): phase order, stage routing, gate IDs, outputs, scope membership, model aliases, and file paths. Phase purpose and entry/exit criteria, as well as agent responsibilities, stay in the Markdown files. This document explains how to use that graph and the contracts that govern its work.
+Human-readable definitions live in [`phases/`](phases/) (one file per phase) and [`agents/`](agents/) (one file per agent). [`../data/phase-graph.json`](../data/phase-graph.json) is the machine index (schema 1.4.0): phase order, stage routing, gate IDs, outputs, scope membership, model aliases, and file paths. Phase purpose and entry/exit criteria, as well as agent responsibilities, stay in the Markdown files. This document explains how to use that graph and the contracts that govern its work.
 
 ## Principles
 
@@ -11,7 +11,7 @@ Human-readable definitions live in [`phases/`](phases/) (one file per phase) and
 3. **Bounded, reviewable work.** Each stage has named inputs and outputs. Do only approved work, keep changes within the selected scope, and make limitations explicit.
 4. **Approval before consequential transitions.** The project owner reviews and explicitly approves every phase gate. No approval means the workflow is paused at that gate.
 5. **Traceability and reversibility.** Preserve decisions and verification evidence. Plan rollback before launch; do not perform destructive or externally visible actions without explicit authorization.
-6. **Proportionate rigor.** Apply only phases included by the selected scope. A smaller scope is not a claim that omitted lifecycle concerns do not exist; note any important follow-up or residual risk.
+6. **Proportionate rigor.** Scope is coverage (which phases run). Depth is rigor (which stages and outputs of those phases are required). Apply only phases included by the selected scope and only stages included by the selected depth. A smaller scope or a faster depth is not a claim that omitted lifecycle concerns do not exist; note any important follow-up or residual risk.
 
 ## Phase and stage contracts
 
@@ -19,53 +19,71 @@ Phases run in this order: **Analyze → Ideate → Develop → Launch → Curate
 
 ### Analyze
 
-Establish the problem and its context, not a presumed solution. The brief analyst frames the request, stakeholders, and success measures. The context/risk analyst records relevant evidence, constraints, dependencies, assumptions, risks, and open questions. Label unknowns instead of filling gaps with invention.
+Establish the problem and its context, not a presumed solution. The brief analyst frames the request, stakeholders, success measures, acceptance criteria, and user stories. The context/risk analyst records relevant evidence, constraints, dependencies, assumptions, risks, open questions, and quality requirements. Label unknowns instead of filling gaps with invention.
 
-**Approval gate — analysis baseline.** The project owner confirms that the framing represents their intent and that material uncertainties are visible. A change to the problem framing or success measures after approval requires renewed approval before downstream work relies on it.
+**Approval gate — analysis baseline (`analysis-baseline`).** The project owner confirms that the framing represents their intent and that material uncertainties are visible. A change to the problem framing or success measures after approval requires renewed approval before downstream work relies on it.
 
 ### Ideate
 
 Develop a bounded set of feasible, meaningfully distinct options. Describe trade-offs, dependencies, and risks in terms the project owner can assess. Make a recommendation, but do not present it as the selected direction until the owner chooses it. Record both the decision and what is out of scope or deferred.
 
-**Approval gate — solution direction.** The project owner selects or rejects the proposed direction and approves the scope boundary. If rejected, return to option exploration. A material change to the chosen direction or scope returns to this gate.
+**Approval gate — solution direction (`solution-direction`).** The project owner selects or rejects the proposed direction and approves the scope boundary. If rejected, return to option exploration. A material change to the chosen direction or scope returns to this gate.
 
 ### Develop
 
-Plan and implement only the approved direction. Define interfaces/contracts and acceptance criteria before relying on implementation claims. Verification reports identify checks actually performed, their results, and any coverage gaps; they do not substitute confidence or code inspection for an unrun test. Keep the implementation aligned to approved scope. Surface deviations for approval rather than making unilateral product decisions.
+Plan and implement only the approved direction. Define interfaces and contracts, and trace them to the acceptance criteria approved in Analyze, before relying on implementation claims. Verification reports identify checks actually performed, their results, and any coverage gaps; they do not substitute confidence or code inspection for an unrun test. Keep the implementation aligned to approved scope. Surface deviations for approval rather than making unilateral product decisions.
 
-**Approval gate — release candidate.** The project owner reviews the implementation, verification evidence, limitations, and deployment/rollback notes. Approval authorizes preparation to launch, not necessarily deployment or any external action. Rejected candidates return for correction and re-verification.
+**Approval gate — release candidate (`release-candidate`).** The project owner reviews the implementation, verification evidence, and known limitations, including anything the owner must know about undoing the change. Approval authorizes preparation to launch, not necessarily deployment or any external action. Rejected candidates return for correction and re-verification.
 
 ### Launch
 
 Prepare a controlled release with a readiness checklist, communications draft, monitoring/support ownership, and a rollback path. State what action is proposed and its impact. Obtain explicit approval for deployment, publication, notifications, or other externally visible, destructive, or irreversible operations; a general phase approval is not blanket authorization for each such action.
 
-**Approval gate — launch and handoff.** Confirm launch evidence, operational acceptance, and any rollback or follow-up required. If readiness is not established, pause or follow the approved rollback plan. Do not state that launch succeeded without observed evidence.
+**Approval gate — launch and handoff (`launch-and-handoff`).** Confirm launch evidence, operational acceptance, and any rollback or follow-up required. If readiness is not established, pause or follow the approved rollback plan. Do not state that launch succeeded without observed evidence.
 
 ### Curate
 
 Compare intended outcomes with available observations, distinguish correlation from demonstrated cause, retain useful decisions and lessons under the applicable access/retention rules, and assign follow-ups only with clear ownership. Curating does not authorize deleting, archiving, or broadening access to records.
 
-**Approval gate — closure.** The project owner approves the outcome record and closure, or keeps the work open with explicit next steps. Closure is a recorded human decision, not an inference from inactivity.
+**Approval gate — closure (`closure`).** The project owner approves the outcome record and closure, or keeps the work open with explicit next steps. Closure is a recorded human decision, not an inference from inactivity.
+
+### Archived
+
+Close the intent: record what it finished and what it left out, and write a knowledge record for later intents to `.aidlc/knowledge/<intent-id>.md`. Every scope ends here.
+
+**Approval gate — knowledge write-back (`intent-closure`).** The project owner approves the write-back; until then the intent is not complete.
 
 ## Scopes
 
 The graph defines exact phase lists:
 
-- **solo:** Analyze, Ideate, Develop.
-- **team:** Analyze, Ideate, Develop, Launch.
-- **enterprise:** Analyze, Ideate, Develop, Launch, Curate.
+<!-- generated:scopes -->
+- **solo:** Analyze, Ideate, Develop, Archived.
+- **team:** Analyze, Ideate, Develop, Launch, Archived.
+- **enterprise:** Analyze, Ideate, Develop, Launch, Curate, Archived.
+<!-- /generated:scopes -->
 
-Select the scope with the project owner before execution. These labels determine workflow coverage only; they do not imply a particular team size, risk level, compliance status, or authority to execute actions. If omitted phases leave a material operational, retention, or outcome concern, flag it for explicit owner decision rather than implying it was addressed.
+Select the scope with the project owner before execution. These labels determine workflow coverage only; they do not imply a particular team size, risk level, compliance status, or authority to execute actions. Depth (full, standard, or fast) is chosen per intent and recorded with an owner name. If omitted phases leave a material operational, retention, or outcome concern, flag it for explicit owner decision rather than implying it was addressed.
+
+<!-- generated:depths -->
+- **full:** every stage of the selected scope (the default).
+- **standard:** problem-framing, context-and-risk, option-generation, direction-selection, implementation-design, red-tests, build-and-verify, release-readiness, operational-handoff, outcome-review, knowledge-maintenance, intent-record, knowledge-writeback.
+- **fast:** problem-framing, implementation-design, red-tests, build-and-verify, knowledge-writeback, with a reduced output list.
+<!-- /generated:depths -->
 
 ## Agent roster and model recommendations
 
-The graph contains exactly ten agents, two assigned to each phase. Agent responsibility, inputs, outputs, and guardrails are defined in the linked agent Markdown files; the graph stores each agent's phase, model alias, and file path. Model aliases are recommendations for the named work, not claims that a model is available in every environment or that it may bypass policy, permissions, or human review. Use the listed model only where supported and authorized; escalate difficult, consequential, or ambiguous reasoning to a stronger supported model. A model recommendation never changes an approval gate or grants authority to act.
+<!-- generated:agents -->
+The graph contains 12 agents: Analyze (`brief-analyst`, `context-risk-analyst`); Ideate (`solution-explorer`, `decision-facilitator`); Develop (`implementation-planner`, `builder-verifier`); Launch (`release-coordinator`, `operations-handoff`); Curate (`outcome-curator`, `knowledge-steward`); Archived (`record-keeper`, `knowledge-archivist`).
+<!-- /generated:agents -->
+
+Agent responsibility, inputs, outputs, and guardrails are defined in the linked agent Markdown files; the graph stores each agent's phase, model alias, and file path. Model aliases are recommendations for the named work, not claims that a model is available in every environment or that it may bypass policy, permissions, or human review. Use the listed model only where supported and authorized; escalate difficult, consequential, or ambiguous reasoning to a stronger supported model. A model recommendation never changes an approval gate or grants authority to act.
 
 ## Approval and recordkeeping protocol
 
-For each gate, record at minimum: gate identifier, decision (approved/rejected/paused), approver identity or role, timestamp, reviewed artifact/version, rationale or requested changes, and any conditions. Approval must be affirmative and specific to the artifact and action under review. Silence, a generated plan, a checkmark, or an agent's own assessment is not approval. If context or scope materially changes after approval, obtain renewed approval for affected decisions.
+For each gate, record at minimum: gate, phase, stage, decision, result, by, bySource, at, note, detail, skippedStages, artifacts. The CLI records these fields in the audit row `gate.decided` and in `state.gates.<gate id>` when the gate stage is reported. Approval must be affirmative and specific to the artifact and action under review. Silence, a generated plan, a checkmark, or an agent's own assessment is not approval. If context or scope materially changes after approval, obtain renewed approval for affected decisions.
 
-Use the stage outputs as contracts, not a requirement to create empty paperwork. For small work, a concise record can satisfy multiple outputs if it preserves their substance and provenance. Never claim an artifact, test, approval, deployment, or handoff exists until it is actually produced or observed.
+Use the stage outputs as contracts, not a requirement to create empty paperwork. Every output is a separate file at the path the CLI directive lists under `artifacts`. For small work the file can be a few lines, or say not applicable with the reason. Never claim an artifact, test, approval, deployment, or handoff exists until it is actually produced or observed.
 
 ## Fresh-project kickoff
 

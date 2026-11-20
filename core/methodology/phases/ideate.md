@@ -30,7 +30,7 @@ On rejection, revisit options and trade-offs. Do not enter Develop.
 ## Stages
 
 1. **option-generation** — `solution-explorer`. Produces solution options and a trade-off matrix.
-2. **direction-selection** — `decision-facilitator`. Produces a recommended direction, a decision record, a scope boundary, and an architecture design. Write the design with [the arc42 and ADR template](../templates/architecture-design.md). This stage is the phase gate.
+2. **direction-selection** — `decision-facilitator`. Produces a recommended direction, a decision record, a scope boundary, an architecture design, and a threat model. Write the design with [the arc42 and ADR template](../templates/architecture-design.md). Write threats with [the threat-model template](../templates/threat-model.md). This stage is the phase gate.
 
 ## Activities
 

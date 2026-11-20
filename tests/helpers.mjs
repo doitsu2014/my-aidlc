@@ -39,8 +39,10 @@ export function initProject(project, scope = 'solo', harness = 'claude') {
 }
 
 export function writeArtifacts(project, directive) {
-  for (const item of directive.artifacts ?? []) {
-    const path = join(project, item.path);
+  const items = Array.isArray(directive.artifacts) ? directive.artifacts : (directive.artifacts?.expected ?? []);
+  for (const item of items) {
+    const abs = item.path;
+    const path = abs && (abs.startsWith(project) || /^[A-Za-z]:[\\/]/.test(abs) || abs.startsWith('/')) ? abs : join(project, abs);
     mkdirSync(dirname(path), { recursive: true });
     if (existsSync(path)) continue;
     if (item.output === 'knowledge-record' || item.path?.includes('/.aidlc/knowledge/') || String(item.path).startsWith('.aidlc/knowledge/')) {
@@ -48,6 +50,9 @@ export function writeArtifacts(project, directive) {
       writeFileSync(path, `---\nid: ${id}\ntitle: ${directive.intent || id}\norigin: intent\nscope: ${directive.scope}\nclosed: 2026-11-20T00:00:00Z\nphases-run: analyze, ideate, develop, archived\n---\n\n# ${directive.intent || id}\n\n## Outcome\n\nDone.\n\n## Decisions\n\nNone.\n\n## Limitations\n\nNone.\n\n## Follow-ups\n\nNone.\n\n## Links\n\nNone.\n`);
     } else {
       writeFileSync(path, `# ${item.output}\n\nDraft.\n`);
+      if (item.output === 'work-units') {
+        writeFileSync(path.replace(/\.md$/, '.json'), `${JSON.stringify({ units: [{ id: 'U-01' }] }, null, 2)}\n`);
+      }
     }
   }
   const codebaseMap = directive.context?.codebaseMap;

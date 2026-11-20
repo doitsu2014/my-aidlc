@@ -1,6 +1,6 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, copyFileSync, statSync, lstatSync, realpathSync, appendFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, copyFileSync, lstatSync, realpathSync, appendFileSync, writeFileSync, renameSync, unlinkSync } from 'node:fs';
 import { dirname, join, resolve, relative, isAbsolute, sep, win32 } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 export function engineRoot() {
   const here = dirname(fileURLToPath(import.meta.url));
@@ -18,7 +18,6 @@ export function repoRoot() {
   if (home && existsSync(resolve(home))) return resolve(home);
   return resolve(engineRoot(), '..');
 }
-export function projectRoot() { return resolve(process.cwd()); }
 export const stateDir = (root) => join(root, '.aidlc');
 export const statePath = (root) => join(stateDir(root), 'state.json');
 export const auditPath = (root) => join(stateDir(root), 'audit.jsonl');
@@ -31,9 +30,9 @@ export function readGraph() {
   let graph;
   try { graph = JSON.parse(readFileSync(path, 'utf8')); } catch { throw new Error(`Invalid phase-graph.json: malformed JSON (${path})`); }
   const invalid = message => { throw new Error(`Invalid phase-graph.json: ${message}`); };
-  if (!graph || typeof graph !== 'object' || Array.isArray(graph) || graph.schemaVersion !== '1.2.0') invalid('schemaVersion must be 1.2.0 (stage inputs are required; add an inputs object to each stage)');
+  if (!graph || typeof graph !== 'object' || Array.isArray(graph) || graph.schemaVersion !== '1.4.0') invalid('schemaVersion must be 1.4.0 (depths and work-unit repeat are required)');
   for (const key of ['phases', 'stages', 'agents']) if (!Array.isArray(graph[key])) invalid(`${key} must be an array`);
-  if (!Array.isArray(graph.modelAliases) || graph.modelAliases.length === 0 || graph.modelAliases.some(x => !['opus', 'sonnet', 'haiku', 'fable'].includes(x)) || new Set(graph.modelAliases).size !== graph.modelAliases.length) invalid('modelAliases must be a unique allowlisted alias array');
+  if (!Array.isArray(graph.modelAliases) || graph.modelAliases.length === 0 || graph.modelAliases.some(x => !MODEL_ALIASES.includes(x)) || new Set(graph.modelAliases).size !== graph.modelAliases.length) invalid('modelAliases must be a unique allowlisted alias array');
   const unique = (rows, label) => {
     const ids = rows.map(row => row?.id);
     if (ids.some(id => typeof id !== 'string' || !id) || new Set(ids).size !== ids.length) invalid(`${label} IDs must be non-empty and unique`);
@@ -111,7 +110,7 @@ export function readGraph() {
         if (typeof entry.path !== 'string' || isAbsolute(entry.path) || entry.path.includes('\\') || entry.path.split('/').includes('..') || !entry.path.endsWith('.md')) {
           invalid(`outputs.${id} path is invalid`);
         }
-        if (/\{(?!intentId\}|phase\}|stage\}|output\})/.test(entry.path.replaceAll('{intentId}', '').replaceAll('{phase}', '').replaceAll('{stage}', '').replaceAll('{output}', ''))) {
+        if (/\{(?!intentId\}|phase\}|stage\}|output\}|unitId\})/.test(entry.path.replaceAll('{intentId}', '').replaceAll('{phase}', '').replaceAll('{stage}', '').replaceAll('{output}', '').replaceAll('{unitId}', ''))) {
           invalid(`outputs.${id} path has invalid placeholders`);
         }
       }
@@ -129,8 +128,30 @@ export function readGraph() {
   }
   if (!graph.scopes || typeof graph.scopes !== 'object' || Array.isArray(graph.scopes)) invalid('scopes must be an object');
   for (const [scope, phases] of Object.entries(graph.scopes)) if (!Array.isArray(phases) || phases.some(id => !phaseIds.has(id))) invalid(`invalid phase references in scope ${scope}`);
+  if (graph.depths === undefined || typeof graph.depths !== 'object' || Array.isArray(graph.depths)) invalid('depths must be an object');
+  if (Object.hasOwn(graph.depths, 'full')) invalid('full must not be declared');
+  const rcStage = graph.phases.find((phase) => phase.gate === 'release-candidate')?.stages?.at(-1);
+  const archivedStage = graph.phases.find((phase) => phase.id === 'archived')?.stages?.at(-1);
+  for (const [name, depth] of Object.entries(graph.depths)) {
+    if (!depth || typeof depth !== 'object' || Array.isArray(depth) || !Array.isArray(depth.stages)) invalid(`depth ${name} must declare a stages array`);
+    for (const id of depth.stages) if (!stageIds.has(id)) invalid(`depth ${name} names unknown stage ${id}`);
+    if (rcStage && !depth.stages.includes(rcStage)) invalid(`depth ${name} removes the release-candidate gate stage`);
+    if (archivedStage && !depth.stages.includes(archivedStage)) invalid(`depth ${name} removes the Archived gate stage`);
+    if (depth.produces) {
+      if (typeof depth.produces !== 'object' || Array.isArray(depth.produces)) invalid(`depth ${name} produces must be an object`);
+      for (const [stageId, outputs] of Object.entries(depth.produces)) {
+        const stage = stageById.get(stageId);
+        if (!stage) invalid(`depth ${name} produces names unknown stage ${stageId}`);
+        if (!Array.isArray(outputs) || outputs.some((id) => !stage.produces.includes(id))) invalid(`depth ${name} produces subset for ${stageId} is not a subset of that stage's produces`);
+      }
+    }
+  }
+  for (const stage of graph.stages) {
+    if (stage.repeat !== undefined && stage.repeat !== 'work-unit') invalid(`stage ${stage.id} has invalid repeat`);
+  }
   return graph;
 }
+export const MODEL_ALIASES = Object.freeze(['opus', 'sonnet', 'haiku', 'fable']);
 export function loadConfig(root) { return readJson(configPath(root), {}); }
 export function listHarnesses() {
   const dir = join(repoRoot(), 'harness');
@@ -164,6 +185,7 @@ export function loadHarnessManifest(name) {
   }
   for (const field of ['obsoleteFiles']) if (manifest[field] !== undefined && (!Array.isArray(manifest[field]) || manifest[field].some((path) => !safe(path)))) invalid(`${field} must contain safe relative paths`);
   if (manifest.legacy !== undefined && (!Array.isArray(manifest.legacy) || manifest.legacy.some((entry) => !safe(entry?.dir) || entry.dir === manifest.skillDir || !Array.isArray(entry.files) || entry.files.some((path) => !safe(path))))) invalid('legacy paths must be safe relative paths');
+  if (!Array.isArray(manifest.modelAliases) || manifest.modelAliases.some((alias) => !MODEL_ALIASES.includes(alias))) invalid('modelAliases must be an array of known model aliases');
   return manifest;
 }
 export function projectHarnessFiles(manifest, root) {
@@ -286,16 +308,34 @@ export function copyHarnessProjection(source, target) {
   if (existsSync(skillSource)) copied.push(...copyTreePreserving(skillSource, target));
   return copied;
 }
-export function orderedStages(graph, scope) {
+export function knownDepths(graph) {
+  return ['full', ...Object.keys(graph.depths ?? {})];
+}
+export function resolveDepth(graph, depth) {
+  const name = depth || 'full';
+  if (name === 'full') return 'full';
+  if (!graph.depths || !Object.hasOwn(graph.depths, name)) {
+    throw new Error(`Unknown depth '${name}'. Known depths: ${knownDepths(graph).join(', ')}`);
+  }
+  return name;
+}
+export function orderedStages(graph, scope, depth = 'full') {
   const includedPhases = graph.scopes?.[scope];
   if (!Array.isArray(includedPhases)) return [];
   const included = new Set(includedPhases);
   const phaseOrder = new Map(graph.phases.map((p, i) => [p.id, Number.isFinite(p.order) ? p.order : i]));
-  return graph.stages
+  let stages = graph.stages
     .map((stage, index) => ({ stage, index }))
     .filter(({ stage }) => included.has(stage.phase))
     .sort((a, b) => phaseOrder.get(a.stage.phase) - phaseOrder.get(b.stage.phase) || (Number.isFinite(a.stage.order) ? a.stage.order : a.index) - (Number.isFinite(b.stage.order) ? b.stage.order : b.index))
     .map(({ stage }) => stage);
+  if (depth && depth !== 'full') {
+    const allowed = new Set(graph.depths?.[depth]?.stages ?? []);
+    stages = stages.filter((stage) => allowed.has(stage.id));
+  }
+  return stages;
 }
-export function withGraph(project = process.cwd()) { const root = resolve(project); return { root, graph: readGraph() }; }
-export function urlToPath(path) { return pathToFileURL(path).href; }
+export function stageProduces(graph, stage, depth = 'full') {
+  const subset = depth && depth !== 'full' ? graph.depths?.[depth]?.produces?.[stage.id] : undefined;
+  return subset ?? stage.produces ?? [];
+}

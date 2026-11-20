@@ -92,3 +92,22 @@ test('refuses symlinked state directory and config file', t => {
   symlinkSync(join(outside, 'config.json'), join(project, '.aidlc/config.json'));
   assert.notEqual(run(project, 'config', 'agents').status, 0);
 });
+
+test('deepseek-only project gets no model field and refuses config agents set; claude restores it', t => {
+  const project = temp(); t.after(() => rmSync(project, { recursive: true, force: true }));
+  json(project, 'init', '--harness', 'deepseek', '--scope', 'solo');
+  const next = json(project, 'orchestrate', 'next', '--intent', 'x');
+  assert.equal('model' in next.stage, false);
+  assert.equal('modelSource' in next.stage, false);
+  assert.ok(json(project, 'scope', 'solo').stages.every(stage => !('model' in stage)));
+  const rows = json(project, 'config', 'agents');
+  assert.ok(rows.every(row => row.model === null && row.source === 'unsupported'));
+  const path = join(project, '.aidlc/config.json'), before = readFileSync(path, 'utf8');
+  const refused = run(project, 'config', 'agents', 'set', 'brief-analyst', 'opus');
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr + refused.stdout, /claude harness only/);
+  assert.equal(readFileSync(path, 'utf8'), before);
+  assert.equal(run(project, 'config', 'agents', 'reset', 'brief-analyst').status, 0);
+  json(project, 'harness', 'add', 'claude');
+  assert.equal(json(project, 'orchestrate', 'next').stage.model, 'sonnet');
+});

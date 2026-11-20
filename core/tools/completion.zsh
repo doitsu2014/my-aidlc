@@ -55,7 +55,7 @@ _dtech-aidlc() {
             '--no-detect[Skip automatic documentation detection]'
           ;;
         scope)
-          _arguments '1:scope:(solo team enterprise)'
+          _arguments '--depth[Depth]:depth:(full standard fast)' '1:scope:(solo team enterprise)'
           ;;
         status)
           _arguments '--intent[Intent id]:intent:'
@@ -72,13 +72,15 @@ _dtech-aidlc() {
           esac
           ;;
         intent)
-          _arguments -C '1:action:(list pause resume abandon)' '*::arg:->intentrest'
+          _arguments -C '1:action:(list pause resume abandon depth assign)' '*::arg:->intentrest'
           case $state in
             intentrest)
               case ${words[1]} in
                 pause) _arguments '--detail[Reason]:detail:' ;;
                 resume) _arguments '1:id:' ;;
                 abandon) _arguments '--detail[Reason]:detail:' '1:id:' ;;
+                depth) _arguments '--approved-by[Approver]:name:' '--detail[Reason]:detail:' '1:depth:(full standard fast)' ;;
+                assign) _arguments '1:name:' ;;
               esac
               ;;
           esac
@@ -89,7 +91,7 @@ _dtech-aidlc() {
             action) _values 'action' next report ;;
             rest)
               case ${words[1]} in
-                next) _arguments '--intent[Intent text]:intent:' '--scope[Workflow scope]:scope:(solo team enterprise)' ;;
+                next) _arguments '--intent[Intent text]:intent:' '--scope[Workflow scope]:scope:(solo team enterprise)' '--depth[Depth]:depth:(full standard fast)' '--approved-by[Approver]:name:' '--detail[Reason]:detail:' ;;
                 report)
                   _arguments \
                     '--stage[Stage identifier]:stage:' \

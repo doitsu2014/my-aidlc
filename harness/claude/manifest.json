@@ -12,5 +12,6 @@
   "obsoleteFiles": ["manifest.mjs"],
   "legacy": [
     { "dir": ".claude/skills/aidlc", "files": ["SKILL.md", "manifest.mjs", "onboarding.md", "skills/aidlc/SKILL.md"] }
-  ]
+  ],
+  "modelAliases": ["opus", "sonnet", "haiku", "fable"]
 }

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { json, run, runRaw, tempProject } from './helpers.mjs';
+import { json, repo, run, runRaw, tempProject } from './helpers.mjs';
 
 function write(project, path, content) {
   const target = join(project, path);
@@ -89,7 +89,7 @@ test('existing documentation reaches every directive and can be corrected', (t) 
   const dry = json(project, 'onboard');
   assert.equal(dry.knowledge.manifestStatus, 'unchanged');
   assert.ok(dry.knowledge.wouldAdd.some(({ path }) => path === 'docs/runbook.md'));
-  assert.equal(runRaw(project, 'version').stdout.trim(), 'dtech-aidlc 0.3.0');
+  assert.equal(runRaw(project, 'version').stdout.trim(), `dtech-aidlc ${JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8')).version}`);
   assert.deepEqual(readFileSync(manifestPath(project)), beforeOnboard);
   const repeated = json(project, 'onboard', '--harness', 'claude', '--scope', 'solo');
   assert.equal(repeated.knowledge.manifestStatus, 'unchanged');

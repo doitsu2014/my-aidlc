@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.2.0",
+  "schemaVersion": "1.4.0",
   "modelAliases": ["opus", "sonnet", "haiku", "fable"],
   "phases": [
     {"id": "analyze", "name": "Analyze", "order": 1, "gate": "analysis-baseline", "file": "methodology/phases/analyze.md", "agents": ["brief-analyst", "context-risk-analyst"], "stages": ["problem-framing", "context-and-risk"]},
@@ -10,13 +10,13 @@
     {"id": "archived", "name": "Archived", "order": 6, "gate": "intent-closure", "file": "methodology/phases/archived.md", "agents": ["record-keeper", "knowledge-archivist"], "stages": ["intent-record", "knowledge-writeback"]}
   ],
   "stages": [
-    {"id": "problem-framing", "phase": "analyze", "order": 1, "agent": "brief-analyst", "inputs": {"artifacts": [], "context": ["request", "project", "sources", "knowledge", "profile", "repos"]}, "produces": ["problem-statement", "success-measures", "stakeholder-map", "acceptance-criteria"]},
-    {"id": "context-and-risk", "phase": "analyze", "order": 2, "agent": "context-risk-analyst", "inputs": {"artifacts": ["problem-statement", "success-measures", "stakeholder-map", "acceptance-criteria"], "context": ["request", "project", "sources", "knowledge", "profile", "repos"]}, "produces": ["constraints-and-assumptions", "evidence-log", "risk-register", "open-questions"]},
-    {"id": "option-generation", "phase": "ideate", "order": 1, "agent": "solution-explorer", "inputs": {"artifacts": ["problem-statement", "success-measures", "stakeholder-map", "acceptance-criteria", "constraints-and-assumptions", "evidence-log", "risk-register", "open-questions"], "context": ["request", "project", "sources", "knowledge", "profile", "repos"]}, "produces": ["solution-options", "trade-off-matrix"]},
-    {"id": "direction-selection", "phase": "ideate", "order": 2, "agent": "decision-facilitator", "inputs": {"artifacts": ["solution-options", "trade-off-matrix", "problem-statement", "success-measures", "stakeholder-map", "acceptance-criteria", "constraints-and-assumptions", "evidence-log", "risk-register", "open-questions"], "context": ["request", "project", "sources", "knowledge", "profile", "repos"]}, "produces": ["recommended-direction", "decision-record", "scope-boundary", "architecture-design"]},
-    {"id": "implementation-design", "phase": "develop", "order": 1, "agent": "implementation-planner", "inputs": {"artifacts": ["recommended-direction", "decision-record", "scope-boundary", "architecture-design", "acceptance-criteria", "constraints-and-assumptions", "risk-register"], "context": ["request", "project", "sources", "profile", "repos"]}, "produces": ["implementation-plan", "interfaces-and-contracts", "functional-design"]},
-    {"id": "red-tests", "phase": "develop", "order": 2, "agent": "builder-verifier", "inputs": {"artifacts": ["implementation-plan", "interfaces-and-contracts", "functional-design", "acceptance-criteria"], "context": ["request", "project", "sources", "profile", "repos"]}, "produces": ["failing-tests", "red-evidence"]},
-    {"id": "build-and-verify", "phase": "develop", "order": 3, "agent": "builder-verifier", "inputs": {"artifacts": ["implementation-plan", "interfaces-and-contracts", "functional-design", "acceptance-criteria", "failing-tests", "red-evidence"], "context": ["request", "project", "sources", "profile", "repos"]}, "produces": ["implementation", "green-verification-report", "regression-report", "known-limitations"]},
+    {"id": "problem-framing", "phase": "analyze", "order": 1, "agent": "brief-analyst", "inputs": {"artifacts": [], "context": ["request", "project", "sources", "knowledge", "profile", "repos"]}, "produces": ["problem-statement", "success-measures", "stakeholder-map", "acceptance-criteria", "user-stories"]},
+    {"id": "context-and-risk", "phase": "analyze", "order": 2, "agent": "context-risk-analyst", "inputs": {"artifacts": ["problem-statement", "success-measures", "stakeholder-map", "acceptance-criteria", "user-stories"], "context": ["request", "project", "sources", "knowledge", "profile", "repos"]}, "produces": ["constraints-and-assumptions", "evidence-log", "risk-register", "open-questions", "quality-requirements"]},
+    {"id": "option-generation", "phase": "ideate", "order": 1, "agent": "solution-explorer", "inputs": {"artifacts": ["problem-statement", "success-measures", "stakeholder-map", "acceptance-criteria", "user-stories", "constraints-and-assumptions", "evidence-log", "risk-register", "open-questions", "quality-requirements"], "context": ["request", "project", "sources", "knowledge", "profile", "repos"]}, "produces": ["solution-options", "trade-off-matrix"]},
+    {"id": "direction-selection", "phase": "ideate", "order": 2, "agent": "decision-facilitator", "inputs": {"artifacts": ["solution-options", "trade-off-matrix", "problem-statement", "success-measures", "stakeholder-map", "acceptance-criteria", "user-stories", "constraints-and-assumptions", "evidence-log", "risk-register", "open-questions", "quality-requirements"], "context": ["request", "project", "sources", "knowledge", "profile", "repos"]}, "produces": ["recommended-direction", "decision-record", "scope-boundary", "architecture-design", "threat-model"]},
+    {"id": "implementation-design", "phase": "develop", "order": 1, "agent": "implementation-planner", "inputs": {"artifacts": ["recommended-direction", "decision-record", "scope-boundary", "architecture-design", "acceptance-criteria", "user-stories", "constraints-and-assumptions", "risk-register", "quality-requirements", "threat-model"], "context": ["request", "project", "sources", "profile", "repos"]}, "produces": ["implementation-plan", "interfaces-and-contracts", "functional-design", "test-strategy", "work-units"]},
+    {"id": "red-tests", "phase": "develop", "order": 2, "agent": "builder-verifier", "repeat": "work-unit", "inputs": {"artifacts": ["implementation-plan", "interfaces-and-contracts", "functional-design", "acceptance-criteria", "test-strategy", "work-units"], "context": ["request", "project", "sources", "profile", "repos"]}, "produces": ["failing-tests", "red-evidence"]},
+    {"id": "build-and-verify", "phase": "develop", "order": 3, "agent": "builder-verifier", "repeat": "work-unit", "inputs": {"artifacts": ["implementation-plan", "interfaces-and-contracts", "functional-design", "acceptance-criteria", "failing-tests", "red-evidence", "test-strategy", "quality-requirements", "threat-model", "work-units"], "context": ["request", "project", "sources", "profile", "repos"]}, "produces": ["implementation", "green-verification-report", "regression-report", "known-limitations"]},
     {"id": "release-readiness", "phase": "launch", "order": 1, "agent": "release-coordinator", "inputs": {"artifacts": ["implementation", "green-verification-report", "regression-report", "known-limitations"], "context": ["request", "project", "sources"]}, "produces": ["release-checklist", "deployment-and-rollback-plan", "communications-draft"]},
     {"id": "operational-handoff", "phase": "launch", "order": 2, "agent": "operations-handoff", "inputs": {"artifacts": ["release-checklist", "deployment-and-rollback-plan", "communications-draft"], "context": ["request", "project", "sources"], "external": ["support-context"]}, "produces": ["launch-record", "monitoring-and-support-ownership", "handoff-record"]},
     {"id": "outcome-review", "phase": "curate", "order": 1, "agent": "outcome-curator", "inputs": {"artifacts": ["success-measures", "decision-record", "launch-record"], "context": ["request", "project"], "external": ["observed-outcomes"]}, "produces": ["outcome-summary", "lessons-learned", "follow-up-register"]},
@@ -28,6 +28,21 @@
     "solo": ["analyze", "ideate", "develop", "archived"],
     "team": ["analyze", "ideate", "develop", "launch", "archived"],
     "enterprise": ["analyze", "ideate", "develop", "launch", "curate", "archived"]
+  },
+  "depths": {
+    "standard": {
+      "stages": ["problem-framing", "context-and-risk", "option-generation", "direction-selection", "implementation-design", "red-tests", "build-and-verify", "release-readiness", "operational-handoff", "outcome-review", "knowledge-maintenance", "intent-record", "knowledge-writeback"]
+    },
+    "fast": {
+      "stages": ["problem-framing", "implementation-design", "red-tests", "build-and-verify", "knowledge-writeback"],
+      "produces": {
+        "problem-framing": ["problem-statement", "acceptance-criteria"],
+        "implementation-design": ["implementation-plan"],
+        "red-tests": ["failing-tests", "red-evidence"],
+        "build-and-verify": ["implementation", "green-verification-report", "known-limitations"],
+        "knowledge-writeback": ["knowledge-record"]
+      }
+    }
   },
   "outputs": {
     "failing-tests": { "kind": "code-manifest" },

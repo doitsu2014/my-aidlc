@@ -4,8 +4,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { COMMAND_FLAGS } from '../core/tools/cli-spec.mjs';
-import { MODEL_ALIASES } from '../core/tools/agent-models.mjs';
-import { helpCommands, repo } from './helpers.mjs';
+import { MODEL_ALIASES } from '../core/tools/lib.mjs';
+import { helpCommands, helpText, repo } from './helpers.mjs';
 
 test('help, completion, and the command table stay in step', () => {
   const completion = readFileSync(join(repo, 'core/tools/completion.zsh'), 'utf8');
@@ -18,6 +18,12 @@ test('help, completion, and the command table stay in step', () => {
   fromHelp.delete('help');
   fromHelp.delete('version');
   assert.deepEqual(fromHelp, table);
+  const help = helpText();
+  for (const [command, options] of Object.entries(COMMAND_FLAGS)) {
+    for (const name of Object.keys(options)) {
+      assert.match(help, new RegExp(`--${name}\\b`), `${command} option --${name}`);
+    }
+  }
   const graph = JSON.parse(readFileSync(join(repo, 'core/data/phase-graph.json'), 'utf8'));
   const words = new Set([
     ...graph.agents.map((agent) => agent.id),

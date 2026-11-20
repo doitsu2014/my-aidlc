@@ -31,9 +31,9 @@ On rejection, address the findings and rerun the relevant verification. Do not e
 
 ## Stages
 
-1. **implementation-design** — `implementation-planner`. Produces an implementation plan, interfaces and contracts, and a functional design. Write the design with [the IEEE 1016 template](../templates/functional-design.md). Trace every function to an Analyze acceptance-criterion identifier.
-2. **red-tests** — `builder-verifier`. Produce failing tests from the acceptance criteria before production code. Record the red run. On a project that already has tests, run the existing suite first and record the baseline.
-3. **build-and-verify** — `builder-verifier`. Write only enough implementation to turn those tests green. Produce the implementation, the green verification report, the regression report, and known limitations. This stage is the phase gate.
+1. **implementation-design** — `implementation-planner`. Produces an implementation plan, interfaces and contracts, a functional design, a test strategy, and work units. Write the design with [the IEEE 1016 template](../templates/functional-design.md). Write the strategy with [the test-strategy template](../templates/test-strategy.md) and the units with [the work-units template](../templates/work-units.md). Trace every function to an Analyze acceptance-criterion identifier.
+2. **red-tests** — `builder-verifier`. Produce failing tests from the acceptance criteria before production code, at the levels the test strategy names. Record the red run. On a project that already has tests, run the existing suite first and record the baseline. Repeat once per work unit.
+3. **build-and-verify** — `builder-verifier`. Write only enough implementation to turn those tests green. Produce the implementation, the green verification report, the regression report, and known limitations. The green report ends with a trace table. This stage is the phase gate. Repeat once per work unit; the release-candidate gate is presented once, after the last unit.
 
 ## Activities
 

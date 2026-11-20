@@ -2,14 +2,14 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { audit, configPath, loadConfig, configuredHarnesses, listHarnesses, loadHarnessManifest, projectHarnessFiles, parseArgs, readGraph, readJson, safeId, stateDir, statePath, auditPath, copyTreePreserving, orderedStages, engineRoot, repoRoot, assertSafeStateDir, ensureWithin, writeJsonAtomic, writeFileAtomic, assertNoSymlinkComponents } from './lib.mjs';
+import { audit, configPath, loadConfig, configuredHarnesses, listHarnesses, loadHarnessManifest, projectHarnessFiles, parseArgs, readGraph, readJson, safeId, stateDir, statePath, auditPath, copyTreePreserving, orderedStages, resolveDepth, engineRoot, repoRoot, assertSafeStateDir, ensureWithin, writeJsonAtomic, writeFileAtomic, assertNoSymlinkComponents } from './lib.mjs';
 import { projectionStatus, updateProjectionStamp, refreshProjection, projectionDoctorRows, projectionNotices, legacyMethodologyStatus, refreshLegacyMethodology } from './projection.mjs';
 import { GLOBAL_FLAGS, COMMAND_FLAGS, COMMAND_MAX_ARGS, commandKey, optionTypes } from './cli-spec.mjs';
 import {
-  checkWorkflowState, deriveStatus, intentDir, listIntents, loadIntent, loadWorkflow, normalizeIntentText, orchestrateNext, orchestrateReport,
+  assignIntent, changeIntentDepth, checkWorkflowState, deriveStatus, intentDir, listIntents, loadIntent, loadWorkflow, normalizeIntentText, orchestrateNext, orchestrateReport,
   persistWorkflow, quarantineCorruptPointer, readPointer, saveIntent, savePointer, unfinishedIds,
 } from './workflow.mjs';
-import { MODEL_ALIASES, resolveAgentModel, validateModelConfig, writeModelConfig } from './agent-models.mjs';
+import { MODEL_ALIASES, aliasChoices, aliasesSupported, resolveAgentModel, validateModelConfig, writeModelConfig } from './agent-models.mjs';
 import { addDependency, importDependencies, listDependencies, projectDependenciesPath, pullDependencies, removeDependency, validateDependencies } from './dependencies.mjs';
 import { detectDocumentation, onboardCommands, planRegistration, scanProject, sourceStatus, writeProjectProfile, writeSourcesSnapshot } from './onboard.mjs';
 import {
@@ -26,20 +26,20 @@ const HELP = [
   'Commands:',
   '  help, --help            Show help',
   '  version, --version      Show version',
-  '  onboard [--harness NAME] [--scope NAME]  (--harness is required the first time)',
-  '                          Initialize and detect the project in one command',
+  '  onboard [--harness NAME] [--scope NAME] [--docs PATH] [--no-detect]',
+  '                          Initialize and detect the project in one command (--harness is required the first time)',
   '  onboard --rescan [--docs PATH]...',
   '                          Re-scan an initialized project and report documentation changes',
   '  init [--harness NAME] [--scope NAME]    Alias of onboard (--harness is required the first time)',
-  '  scope [NAME]            List scopes or show stages in a scope',
+  '  scope [NAME] [--depth NAME]  List scopes or show stages in a scope',
   '  status [--intent ID]    Show current intent and stage progress',
   '  doctor                  Validate graph, state, config, and projection',
-  '  orchestrate next [--intent TEXT] [--description TEXT] [--intent-file PATH|-] [--scope NAME]',
+  '  orchestrate next [--intent TEXT] [--description TEXT] [--intent-file PATH|-] [--scope NAME] [--depth NAME] [--approved-by NAME] [--detail TEXT]',
   '                          Use --intent-file to avoid shell quoting; - reads standard input',
-  '  orchestrate report --result complete|blocked|skipped [--approval approved] [--detail TEXT] [--stage ID]',
+  '  orchestrate report --result complete|blocked|skipped [--approval approved] [--approved-by NAME] [--approval-note TEXT] [--detail TEXT] [--stage ID]',
   '  config agents            List effective agent models',
   '  config scope [NAME]     Show or set the default scope for new intents',
-  '  config agents set <agent-id> <opus|sonnet|haiku|fable>',
+  `  config agents set <agent-id> <${MODEL_ALIASES.join('|')}> (claude harness)`,
   '  config agents reset <agent-id>',
   '  repos add <name> <url> [--ref REF]',
   '  repos list              List registered dependency repositories',
@@ -53,8 +53,11 @@ const HELP = [
   '  intent pause [--detail TEXT]',
   '  intent resume <id>',
   '  intent abandon [<id>] --detail TEXT',
+  '  intent depth NAME --approved-by NAME --detail TEXT',
+  '  intent assign NAME     Assign the active intent',
   '  knowledge init          Create PROJECT.md and .aidlc/knowledge/ if missing',
-  '  knowledge sources       List, add, or remove knowledge sources',
+  '  knowledge sources [--kind KIND] [--description TEXT]',
+  '                          List, add, or remove knowledge sources',
   '  knowledge list          List knowledge records',
   '  knowledge show <id>     Show one knowledge record',
   '  knowledge check         Validate knowledge records',
@@ -81,6 +84,7 @@ function knowledgeState(root) {
   }
 }
 function stageStatus(state, stage) { return state?.stages?.[stage.id]?.status ?? 'pending'; }
+function scopeModel(model) { return model.source === 'unsupported' ? {} : model; }
 function main() {
   const parsed = parseArgs(process.argv.slice(2), optionTypes());
   const args = parsed.positional, flags = parsed.flags;
@@ -311,7 +315,8 @@ function main() {
     if (!listHarnesses().includes(stateConfig.harness) || !['solo', 'team', 'enterprise'].includes(stateConfig.scope) || !stateConfig.initializedAt) throw new Error('Initialize the project before changing agent models');
     if (action === 'set') {
       const model = args.shift();
-      if (!MODEL_ALIASES.includes(model)) throw new Error(`Invalid model alias: ${model ?? '(missing)'}; choose opus, sonnet, haiku, or fable`);
+      if (!aliasesSupported(stateConfig)) throw new Error(`Model aliases (${MODEL_ALIASES.join(', ')}) apply to the claude harness only; this project uses ${configuredHarnesses(stateConfig).join(', ')}, which has no model alias support. Nothing was changed.`);
+      if (!MODEL_ALIASES.includes(model)) throw new Error(`Invalid model alias: ${model ?? '(missing)'}; ${aliasChoices()}`);
       stateConfig.agentModels ??= {};
       stateConfig.agentModels[id] = model;
     } else {
@@ -319,14 +324,17 @@ function main() {
     }
     validateModelConfig(root, graph);
     writeModelConfig(root, stateConfig);
+    if (action === 'set') audit(root, 'config.agent-model.set', { agent: id, model: stateConfig.agentModels[id] });
+    else audit(root, 'config.agent-model.reset', { agent: id });
     return out({ id, ...resolveAgentModel(agent, stateConfig) });
   }
   if (cmd === 'scope') {
     const graph = readGraph();
     const config = validateModelConfig(root, graph);
-    if (!args.length) return out(['solo', 'team', 'enterprise'].map(scope => ({ scope, stages: orderedStages(graph, scope).map(s => s.id) })));
+    const depth = flags.depth === undefined ? 'full' : resolveDepth(graph, flags.depth);
+    if (!args.length) return out(['solo', 'team', 'enterprise'].map(scope => ({ scope, depth, stages: orderedStages(graph, scope, depth).map(s => s.id) })));
     const scope = validateScope(args[0]);
-    return out({ scope, stages: orderedStages(graph, scope).map(({ id, phase, agent, produces }) => ({ id, phase, agent: agent ?? null, ...(agent ? resolveAgentModel(graph.agents.find(item => item.id === agent), config) : {}), produces: produces ?? [] })) });
+    return out({ scope, depth, stages: orderedStages(graph, scope, depth).map(({ id, phase, agent, produces }) => ({ id, phase, agent: agent ?? null, ...(agent ? scopeModel(resolveAgentModel(graph.agents.find(item => item.id === agent), config)) : {}), produces: produces ?? [] })) });
   }
   if (cmd === 'status') {
     const graph = readGraph();
@@ -409,6 +417,16 @@ function main() {
       (ctx) => checkWorkflowState(ctx.root, ctx.graph),
       (ctx) => [{ status: !existsSync(auditPath(ctx.root)) || readFileSync(auditPath(ctx.root), 'utf8').split(/\r?\n/).filter(Boolean).every((line) => { try { JSON.parse(line); return true; } catch { return false; } }) ? 'pass' : 'fail', message: 'Audit log contains valid JSON lines' }],
       (ctx) => { const legacy = legacyMethodologyStatus(ctx.root); return legacy ? [{ status: 'warn', message: `Unused methodology copy at .aidlc/methodology from an earlier version; ${legacy.pristine.length} pristine file(s) can be removed by harness refresh, ${legacy.modified.length} modified or unknown file(s) will be kept` }] : []; },
+      (ctx) => {
+        const scope = ctx.config?.scope;
+        if (!['solo', 'team', 'enterprise'].includes(scope) || !ctx.graph) return [];
+        const roles = ctx.config.roles;
+        if (!roles) {
+          const gates = (ctx.graph.scopes[scope] || []).map((id) => ctx.graph.phases.find((phase) => phase.id === id)?.gate).filter(Boolean);
+          return [{ status: 'warn', message: `No allowed approver is configured for gate ${gates[0] || 'analysis-baseline'} in the default scope` }];
+        }
+        return [];
+      },
     ];
     const checks = [];
     for (const fn of DOCTOR_CHECKS) {
@@ -446,7 +464,7 @@ function main() {
         intentText = text;
       }
       if (intentText !== null) intentText = normalizeIntentText(intentText);
-      const directive = orchestrateNext(root, { intent: intentText, scope: flags.scope || null });
+      const directive = orchestrateNext(root, { intent: intentText, scope: flags.scope || null, depth: flags.depth, approvedBy: flags['approved-by'], detail: flags.detail });
       if (directive.stage) {
         ensureKnowledgeDir(root);
         ensureIgnoreFile(root);
@@ -470,6 +488,14 @@ function main() {
   if (cmd === 'intent') {
     const action = args.shift(), graph = readGraph();
     if (action === 'list') return out(listIntents(root, graph));
+    if (action === 'depth') {
+      if (!args[0]) throw new Error('Usage: intent depth NAME --approved-by NAME --detail TEXT');
+      return out(changeIntentDepth(root, args[0], { approvedBy: flags['approved-by'], detail: flags.detail }));
+    }
+    if (action === 'assign') {
+      if (!args[0]) throw new Error('Usage: intent assign NAME');
+      return out(assignIntent(root, args[0]));
+    }
     if (action === 'pause') {
       const loaded = loadWorkflow(root, graph, { migrate: true, missingActive: 'null' });
       if (!loaded.state && !loaded.missing) throw new Error('No unfinished active intent to pause');
@@ -522,7 +548,7 @@ function main() {
       audit(root, 'intent.abandoned', { intentId: targetId, detail: flags.detail });
       return out({ abandoned: true, intentId: targetId });
     }
-    throw new Error('Use intent list, intent pause, intent resume, or intent abandon');
+    throw new Error('Use intent list, intent pause, intent resume, intent abandon, intent depth, or intent assign');
   }
   if (cmd === 'knowledge') {
     const action = args.shift();
@@ -565,18 +591,30 @@ function main() {
     const action = args.shift();
     if (action === 'add') {
       if (args.length !== 2 || (flags.ref !== undefined && typeof flags.ref !== 'string')) throw new Error('Usage: repos add <name> <url> [--ref REF]');
-      return out(addDependency(root, args[0], args[1], flags.ref));
+      const added = addDependency(root, args[0], args[1], flags.ref);
+      audit(root, 'repos.added', { name: added.name, ref: flags.ref ?? null });
+      return out(added);
     }
     if (action === 'list' && args.length === 0) return out(listDependencies(root));
     if (action === 'pull' && args.length <= 1) {
       const source = flags.file || projectDependenciesPath(root);
-      if (flags.file || existsSync(source)) importDependencies(root, source);
+      const label = flags.file || 'aidlc.deps.json';
+      let imported;
+      if (flags.file || existsSync(source)) imported = importDependencies(root, source);
+      if (imported?.dropped?.length) {
+        process.stderr.write(`dtech-aidlc: note: removed from the runtime copy because they are not declared in ${label}: ${imported.dropped.join(', ')}. Add them to ${label} to keep them.\n`);
+      }
       const results = pullDependencies(root, args[0]);
+      audit(root, 'repos.pulled', { results: results.map((row) => ({ name: row.name, ok: row.ok, commit: row.commit ?? null })) });
       out(results);
       if (results.some(result => !result.ok)) process.exitCode = 1;
       return;
     }
-    if (action === 'remove' && args.length === 1) return out(removeDependency(root, args[0]));
+    if (action === 'remove' && args.length === 1) {
+      const removed = removeDependency(root, args[0]);
+      audit(root, 'repos.removed', { name: removed.name });
+      return out(removed);
+    }
     throw new Error('Use repos add <name> <url> [--ref REF], repos list, repos pull [name], or repos remove <name>');
   }
   if (cmd === 'deps') {

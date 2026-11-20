@@ -5,6 +5,7 @@ import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, rmSync, sy
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { addDependency, listDependencies, pullDependencies, removeDependency, validateDependencies } from '../core/tools/dependencies.mjs';
+import { utimesSync } from 'node:fs';
 
 function temp(t) {
   const dir = mkdtempSync(join(tmpdir(), 'aidlc-deps-'));
@@ -65,6 +66,7 @@ test('dirty checkouts, divergent updates, and clone errors preserve content and 
   assert.equal(dirty[0].ok, false); assert.match(dirty[0].error, /dirty/);
   assert.equal(readFileSync(join(checkout, 'content.txt'), 'utf8'), 'local edit\n');
   writeFileSync(join(checkout, 'content.txt'), 'one\n');
+  git(checkout, 'config', 'user.email', 'test@example.invalid'); git(checkout, 'config', 'user.name', 'Test');
   const localCommit = commit(checkout, 'local');
   commit(repo.work, 'remote'); git(repo.work, 'push', '-q', repo.bare, 'main');
   const divergence = pullDependencies(root, 'repo');
@@ -92,7 +94,9 @@ test('rejects unsafe names, URLs, refs, and symlink-managed paths', (t) => {
   for (const url of ['relative.git', 'https://user:secret@example.invalid/repo', 'file:///etc/passwd', 'ext::sh -c nope']) assert.throws(() => addDependency(root, 'repo', url), /Invalid repository URL/);
   assert.throws(() => addDependency(root, 'repo', repo.bare, 'refs/heads/../main'), /Invalid dependency ref/);
   const outside = join(root, 'outside'); mkdirSync(outside);
-  const linked = join(root, 'linked'); symlinkSync(outside, linked);
+  const linked = join(root, 'linked');
+  try { symlinkSync(outside, linked); }
+  catch (error) { if (error.code === 'EPERM' && process.platform === 'win32') return; throw error; }
   assert.throws(() => addDependency(linked, 'repo', repo.bare), /symlink/);
   const stateRoot = temp(t), externalRepos = join(stateRoot, 'outside-repos'); mkdirSync(externalRepos);
   mkdirSync(join(stateRoot, '.aidlc')); symlinkSync(externalRepos, join(stateRoot, '.aidlc/repos'));
@@ -127,9 +131,64 @@ test('checkout config and inherited Git config cannot execute commands', (t) => 
   assert.equal(existsSync(marker), false);
 });
 
+test('removeDependency drops the lock-file entry', (t) => {
+  const root = temp(t), repo = fixture(root);
+  addDependency(root, 'repo', repo.bare);
+  assert.equal(pullDependencies(root, 'repo')[0].ok, true);
+  removeDependency(root, 'repo');
+  const lock = JSON.parse(readFileSync(join(root, '.aidlc/deps-lock.json'), 'utf8'));
+  assert.equal(lock.repos.repo, undefined);
+});
+
+test('a stale lock with a dead pid is recovered', (t) => {
+  const root = temp(t), repo = fixture(root);
+  const child = spawnSync(process.execPath, ['-e', 'process.exit(0)'], { encoding: 'utf8' });
+  mkdirSync(join(root, '.aidlc'), { recursive: true });
+  writeFileSync(join(root, '.aidlc/deps.lock'), `${JSON.stringify({ pid: child.pid || 1, at: new Date().toISOString() })}\n`);
+  addDependency(root, 'repo', repo.bare);
+  assert.equal(existsSync(join(root, '.aidlc/deps.lock')), false);
+});
+
+test('an unreadable old lock is recovered', (t) => {
+  const root = temp(t), repo = fixture(root);
+  mkdirSync(join(root, '.aidlc'), { recursive: true });
+  const lock = join(root, '.aidlc/deps.lock');
+  writeFileSync(lock, 'not-json');
+  const old = new Date(Date.now() - 120_000);
+  utimesSync(lock, old, old);
+  addDependency(root, 'repo', repo.bare);
+  assert.equal(existsSync(lock), false);
+});
+
+test('a live lock is refused', (t) => {
+  const root = temp(t), repo = fixture(root);
+  mkdirSync(join(root, '.aidlc'), { recursive: true });
+  writeFileSync(join(root, '.aidlc/deps.lock'), `${JSON.stringify({ pid: process.pid, at: new Date().toISOString() })}\n`);
+  assert.throws(() => addDependency(root, 'repo', repo.bare), /locked by process/);
+  assert.equal(existsSync(join(root, '.aidlc/deps.lock')), true);
+});
+
 test('prototype property names are valid dependency names', (t) => {
   const root = temp(t), repo = fixture(root);
   assert.equal(addDependency(root, 'constructor', repo.bare).name, 'constructor');
   assert.equal(pullDependencies(root, 'constructor')[0].ok, true);
   assert.equal(readFileSync(join(root, '.aidlc/repos/constructor/content.txt'), 'utf8'), 'one\n');
+});
+
+test('ref-less dependency stays on the remote default branch when other branches exist', (t) => {
+  const root = temp(t), repo = fixture(root);
+  git(repo.work, 'checkout', '-q', '-b', 'a-feature');
+  commit(repo.work, 'feature'); git(repo.work, 'push', '-q', repo.bare, 'a-feature');
+  git(repo.work, 'checkout', '-q', '--orphan', 'aa-orphan');
+  commit(repo.work, 'orphan'); git(repo.work, 'push', '-q', repo.bare, 'aa-orphan');
+  git(repo.work, 'checkout', '-q', 'main');
+  addDependency(root, 'repo', repo.bare);
+  const first = pullDependencies(root, 'repo')[0];
+  assert.equal(first.commit, repo.first);
+  const second = pullDependencies(root, 'repo')[0];
+  assert.equal(second.ok, true);
+  assert.equal(second.commit, repo.first);
+  assert.equal(readFileSync(join(root, '.aidlc/repos/repo/content.txt'), 'utf8'), 'one\n');
+  const next = commit(repo.work, 'two'); git(repo.work, 'push', '-q', repo.bare, 'main');
+  assert.equal(pullDependencies(root, 'repo')[0].commit, next);
 });

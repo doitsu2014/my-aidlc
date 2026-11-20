@@ -22,6 +22,7 @@ Use a stronger model when consequences or ambiguity are unusually high.
 - Evidence log
 - Risk register
 - Open questions
+- Quality requirements, using [the quality-requirements template](../templates/quality-requirements.md)
 - Codebase map, only when the directive marks it required and it does not exist (`.aidlc/knowledge/_codebase-map.md`, using [the codebase-map template](../templates/codebase-map.md))
 
 ## Must not

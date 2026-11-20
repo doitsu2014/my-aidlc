@@ -7,7 +7,7 @@ Use this for the Ideate output `architecture-design`. Follow the arc42 structure
 
 ## 1. Introduction and goals
 - Purpose:
-- Quality goals:
+- Quality goals: see quality-requirements.md
 - Stakeholders:
 
 ## 2. Constraints
@@ -38,7 +38,7 @@ Use this for the Ideate output `architecture-design`. Follow the arc42 structure
 - Runtime nodes:
 
 ## 8. Cross-cutting concepts
-- Security:
+- Security: see threat-model.md
 - Data:
 - Observability:
 
@@ -46,6 +46,7 @@ Use this for the Ideate output `architecture-design`. Follow the arc42 structure
 - ADR-001 <title> — <proposed | accepted | superseded> — see decision-record.md
 
 ## 10. Quality requirements
+- See quality-requirements.md
 - Scenario:
 - Measure:
 

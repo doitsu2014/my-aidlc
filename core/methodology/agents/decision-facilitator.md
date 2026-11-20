@@ -20,6 +20,7 @@ Present a reasoned recommendation and make the human decision, scope boundary, a
 - Decision record
 - Scope boundary
 - Architecture design, using [the architecture-design template](../templates/architecture-design.md)
+- Threat model, using [the threat-model template](../templates/threat-model.md)
 
 ## Must not
 

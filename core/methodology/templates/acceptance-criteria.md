@@ -9,6 +9,7 @@ Use this for the Analyze output `acceptance-criteria`. Write each criterion in G
 - Statement: The system shall <observable outcome>.
 - Rationale: <why this matters>
 - Source: <stakeholder or evidence>
+- Story: <US identifier>
 
 ### Scenario: <main success>
 - Given <precondition>

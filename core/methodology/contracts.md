@@ -44,7 +44,7 @@ Acceptance criteria should be observable and tied to the user's intended outcome
 
 ## Change and scope contract
 
-The selected scope is the ordered phase list in the graph. Do not silently skip an included phase or extend into an excluded phase. If work in the current scope reveals a need for additional coverage, describe the reason, consequence, and proposed scope change; obtain the owner's decision before changing the plan. Preserve a record of important changes to requirements, scope, risks, contracts, and decisions.
+The selected scope is the ordered phase list in the graph. Depth is a named reduction of that list. Do not silently skip an included phase or extend into an excluded phase. If work in the current scope reveals a need for additional coverage, describe the reason, consequence, and proposed scope change; obtain the owner's decision before changing the plan. Preserve a record of important changes to requirements, scope, risks, contracts, and decisions. Approvals are attributable to the named project owner or a delegated approver recorded in `.aidlc/config.json` roles; identity is self-asserted (a flag or the git user name) and is not proof. The conductor never supplies a name.
 
 ## Data and recordkeeping contract
 

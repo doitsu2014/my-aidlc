@@ -2,6 +2,22 @@
 
 2026-11-20 · baseline commit bf678a8 · 59 tasks in 5 milestones
 
+## Implementation status
+
+As of 2026-11-20 (branch feat/aidlc-enhancement, package version 0.4.0, milestone 4 uncommitted on top of HEAD 8d923ff): 48 of 59 tasks are implemented; 11 remain.
+
+| Milestone | Release | State | Tasks |
+|---|---|---|---|
+| 1 — The engine holds | 0.1.3 | Done | ENG-01, HRN-08, ENG-02, ENG-03, ENG-05, ENG-06, ENG-07, HRN-25, ENG-08, ENG-09, ENG-10 |
+| 2 — Knowledge loop and refreshable skills | 0.2.0 | Done | HRN-01, HRN-02, HRN-03, HRN-05, HRN-04, HRN-24, HRN-15, KNW-01, KNW-03, KNW-04, KNW-02, KNW-05, KNW-06, KNW-07, KNW-08, KNW-09, ENG-04, HRN-09, HRN-10, HRN-11 |
+| 3 — Brownfield onboarding | 0.3.0 | Done | HRN-06, BRN-01, BRN-02, BRN-06, BRN-03, BRN-04, BRN-05, BRN-07, BRN-08, HRN-26, BRN-09, BRN-10 |
+| 4 — Distribution and documentation accuracy | 0.4.0 | Done | HRN-07, ENG-11, HRN-12, HRN-14, HRN-16 |
+| 5 — Polish and methodology backlog | 0.5.0 | In progress | ENG-12, ENG-13, BRN-11, HRN-13, HRN-18–23 done; HRN-17 remains (open decision) |
+
+**Remaining work, in order:** milestone 5 only: ENG-12, ENG-13, BRN-11, HRN-13, HRN-17, HRN-18, HRN-19, HRN-21, HRN-20, HRN-22, HRN-23 (all in milestone 5).
+
+Verification notes: milestones 1–3 are marked done from the commit history, CHANGELOG.md (0.1.3, 0.3.0) and the files now in the repo. The per-task acceptance checkboxes below were not re-run one by one, so they stay unticked. Milestone 4 was implemented afterwards (package version 0.4.0): the installer was verified by hand in a POSIX shell, and tests/installer.test.mjs is skipped on win32 unless RUN_INSTALLER_TESTS is set. The methodology README on disk differed from the plan's description (no kickoff sections), so HRN-14 edits were made against the actual text. For milestone 5 none of the planned artifacts exist yet (no tests/scopes-e2e.test.mjs, install.ps1 upgrade/uninstall, or codebase-map enforcement in the CLI). The file plans/aidlc-enhancement-plan.html was removed; this file is the only copy.
+
 ## Design decisions
 
 - **D1 Project knowledge is a human-written PROJECT.md.** Conventions, domain rules, architecture notes and glossary live in PROJECT.md at the project root. onboard and init create it from a template only when it is absent. The tool never overwrites it.
@@ -169,6 +185,7 @@ A user can run one intent after another in the same project. A phase gate cannot
 - Effort: M (up to two days)
 - Workstream: ENG — Engine integrity
 - Milestone: 1
+- Status: Done (implemented, 0.1.3; commits up to 8d923ff)
 
 **Problem today**
 
@@ -225,6 +242,7 @@ Scripts or agents that passed options which were silently ignored now fail; that
 - Effort: S (under half a day)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 1
+- Status: Done (implemented, 0.1.3; commits up to 8d923ff)
 
 **Problem today**
 
@@ -266,6 +284,7 @@ The guard parses the help layout (command lines indented by exactly two spaces, 
 - Effort: L (more than two days)
 - Workstream: ENG — Engine integrity
 - Milestone: 1
+- Status: Done (implemented, 0.1.3; commits up to 8d923ff)
 
 **Problem today**
 
@@ -322,6 +341,7 @@ A migration bug could lose progress; mitigated by validating before migrating, b
 - Effort: M (up to two days)
 - Workstream: ENG — Engine integrity
 - Milestone: 1
+- Status: Done (implemented, 0.1.3; commits up to 8d923ff)
 
 **Problem today**
 
@@ -375,6 +395,7 @@ Only one intent is active per checkout; working on two at once means pause and r
 - Effort: M (up to two days)
 - Workstream: ENG — Engine integrity
 - Milestone: 1
+- Status: Done (implemented, 0.1.3; commits up to 8d923ff)
 
 **Problem today**
 
@@ -419,6 +440,7 @@ A conductor that read approvalRequiredAfter literally now sees the phase's final
 - Effort: S (under half a day)
 - Workstream: ENG — Engine integrity
 - Milestone: 1
+- Status: Done (implemented, 0.1.3; commits up to 8d923ff)
 
 **Problem today**
 
@@ -466,6 +488,7 @@ Scripts that relied on 'orchestrate next --intent' creating .aidlc implicitly no
 - Effort: M (up to two days)
 - Workstream: ENG — Engine integrity
 - Milestone: 1
+- Status: Done (implemented, 0.1.3; commits up to 8d923ff)
 
 **Problem today**
 
@@ -511,6 +534,7 @@ A conductor that reported blocked or skipped without --detail is now refused; bo
 - Effort: S (under half a day)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 1
+- Status: Done (implemented, 0.1.3; commits up to 8d923ff)
 
 **Problem today**
 
@@ -551,6 +575,7 @@ Harmless at the moment it is done, because no released version has stored a gate
 - Effort: M (up to two days)
 - Workstream: ENG — Engine integrity
 - Milestone: 1
+- Status: Done (implemented, 0.1.3; commits up to 8d923ff)
 
 **Problem today**
 
@@ -602,6 +627,7 @@ The approval is still a flag passed by whoever runs the CLI, which may be the AI
 - Effort: L (more than two days)
 - Workstream: ENG — Engine integrity
 - Milestone: 1
+- Status: Done (implemented, 0.1.3; commits up to 8d923ff)
 
 **Problem today**
 
@@ -666,6 +692,7 @@ Already-projected SKILL.md files tell the conductor to use 'one clearly named fi
 - Effort: M (up to two days)
 - Workstream: ENG — Engine integrity
 - Milestone: 1
+- Status: Done (implemented, 0.1.3; commits up to 8d923ff)
 
 **Problem today**
 
@@ -735,6 +762,7 @@ A team writes its standing rules in PROJECT.md and registers documents in aidlc.
 - Effort: S (under half a day)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -787,6 +815,7 @@ Projects onboarded with 0.1.x keep a manifest.mjs in the skill folder; it is har
 - Effort: M (up to two days)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -842,6 +871,7 @@ Until HRN-03 adds the history table, a file that differs from the engine in an u
 - Effort: M (up to two days)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -899,6 +929,7 @@ Deleting files in a user's repository is the sensitive part: deletion is per fil
 - Effort: S (under half a day)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -954,6 +985,7 @@ Someone may have been reading the project copy by hand; the refresh keeps any fi
 - Effort: S (under half a day)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1000,6 +1032,7 @@ In test and CI runs the CLI is usually not on PATH, so the warn row appears ther
 - Effort: S (under half a day)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1044,6 +1077,7 @@ A conductor running a 0.1.x SKILL.md is not told to read `warnings` (it is told 
 - Effort: S (under half a day)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1092,6 +1126,7 @@ These files are served to conductors straight from the engine, so the correction
 - Effort: M (up to two days)
 - Workstream: KNW — Knowledge model
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1169,6 +1204,7 @@ The directory listing runs on every 'knowledge sources' call and, after KNW-05, 
 - Effort: M (up to two days)
 - Workstream: KNW — Knowledge model
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1240,6 +1276,7 @@ The line-based frontmatter parser is not a YAML parser: multi-line values and ne
 - Effort: M (up to two days)
 - Workstream: KNW — Knowledge model
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1318,6 +1355,7 @@ A methodology fork selected with DTECH_AIDLC_HOME that still has a 1.1.0 graph s
 - Effort: S (under half a day)
 - Workstream: KNW — Knowledge model
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1388,6 +1426,7 @@ init and onboard now create one file at the project root (PROJECT.md), which is 
 - Effort: M (up to two days)
 - Workstream: KNW — Knowledge model
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1463,6 +1502,7 @@ In main() of core/tools/dtech-aidlc.mjs, in the dispatch of 'orchestrate next', 
 - Effort: M (up to two days)
 - Workstream: KNW — Knowledge model
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1547,6 +1587,7 @@ The strict phases-run equality can surprise an agent that writes the list by han
 - Effort: M (up to two days)
 - Workstream: KNW — Knowledge model
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1650,6 +1691,7 @@ Prose changes reach every existing project immediately, because directives point
 - Effort: S (under half a day)
 - Workstream: KNW — Knowledge model
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1707,6 +1749,7 @@ The rule that an agent may apply an owner-approved edit to PROJECT.md relies on 
 - Effort: M (up to two days)
 - Workstream: KNW — Knowledge model
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1776,6 +1819,7 @@ The allow-list makes everything new under .aidlc/ local by default; a future fea
 - Effort: M (up to two days)
 - Workstream: ENG — Engine integrity
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1823,6 +1867,7 @@ Ids for texts in non-Latin scripts are not readable; the title column of 'intent
 - Effort: S (under half a day)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1871,6 +1916,7 @@ The parity test constrains future edits to both files at once; that is the inten
 - Effort: M (up to two days)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -1932,6 +1978,7 @@ Every sentence names a CLI field or option, so tests/skill-contract.test.mjs is 
 - Effort: S (under half a day)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 2
+- Status: Done (implemented, 0.2.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -2003,6 +2050,7 @@ Running onboard in an existing project registers the documentation that is alrea
 - Effort: M (up to two days)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 3
+- Status: Done (implemented, 0.3.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -2063,6 +2111,7 @@ Scripts that relied on the claude default break with a clear message; this is a 
 - Effort: M (up to two days)
 - Workstream: BRN — Brownfield onboarding
 - Milestone: 3
+- Status: Done (implemented, 0.3.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -2132,6 +2181,7 @@ A first-party folder named `vendor`, `out`, `obj`, `target` or `third_party` is 
 - Effort: M (up to two days)
 - Workstream: BRN — Brownfield onboarding
 - Milestone: 3
+- Status: Done (implemented, 0.3.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -2206,6 +2256,7 @@ Anyone scripting against the `brd` key of `onboard` output or of the profile los
 - Effort: S (under half a day)
 - Workstream: BRN — Brownfield onboarding
 - Milestone: 3
+- Status: Done (implemented, 0.3.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -2257,6 +2308,7 @@ Kotlin files change from `java` to `kotlin` in the profile; nothing reads the la
 - Effort: M (up to two days)
 - Workstream: BRN — Brownfield onboarding
 - Milestone: 3
+- Status: Done (implemented, 0.3.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -2344,6 +2396,7 @@ The init/onboard branch is edited by eleven tasks; merge this task after HRN-06,
 - Effort: S (under half a day)
 - Workstream: BRN — Brownfield onboarding
 - Milestone: 3
+- Status: Done (implemented, 0.3.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -2390,6 +2443,7 @@ Delete the early return that lets `init` stop before the registration and scan s
 - Effort: M (up to two days)
 - Workstream: BRN — Brownfield onboarding
 - Milestone: 3
+- Status: Done (implemented, 0.3.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -2488,6 +2542,7 @@ Nothing records what the registered documents looked like when they were registe
 - Effort: M (up to two days)
 - Workstream: BRN — Brownfield onboarding
 - Milestone: 3
+- Status: Done (implemented, 0.3.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -2562,6 +2617,7 @@ The first intent on an existing project has a heavier context-and-risk stage; th
 - Effort: S (under half a day)
 - Workstream: BRN — Brownfield onboarding
 - Milestone: 3
+- Status: Done (implemented, 0.3.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -2630,6 +2686,7 @@ Prose cannot be enforced by the tool; the evidence-log row rule at least makes s
 - Effort: S (under half a day)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 3
+- Status: Done (implemented, 0.3.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -2670,6 +2727,7 @@ Low: prose only. There is still no template for the decision record itself (list
 - Effort: S (under half a day)
 - Workstream: BRN — Brownfield onboarding
 - Milestone: 3
+- Status: Done (implemented, 0.3.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -2734,6 +2792,7 @@ An intent that is in the middle of build-and-verify when the engine is upgraded 
 - Effort: S (under half a day)
 - Workstream: BRN — Brownfield onboarding
 - Milestone: 3
+- Status: Done (implemented, 0.3.0; commits up to 8d923ff)
 
 **Problem today**
 
@@ -2815,6 +2874,7 @@ The installer can upgrade and uninstall in place and its launcher fails with one
 - Effort: S (under half a day)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 4
+- Status: Done (implemented, 0.4.0)
 
 **Problem today**
 
@@ -2871,6 +2931,7 @@ A DeepSeek user who wants to record their own model names gets a refusal, not a 
 - Effort: S (under half a day)
 - Workstream: ENG — Engine integrity
 - Milestone: 4
+- Status: Done (implemented, 0.4.0)
 
 **Problem today**
 
@@ -2910,6 +2971,7 @@ A remote without a resolvable HEAD (an empty repository) now fails at fetch with
 - Effort: M (up to two days)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 4
+- Status: Done (implemented, 0.4.0)
 
 **Problem today**
 
@@ -2972,6 +3034,7 @@ readlink is not in POSIX but exists on macOS, Linux and BusyBox; the loop body r
 - Effort: M (up to two days)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 4
+- Status: Done (implemented, 0.4.0)
 
 **Problem today**
 
@@ -3019,6 +3082,7 @@ Rule (c) is a simple pattern and may flag an innocent sentence later; its messag
 - Effort: S (under half a day)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 4
+- Status: Done (implemented, 0.4.0)
 
 **Problem today**
 
@@ -3100,6 +3164,7 @@ Remaining priority-2 work, each task releasable on its own: dependency repositor
 - Effort: M (up to two days)
 - Workstream: ENG — Engine integrity
 - Milestone: 5
+- Status: Remaining (not started)
 
 **Problem today**
 
@@ -3146,6 +3211,7 @@ Remaining priority-2 work, each task releasable on its own: dependency repositor
 - Effort: M (up to two days)
 - Workstream: ENG — Engine integrity
 - Milestone: 5
+- Status: Remaining (not started)
 
 **Problem today**
 
@@ -3200,6 +3266,7 @@ Removing exports can break another workstream's branch that started using one of
 - Effort: S (under half a day)
 - Workstream: BRN — Brownfield onboarding
 - Milestone: 5
+- Status: Remaining (not started)
 
 **Problem today**
 
@@ -3258,6 +3325,7 @@ An intent that is in context-and-risk when a brownfield project is first scanned
 - Effort: M (up to two days)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 5
+- Status: Remaining (not started)
 
 **Problem today**
 
@@ -3302,6 +3370,7 @@ The review could only verify file layout under pwsh on macOS; real Windows behav
 - Effort: S (under half a day)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 5
+- Status: Remaining (not started)
 
 **Problem today**
 
@@ -3352,6 +3421,7 @@ DeepSeek users must type a new command after refreshing. The rename in bf678a8 t
 - Effort: M (up to two days)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 5
+- Status: Remaining (not started)
 
 **Problem today**
 
@@ -3405,6 +3475,7 @@ More required output per intent; HRN-21 (adaptive depth) is what keeps small cha
 - Effort: M (up to two days)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 5
+- Status: Remaining (not started)
 
 **Problem today**
 
@@ -3453,6 +3524,7 @@ Overlap with BRN-09's Develop rules: this task must not restate the instruction 
 - Effort: L (more than two days)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 5
+- Status: Remaining (not started)
 
 **Problem today**
 
@@ -3527,6 +3599,7 @@ This is the largest change to the graph contract; it edits engine code that ENG 
 - Effort: M (up to two days)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 5
+- Status: Remaining (not started)
 
 **Problem today**
 
@@ -3579,6 +3652,7 @@ Heavy for small changes; that is why it is scheduled after adaptive depth.
 - Effort: L (more than two days)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 5
+- Status: Remaining (not started)
 
 **Problem today**
 
@@ -3636,6 +3710,7 @@ Changes the meaning of 'current stage' in the per-intent state; it edits engine 
 - Effort: L (more than two days)
 - Workstream: HRN — Harness, distribution and docs
 - Milestone: 5
+- Status: Remaining (not started)
 
 **Problem today**
 
