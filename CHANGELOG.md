@@ -2,6 +2,10 @@
 
 Each release lists the behaviour changes a user or a script can notice.
 
+## 0.6.1
+
+- Claude harness delegates stages using the configured model preference when available, and uses dynamic workflows for each lifecycle phase included in AI mode while preserving stage ordering, artifact ownership, and approval gates.
+
 ## 0.6.0
 
 - Human gates and material unknowns are presented with direct AskUserQuestion calls: the question names the gate, criteria, and artifacts; options state consequences with the recommendation first and marked `(Recommended)`; `Other` free text is treated as the decision. Skipping a question is never approval.
