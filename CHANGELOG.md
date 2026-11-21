@@ -2,6 +2,10 @@
 
 Each release lists the behaviour changes a user or a script can notice.
 
+## 0.6.2
+
+- Claude stage delegation treats the directive's configured model preference as authoritative over methodology agent-file recommendations and verifies the requested model is passed to the Agent tool.
+
 ## 0.6.1
 
 - Claude harness delegates stages using the configured model preference when available, and uses dynamic workflows for each lifecycle phase included in AI mode while preserving stage ordering, artifact ownership, and approval gates.
