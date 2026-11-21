@@ -31,7 +31,7 @@ flowchart TD
     K -.->|feeds the next intent| Req
 ```
 
-Scope controls which phases run: `solo` runs Analyze → Ideate → Develop → Archived; `team` adds Launch; `enterprise` runs the full chain including Curate. Depth (`full`, `standard`, `fast`) controls how many stages and outputs are required within those phases. Every diamond above is a hard stop: without the owner's explicit approval, the workflow pauses.
+Scope controls which phases run: `solo` runs Analyze → Ideate → Develop → Archived; `team` adds Launch; `enterprise` runs the full chain including Curate. Depth (`full`, `standard`, `fast`) controls how many stages and outputs are required within those phases. Mode (`human` or `ai`) controls who approves the gates: in human mode the owner approves every diamond; in AI orchestrator mode the agent researches each decision, records a `gate-recommendation.md`, and approves as `"AI Orchestrator"`, with every AI approval audited. Every diamond above is a hard stop: without an approval recorded for it, the workflow pauses.
 
 ## Requirements
 
@@ -154,18 +154,20 @@ dtech-aidlc knowledge check
 
 Source kinds include `project`, `docs`, `requirements`, `architecture`, `adr`, `api-spec`, `runbook`, `conventions`, and `readme`. See [guidelines/README.md](guidelines/README.md) for quality, provenance, and safety expectations.
 
-## Scopes, depth, and agent preferences
+## Scopes, depth, mode, and agent preferences
 
 - **Scope** defines lifecycle coverage: `solo`, `team`, or `enterprise`; it does not imply team size, risk rating, compliance status, or authority to act.
 - **Depth** defines rigor: `full`, `standard`, or `fast`. Faster depth omits some stages or outputs; it does not mean omitted risks have been addressed. Record residual concerns and follow-ups.
+- **Mode** defines who approves phase gates: `human` (the owner approves every gate) or `ai` (the AI orchestrator researches each gate, records a `gate-recommendation.md`, and approves as `"AI Orchestrator"`). The default is `human`; it can be overridden per intent.
 - Each methodology agent has a model alias recommendation. It is a preference only; it does not switch the assistant's model or guarantee availability. Claude harness projects may configure supported agent preferences; DeepSeek-only projects do not use Claude model aliases.
 
 ```sh
 dtech-aidlc config scope
 dtech-aidlc config agents
+dtech-aidlc config mode
 ```
 
-Depth can be selected when starting an intent or changed with `dtech-aidlc intent depth`; changing depth requires an approver and rationale. The command help (`dtech-aidlc help`) lists the supported options.
+Depth can be selected when starting an intent or changed with `dtech-aidlc intent depth`; changing depth requires an approver and rationale. Mode can be set with `dtech-aidlc config mode ai|human` or chosen per intent with `orchestrate next --mode`; it cannot change mid-intent. The command help (`dtech-aidlc help`) lists the supported options.
 
 ## Harnesses
 

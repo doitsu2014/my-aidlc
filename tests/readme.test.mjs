@@ -24,8 +24,8 @@ test('every dtech-aidlc command in a README sh block is listed by help', () => {
 
 test('CHANGELOG has a section for each release', () => {
   const changelog = readFileSync(join(repo, 'CHANGELOG.md'), 'utf8');
-  for (const version of ['0.1.3', '0.2.0', '0.3.0', '0.4.0', '0.5.0']) assert.match(changelog, new RegExp(`^## ${version.replaceAll('.', '\.')}$`, 'm'), version);
-  assert.equal(JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8')).version, '0.5.0');
+  for (const version of ['0.1.3', '0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0']) assert.match(changelog, new RegExp(`^## ${version.replaceAll('.', '\.')}$`, 'm'), version);
+  assert.equal(JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8')).version, '0.6.0');
 });
 
 test('the approval record fields in the methodology README match the gate.decided audit row', (t) => {
@@ -33,7 +33,7 @@ test('the approval record fields in the methodology README match the gate.decide
   const sentence = methodology.match(/record at minimum: ([^.]*)\./)?.[1];
   assert.ok(sentence, 'approval sentence not found');
   const fields = sentence.split(',').map((name) => name.trim());
-  assert.deepEqual(fields, ['gate', 'phase', 'stage', 'decision', 'result', 'by', 'bySource', 'at', 'note', 'detail', 'skippedStages', 'artifacts']);
+  assert.deepEqual(fields, ['gate', 'phase', 'stage', 'decision', 'result', 'by', 'bySource', 'mode', 'at', 'note', 'detail', 'skippedStages', 'artifacts']);
   const project = tempProject(t);
   initProject(project);
   json(project, 'orchestrate', 'next', '--intent', 'Approval fields');

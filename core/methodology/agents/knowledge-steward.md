@@ -39,3 +39,5 @@ The curated record can be found from the intent folder, and the closure recommen
 ## Handoff
 
 This stage is the Curate gate. A proposed standing rule goes to the knowledge-archivist; a follow-up that needs work becomes a new intent.
+
+In AI orchestrator mode (`orchestrationMode: "ai"` in the directive), research the closure decision yourself, write `gate-recommendation.md` in this stage's directory, and approve with `--approved-by "AI Orchestrator"` as the [AI orchestrator approval contract](../contracts.md#ai-orchestrator-approval-contract) requires.

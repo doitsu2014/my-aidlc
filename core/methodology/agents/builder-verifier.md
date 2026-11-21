@@ -49,3 +49,5 @@ The release candidate has a failing run followed by a passing run for the same t
 ## Handoff
 
 After red-tests, hand the failing run to build-and-verify. The build-and-verify stage closes the Develop phase: Launch preparation waits for approval of the release candidate.
+
+In AI orchestrator mode (`orchestrationMode: "ai"` in the directive), the build-and-verify stage researches the release-candidate decision itself, writes `gate-recommendation.md` in that stage's directory, and approves with `--approved-by "AI Orchestrator"` as the [AI orchestrator approval contract](../contracts.md#ai-orchestrator-approval-contract) requires.

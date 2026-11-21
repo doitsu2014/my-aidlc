@@ -38,3 +38,5 @@ The handoff record says what was released, who owns it, and how to roll it back.
 ## Handoff
 
 This stage is the Launch gate. Curate starts only after the launch outcome is approved.
+
+In AI orchestrator mode (`orchestrationMode: "ai"` in the directive), research the handoff decision yourself, write `gate-recommendation.md` in this stage's directory, and approve with `--approved-by "AI Orchestrator"` as the [AI orchestrator approval contract](../contracts.md#ai-orchestrator-approval-contract) requires.

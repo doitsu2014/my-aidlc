@@ -1,10 +1,11 @@
 #compdef dtech-aidlc
 
 _dtech-aidlc() {
-  local -a scopes harnesses models agents results
+  local -a scopes harnesses models modes agents results
   scopes=(solo team enterprise)
   harnesses=(claude deepseek)
   models=(opus sonnet haiku fable)
+  modes=(human ai)
   agents=(
     brief-analyst context-risk-analyst
     solution-explorer decision-facilitator
@@ -91,7 +92,7 @@ _dtech-aidlc() {
             action) _values 'action' next report ;;
             rest)
               case ${words[1]} in
-                next) _arguments '--intent[Intent text]:intent:' '--scope[Workflow scope]:scope:(solo team enterprise)' '--depth[Depth]:depth:(full standard fast)' '--approved-by[Approver]:name:' '--detail[Reason]:detail:' ;;
+                next) _arguments '--intent[Intent text]:intent:' '--scope[Workflow scope]:scope:(solo team enterprise)' '--depth[Depth]:depth:(full standard fast)' '--mode[Orchestration mode]:mode:(human ai)' '--approved-by[Approver]:name:' '--detail[Reason]:detail:' ;;
                 report)
                   _arguments \
                     '--stage[Stage identifier]:stage:' \
@@ -107,7 +108,11 @@ _dtech-aidlc() {
           _arguments -C '1:action:(add status refresh)' '--dry-run[Show planned changes]' '--force[Back up and replace edited files]' '1:name:(claude deepseek)'
           ;;
         config)
-          _arguments -C '1:section:(agents scope)' '2:action:->action' '*::arg:->rest'
+          _arguments -C '1:section:(agents scope mode)' '2:action:->action' '*::arg:->rest'
+          case ${words[1]} in
+            mode) _arguments '1:mode:(human ai)' ;;
+            scope) _arguments '1:scope:(solo team enterprise)' ;;
+          esac
           case ${words[2]} in
             set) _arguments '1:agent:(brief-analyst context-risk-analyst solution-explorer decision-facilitator implementation-planner builder-verifier release-coordinator operations-handoff outcome-curator knowledge-steward record-keeper knowledge-archivist)' '2:model:(opus sonnet haiku fable)' ;;
             reset) _arguments '1:agent:(brief-analyst context-risk-analyst solution-explorer decision-facilitator implementation-planner builder-verifier release-coordinator operations-handoff outcome-curator knowledge-steward record-keeper knowledge-archivist)' ;;

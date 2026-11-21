@@ -37,3 +37,5 @@ The knowledge record is specific enough for the next intent to start, and the pr
 ## Handoff
 
 This stage is the Archived gate. After approval, the intent is complete and the knowledge house holds the write-back.
+
+In AI orchestrator mode (`orchestrationMode: "ai"` in the directive), research the write-back decision yourself, write `gate-recommendation.md` in this stage's directory, and approve with `--approved-by "AI Orchestrator"` as the [AI orchestrator approval contract](../contracts.md#ai-orchestrator-approval-contract) requires.

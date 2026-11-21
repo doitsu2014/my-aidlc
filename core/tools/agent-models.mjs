@@ -1,7 +1,7 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { configPath, configuredHarnesses, loadHarnessManifest, MODEL_ALIASES, stateDir } from './lib.mjs';
-export { MODEL_ALIASES };
+import { configPath, configuredHarnesses, loadHarnessManifest, MODEL_ALIASES, ORCHESTRATION_MODES, stateDir } from './lib.mjs';
+export { MODEL_ALIASES, ORCHESTRATION_MODES };
 
 export function aliasChoices() { return `choose ${MODEL_ALIASES.slice(0, -1).join(', ')}, or ${MODEL_ALIASES.at(-1)}`; }
 // True when the project has no valid config, or when a configured harness supports model aliases.
@@ -12,6 +12,11 @@ export function aliasesSupported(config) {
 }
 function pathExists(path) { try { lstatSync(path); return true; } catch (error) { if (error.code === 'ENOENT') return false; throw error; } }
 
+export function validateMode(mode) {
+  if (!ORCHESTRATION_MODES.includes(mode)) throw new Error(`mode must be ${ORCHESTRATION_MODES.join(' or ')}`);
+  return mode;
+}
+
 export function validateModelConfig(root, graph) {
   const dir = stateDir(root), path = configPath(root);
   if (pathExists(dir) && lstatSync(dir).isSymbolicLink()) throw new Error('Refusing to access symlink .aidlc directory');
@@ -20,6 +25,7 @@ export function validateModelConfig(root, graph) {
   let config;
   try { config = JSON.parse(readFileSync(path, 'utf8')); } catch { throw new Error('Invalid project configuration JSON'); }
   if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error('Invalid project configuration: expected an object');
+  if (config.mode !== undefined) validateMode(config.mode);
   if (config.agentModels !== undefined) {
     if (!config.agentModels || typeof config.agentModels !== 'object' || Array.isArray(config.agentModels)) throw new Error('Invalid agentModels: expected an object mapping agent IDs to model aliases');
     const ids = new Set(graph.agents.map(agent => agent.id));

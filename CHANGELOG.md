@@ -2,6 +2,10 @@
 
 Each release lists the behaviour changes a user or a script can notice.
 
+## 0.6.0
+
+- Intents run in an orchestration mode: `human` (default, the owner approves every phase gate) or `ai` (the AI orchestrator researches each gate, records a `gate-recommendation.md`, and approves as `"AI Orchestrator"`). Set the project default with `dtech-aidlc config mode ai|human`; override per intent with `orchestrate next --mode`. Directives carry `mode` and `orchestrationMode`; `intent list` and `status` show the mode; the `gate.decided` audit row and `state.gates` record `mode` alongside the approver. The CLI rejects human approver names in AI mode, rejects `"AI Orchestrator"` in human mode, and refuses AI gate approval without a non-empty `gate-recommendation.md`.
+
 ## 0.5.0
 
 - Analyze produces user stories; Develop produces a test strategy and work units; Analyze and Ideate produce quality requirements and a threat model.

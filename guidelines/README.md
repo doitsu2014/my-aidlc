@@ -57,6 +57,7 @@ Scope and depth are different choices:
 
 - **Scope** determines which phases run: `solo`, `team`, or `enterprise`.
 - **Depth** determines which stages and outputs are required within that scope: `full`, `standard`, or `fast`.
+- **Mode** determines who approves phase gates: `human` (default — the owner approves every gate) or `ai` (the AI orchestrator researches and approves gates with a traced `gate-recommendation.md`, audited as `by: "AI Orchestrator"`).
 
 Ask the owner to choose them when they are not configured or stated. Never infer them from organization size, a request sounding easy, or the assistant's preference. A reduced scope or depth is not evidence that omitted concerns were handled. Surface residual risks or follow-up work for the owner to decide.
 
@@ -65,6 +66,7 @@ The CLI can show the scope stages and depth definitions:
 ```sh
 dtech-aidlc scope
 dtech-aidlc scope solo --depth fast
+dtech-aidlc config mode
 ```
 
 The exact phase and stage contracts are in the installed engine's methodology and the directive returned by the CLI.
@@ -141,8 +143,8 @@ Run every command from the project root. Add `--project DIR` to target a differe
 
 ### Workflow engine (assistant-driven)
 
-- `dtech-aidlc orchestrate next [--intent TEXT] [--intent-file PATH|-] [--description TEXT] [--scope NAME] [--depth NAME] [--approved-by NAME] [--detail TEXT]` — get the next directive. Starting a new intent requires `--intent`, `--intent-file`, or stdin (`-`); prefer `--intent-file .aidlc/request.md` to avoid shell quoting. Continuing an intent takes no intent argument. The assistant owns these calls; the owner never needs to run them directly.
-- `dtech-aidlc orchestrate report --result complete|blocked|skipped [--stage ID] [--detail TEXT] [--approval approved --approved-by NAME [--approval-note TEXT]]` — report the current stage. `--stage` defaults to the current stage; pass it explicitly when in doubt. A phase's final stage is a gate: it requires `--approval approved --approved-by "<approver>"` after the owner's explicit approval, and the assistant must never supply the approver name itself. `blocked` with `--detail` pauses for owner input; `skipped` with `--detail` records why a stage was legitimately unnecessary.
+- `dtech-aidlc orchestrate next [--intent TEXT] [--intent-file PATH|-] [--description TEXT] [--scope NAME] [--depth NAME] [--mode ai|human] [--approved-by NAME] [--detail TEXT]` — get the next directive. Starting a new intent requires `--intent`, `--intent-file`, or stdin (`-`); prefer `--intent-file .aidlc/request.md` to avoid shell quoting. Continuing an intent takes no intent argument. `--mode` overrides the configured default for the new intent; like scope and depth, it is fixed once the intent starts. The assistant owns these calls; the owner never needs to run them directly.
+- `dtech-aidlc orchestrate report --result complete|blocked|skipped [--stage ID] [--detail TEXT] [--approval approved --approved-by NAME [--approval-note TEXT]]` — report the current stage. `--stage` defaults to the current stage; pass it explicitly when in doubt. A phase's final stage is a gate: in human mode it requires `--approval approved --approved-by "<approver>"` after the owner's explicit approval, and the assistant must never supply the approver name itself. In AI mode the agent approves with `--approved-by "AI Orchestrator"` only after writing its `gate-recommendation.md`; the CLI rejects human names in AI mode and rejects the AI name in human mode. `blocked` with `--detail` pauses for owner input; `skipped` with `--detail` records why a stage was legitimately unnecessary.
 
 ### Intent management (owner decisions, assistant executes)
 
@@ -156,6 +158,7 @@ Run every command from the project root. Add `--project DIR` to target a differe
 ### Configuration
 
 - `dtech-aidlc config scope [NAME]` — show the default scope for new intents, or set it by naming one. Owner decision.
+- `dtech-aidlc config mode [ai|human]` — show the default orchestration mode for new intents, or set it. `human` pauses every gate for owner approval; `ai` lets the agent approve gates after research, audited as `"AI Orchestrator"`. Owner decision; override per intent with `orchestrate next --mode`.
 - `dtech-aidlc config agents` — list the effective agent-to-model preferences.
 - `dtech-aidlc config agents set <agent-id> <opus|sonnet|haiku|fable>` — set a model preference (Claude harness projects only). This is a preference, not a model switch and never a grant of authority; use only models the environment actually provides.
 - `dtech-aidlc config agents reset <agent-id>` — clear an override back to the graph default.
@@ -204,7 +207,7 @@ What happens, step by step:
 1. **First run in a project.** If `.aidlc/config.json` does not exist, the assistant asks which scope to use (`solo`, `team`, or `enterprise`) and runs `dtech-aidlc onboard --harness claude --scope <scope>` for you. Answer the scope question; do not reset existing state.
 2. **Starting work.** Your text after `/dtech-aidlc` is the request verbatim — it is saved to `.aidlc/request.md` and passed via `orchestrate next --intent-file`. Write the outcome you want, not CLI flags. The assistant proposes an intent depth (`full`, `standard`, or `fast`); confirm one before work starts.
 3. **Stage execution.** The assistant reads the directive's phase, agent, and contract files, produces each artifact at its declared path, verifies it, and shows you the artifact paths plus a concise summary. If something material is missing, it stops and asks rather than inventing a result.
-4. **Phase gates.** After each phase's final stage, the assistant presents the exit criteria, artifacts, evidence, and limitations, then waits. Reply with an explicit approval ("approved — <your name>") or with requested changes. Silence, a checkmark, or tool success is not approval; the assistant reports the gate with your name only after you say so.
+4. **Phase gates.** In human mode (the default), after each phase's final stage the assistant presents the exit criteria, artifacts, evidence, and limitations, then waits. Reply with an explicit approval ("approved — <your name>") or with requested changes. Silence, a checkmark, or tool success is not approval; the assistant reports the gate with your name only after you say so. In AI orchestrator mode, the assistant instead researches the decision, writes its `gate-recommendation.md`, and approves as `"AI Orchestrator"` — you review the recommendation artifact and the audit trail rather than approving each gate live. Ask the assistant which mode the intent uses (`dtech-aidlc status` shows it); set the project default with `dtech-aidlc config mode ai|human`.
 5. **Continuing.** Just invoke `/dtech-aidlc` again (or keep talking in the session) and the assistant fetches the next directive with bare `orchestrate next`. To switch requests, give a new `/dtech-aidlc <new request>`; the assistant replaces the request file rather than piling a second intent on top.
 6. **Done.** When the CLI returns `complete: true`, the assistant says so and stops. A release-candidate approval is not deployment authorization — deployment, notifications, destructive changes, and access changes each need their own explicit go-ahead.
 

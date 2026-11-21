@@ -152,6 +152,14 @@ export function readGraph() {
   return graph;
 }
 export const MODEL_ALIASES = Object.freeze(['opus', 'sonnet', 'haiku', 'fable']);
+export const ORCHESTRATION_MODES = Object.freeze(['human', 'ai']);
+export function resolveMode(config, flag = null) {
+  const mode = flag ?? config?.mode ?? 'human';
+  if (!ORCHESTRATION_MODES.includes(mode)) {
+    throw new Error(`Unknown mode '${mode}'. Known modes: ${ORCHESTRATION_MODES.join(', ')}`);
+  }
+  return mode;
+}
 export function loadConfig(root) { return readJson(configPath(root), {}); }
 export function listHarnesses() {
   const dir = join(repoRoot(), 'harness');

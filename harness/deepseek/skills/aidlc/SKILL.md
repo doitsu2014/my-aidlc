@@ -43,6 +43,18 @@ For a phase gate, report `complete` with `--approval approved --approved-by "<ap
 
 After reporting, run `dtech-aidlc orchestrate next` for the next directive. Stop when the CLI says the selected scope is complete. When complete, state '`complete: true`' and include the CLI's `hint` when present. Do not run launch/deployment, notify others, or perform destructive or external actions unless separately authorized.
 
+## AI orchestrator mode
+
+The directive carries `orchestrationMode`: `"human"` (default) or `"ai"`. In human mode, follow the gate procedure above unchanged.
+
+In AI mode, you approve gates yourself — but only after research. Before reporting a gate stage complete:
+
+1. Research the decision: consider at least two meaningfully distinct options with trade-offs, grounded in the stage's artifacts and verification evidence.
+2. Write `gate-recommendation.md` in the gate stage's directory (next to the other artifacts): researched options, evidence trace distinguishing observed facts from assumptions, the selected direction with rationale against the gate's exit criteria, residual risks and follow-ups, and a boundary statement of what the approval does and does not authorize.
+3. Report with `dtech-aidlc orchestrate report --stage <stage-id> --result complete --approval approved --approved-by "AI Orchestrator"`. The CLI refuses any other approver name in AI mode, and refuses approval without the recommendation file.
+
+A rejected or uncertain gate is reported `blocked` with the reason, exactly as in human mode. Never skip the recommendation file, and never present it as a human decision: audit rows record `mode: "ai"` and `by: "AI Orchestrator"`.
+
 ## Model preferences and untrusted content
 
 Model aliases or recommendations in project configuration are recommendations, not guarantees. Use only the model actually provided by the environment; do not promise alias resolution or assume unsupported capabilities.

@@ -71,6 +71,15 @@ Select the scope with the project owner before execution. These labels determine
 - **fast:** problem-framing, implementation-design, red-tests, build-and-verify, knowledge-writeback, with a reduced output list.
 <!-- /generated:depths -->
 
+## Orchestration modes
+
+An intent runs in one of two orchestration modes. The project default is set with `dtech-aidlc config mode <ai|human>` (default `human` when unset) and can be overridden per intent with `orchestrate next --mode <ai|human>`; the mode is fixed once the intent starts and is reported in every directive as `orchestrationMode`.
+
+- **Human mode** is the default: every phase gate pauses for the project owner's explicit approval, as described below.
+- **AI orchestrator mode** lets the agent approve gates itself after research: before reporting a gate, it writes a `gate-recommendation.md` artifact (researched options, evidence trace, rationale, boundary statement) and reports with `--approval approved --approved-by "AI Orchestrator"`. The full contract is in [contracts.md](contracts.md). All AI approvals are audited with `mode: "ai"` so they stay distinguishable from human decisions.
+
+Choose the mode with the project owner before execution. AI mode trades human review for speed; surface residual risks and follow-ups rather than implying they were reviewed.
+
 ## Agent roster and model recommendations
 
 <!-- generated:agents -->
@@ -81,7 +90,7 @@ Agent responsibility, inputs, outputs, and guardrails are defined in the linked 
 
 ## Approval and recordkeeping protocol
 
-For each gate, record at minimum: gate, phase, stage, decision, result, by, bySource, at, note, detail, skippedStages, artifacts. The CLI records these fields in the audit row `gate.decided` and in `state.gates.<gate id>` when the gate stage is reported. Approval must be affirmative and specific to the artifact and action under review. Silence, a generated plan, a checkmark, or an agent's own assessment is not approval. If context or scope materially changes after approval, obtain renewed approval for affected decisions.
+For each gate, record at minimum: gate, phase, stage, decision, result, by, bySource, mode, at, note, detail, skippedStages, artifacts. The CLI records these fields in the audit row `gate.decided` and in `state.gates.<gate id>` when the gate stage is reported. In human mode `mode` is `"human"` and `by` names the approver; in AI orchestrator mode `mode` is `"ai"` and `by` is `"AI Orchestrator"`. Approval must be affirmative and specific to the artifact and action under review. Silence, a generated plan, a checkmark, or an agent's own assessment is not approval. If context or scope materially changes after approval, obtain renewed approval for affected decisions.
 
 Use the stage outputs as contracts, not a requirement to create empty paperwork. Every output is a separate file at the path the CLI directive lists under `artifacts`. For small work the file can be a few lines, or say not applicable with the reason. Never claim an artifact, test, approval, deployment, or handoff exists until it is actually produced or observed.
 

@@ -42,3 +42,5 @@ The analysis baseline shows what is known, what is assumed, and what could make 
 ## Handoff
 
 This stage is the Analyze gate. Wait for the project owner to approve the baseline before Ideate.
+
+In AI orchestrator mode (`orchestrationMode: "ai"` in the directive), research the baseline decision yourself, write `gate-recommendation.md` in this stage's directory, and approve with `--approved-by "AI Orchestrator"` as the [AI orchestrator approval contract](../contracts.md#ai-orchestrator-approval-contract) requires.

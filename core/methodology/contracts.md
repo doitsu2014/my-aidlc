@@ -38,6 +38,19 @@ The graph marks phase gates as required. Approval must be explicit, attributable
 
 An approval is limited to its stated gate and reviewed material. In particular, approval of a solution direction does not approve all implementation details; approval of a release candidate does not automatically authorize deployment; and approval of launch does not authorize future changes to access or retention. For consequential or externally visible operations, request approval for the concrete action and its relevant target/timing. If an artifact or material assumption changes after approval, identify the change and renew approval where affected.
 
+## AI orchestrator approval contract
+
+When the active intent runs in AI orchestrator mode (`orchestrationMode: "ai"` in the directive), the agent itself may approve phase gates — but only after producing a gate-recommendation artifact that demonstrates the research behind the decision. The agent reports the gate with `--approval approved --approved-by "AI Orchestrator"`; the CLI rejects any other approver name in AI mode, and rejects `"AI Orchestrator"` as an approver in human mode.
+
+Each gate approval in AI mode requires a `gate-recommendation.md` file in the gate stage's directory (`.aidlc/intents/{intentId}/{phase}/{stage}/gate-recommendation.md`) written before the report. It must contain:
+
+- **Researched options:** at least two meaningfully distinct directions or dispositions considered, with trade-offs for each.
+- **Evidence trace:** the artifacts, checks, or observations the recommendation rests on, distinguishing observed facts from assumptions and open questions.
+- **Selected direction and rationale:** which option is approved and why it satisfies the gate's exit criteria, including residual risks and follow-ups.
+- **Boundary statement:** what the approval does and does not authorize (a release-candidate approval still does not authorize deployment; launch approval still does not authorize access or retention changes).
+
+The conductor never approves its own gate without this artifact: the CLI refuses `--approval approved` in AI mode when the `gate-recommendation.md` file is missing or empty. A rejected or uncertain gate is reported `blocked` with the reason, exactly as in human mode. All AI approvals are recorded in `state.gates` and the `gate.decided` audit row with `mode: "ai"` and `by: "AI Orchestrator"` so they remain queryable and attributable.
+
 ## Quality and verification contract
 
 Acceptance criteria should be observable and tied to the user's intended outcomes. Verification reports name the check, relevant environment or inputs, observed result, and gaps. Distinguish automated checks, manual review, and unverified assumptions. A check that was not run is not a passing check. Report failures and known limitations without obscuring them in an overall success label.

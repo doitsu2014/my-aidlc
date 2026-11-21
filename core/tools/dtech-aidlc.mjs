@@ -9,7 +9,7 @@ import {
   assignIntent, changeIntentDepth, checkWorkflowState, deriveStatus, intentDir, listIntents, loadIntent, loadWorkflow, normalizeIntentText, orchestrateNext, orchestrateReport,
   persistWorkflow, quarantineCorruptPointer, readPointer, saveIntent, savePointer, unfinishedIds,
 } from './workflow.mjs';
-import { MODEL_ALIASES, aliasChoices, aliasesSupported, resolveAgentModel, validateModelConfig, writeModelConfig } from './agent-models.mjs';
+import { MODEL_ALIASES, ORCHESTRATION_MODES, aliasChoices, aliasesSupported, resolveAgentModel, validateModelConfig, validateMode, writeModelConfig } from './agent-models.mjs';
 import { addDependency, importDependencies, listDependencies, projectDependenciesPath, pullDependencies, removeDependency, validateDependencies } from './dependencies.mjs';
 import { detectDocumentation, onboardCommands, planRegistration, scanProject, sourceStatus, writeProjectProfile, writeSourcesSnapshot } from './onboard.mjs';
 import {
@@ -34,11 +34,12 @@ const HELP = [
   '  scope [NAME] [--depth NAME]  List scopes or show stages in a scope',
   '  status [--intent ID]    Show current intent and stage progress',
   '  doctor                  Validate graph, state, config, and projection',
-  '  orchestrate next [--intent TEXT] [--description TEXT] [--intent-file PATH|-] [--scope NAME] [--depth NAME] [--approved-by NAME] [--detail TEXT]',
+  '  orchestrate next [--intent TEXT] [--description TEXT] [--intent-file PATH|-] [--scope NAME] [--depth NAME] [--mode ai|human] [--approved-by NAME] [--detail TEXT]',
   '                          Use --intent-file to avoid shell quoting; - reads standard input',
   '  orchestrate report --result complete|blocked|skipped [--approval approved] [--approved-by NAME] [--approval-note TEXT] [--detail TEXT] [--stage ID]',
   '  config agents            List effective agent models',
   '  config scope [NAME]     Show or set the default scope for new intents',
+  '  config mode [ai|human]   Show or set the default orchestration mode for new intents',
   `  config agents set <agent-id> <${MODEL_ALIASES.join('|')}> (claude harness)`,
   '  config agents reset <agent-id>',
   '  repos add <name> <url> [--ref REF]',
@@ -304,7 +305,22 @@ function main() {
       }
       return out({ scope, appliesTo: 'new intents' });
     }
-    if (section !== 'agents') throw new Error('Use config agents or config scope');
+    if (section === 'mode') {
+      const hasConfig = existsSync(configPath(root)), config = hasConfig ? loadConfig(root) : {};
+      const configured = ['solo', 'team', 'enterprise'].includes(config.scope) && configuredHarnesses(config).length > 0;
+      if (!args.length) return out({ mode: config.mode ?? 'human', configured });
+      const mode = validateMode(args[0]);
+      if (!hasConfig) throw new Error('Initialize the project before changing the default mode');
+      if (!configured) throw new Error('Invalid .aidlc/config.json: harness or scope is missing or unknown; correct the file');
+      if (mode !== (config.mode ?? 'human')) {
+        const from = config.mode ?? 'human';
+        config.mode = mode;
+        writeJsonAtomic(configPath(root), config);
+        audit(root, 'config.mode.changed', { from, to: mode });
+      }
+      return out({ mode, appliesTo: 'new intents' });
+    }
+    if (section !== 'agents') throw new Error('Use config agents, config scope, or config mode');
     const graph = readGraph(), config = validateModelConfig(root, graph), action = args.shift();
     if (!action) return out(graph.agents.map(agent => ({ id: agent.id, phase: agent.phase, ...resolveAgentModel(agent, config) })));
     if (action !== 'set' && action !== 'reset') throw new Error('Use config agents set or config agents reset');
@@ -343,7 +359,7 @@ function main() {
         const state = loadIntent(root, graph, flags.intent);
         return out({
           intent: state.intent, intentId: state.intentId, intentDir: intentDir(root, state.intentId),
-          scope: state.scope, status: state.status, currentStage: state.currentStage, stages: state.stages,
+          scope: state.scope, mode: state.mode ?? 'human', status: state.status, currentStage: state.currentStage, stages: state.stages,
         });
       } catch {
         throw new Error(`Unknown intent '${flags.intent}'. Run 'dtech-aidlc intent list'.`);
@@ -357,7 +373,7 @@ function main() {
     }
     return out({
       intent: state.intent, intentId: state.intentId ?? null, intentDir: state.intentId ? intentDir(root, state.intentId) : null,
-      scope: state.scope, status: state.status ?? 'active', currentStage: state.currentStage, stages: state.stages,
+      scope: state.scope, mode: state.mode ?? 'human', status: state.status ?? 'active', currentStage: state.currentStage, stages: state.stages,
       ...(workflow.legacy ? { migration: 'pending' } : {}),
     });
   }
@@ -464,7 +480,8 @@ function main() {
         intentText = text;
       }
       if (intentText !== null) intentText = normalizeIntentText(intentText);
-      const directive = orchestrateNext(root, { intent: intentText, scope: flags.scope || null, depth: flags.depth, approvedBy: flags['approved-by'], detail: flags.detail });
+      if (flags.mode !== undefined) validateMode(flags.mode);
+      const directive = orchestrateNext(root, { intent: intentText, scope: flags.scope || null, depth: flags.depth, mode: flags.mode ?? null, approvedBy: flags['approved-by'], detail: flags.detail });
       if (directive.stage) {
         ensureKnowledgeDir(root);
         ensureIgnoreFile(root);

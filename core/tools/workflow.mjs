@@ -4,7 +4,7 @@ import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync
 import { userInfo } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
-  assertNoSymlinkComponents, audit, configPath, engineRoot, loadConfig, orderedStages, readGraph, readJsonStrict, resolveDepth, stateDir, statePath, writeJsonAtomic,
+  assertNoSymlinkComponents, audit, configPath, engineRoot, loadConfig, orderedStages, readGraph, readJsonStrict, resolveDepth, resolveMode, stateDir, statePath, writeJsonAtomic,
 } from './lib.mjs';
 import { resolveAgentModel, validateModelConfig } from './agent-models.mjs';
 import { ARTIFACT_VALIDATORS, extraRequiredArtifacts } from './context.mjs';
@@ -14,6 +14,12 @@ import { knowledgeGateCheck, writeIndex } from './knowledge.mjs';
 
 const ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const STATUSES = new Set(['in_progress', 'complete', 'blocked', 'skipped']);
+
+export const AI_ORCHESTRATOR = 'AI Orchestrator';
+
+function effectiveMode(config, flag = null) {
+  return resolveMode(config, flag);
+}
 
 export const intentDir = (root, id) => join(root, '.aidlc', 'intents', id);
 export const intentStatePath = (root, id) => join(intentDir(root, id), 'state.json');
@@ -95,6 +101,7 @@ export function validateIntentState(state, graph, folderId, { checkId = true } =
   if (!state || typeof state !== 'object' || Array.isArray(state)) return ['not an object'];
   if (typeof state.intent !== 'string' || !state.intent.trim()) errors.push('intent is not a non-empty string');
   if (!graph.scopes || !Object.hasOwn(graph.scopes, state.scope)) errors.push('scope is not a key of graph.scopes');
+  if (state.mode !== undefined && state.mode !== 'human' && state.mode !== 'ai') errors.push('mode is not ai or human');
   if (!state.stages || typeof state.stages !== 'object' || Array.isArray(state.stages)) errors.push('stages is not an object');
   else {
     for (const [id, row] of Object.entries(state.stages)) {
@@ -220,17 +227,18 @@ export function loadWorkflow(root, graph, { migrate = false, missingActive = 'th
   return { activeIntentId: migrated.intentId, state: migrated, legacy: false };
 }
 
-export function createIntent(root, scope, intent, graph) {
+export function createIntent(root, scope, intent, graph, options = {}) {
   const intentId = freeIntentId(root, intentSlug(intent));
+  const mode = options.mode ?? 'human';
   const created = {
-    version: 2, intentId, intent, scope, status: 'active', currentStage: null, stages: {}, dependencies: {},
+    version: 2, intentId, intent, scope, mode, status: 'active', currentStage: null, stages: {}, dependencies: {},
     createdAt: new Date().toISOString(),
   };
   mkdirSync(intentDir(root, intentId), { recursive: true });
   writeIntentMarkdown(root, intentId, intent);
   saveIntent(root, created, graph);
   savePointer(root, intentId);
-  audit(root, 'intent.created', { intent, intentId, scope });
+  audit(root, 'intent.created', { intent, intentId, scope, mode });
   return created;
 }
 
@@ -258,6 +266,7 @@ function listRow(state, graph, current) {
     intentId: state.intentId,
     title: titleOf(state.intent),
     scope: state.scope,
+    mode: state.mode ?? 'human',
     status: derived === 'complete' || derived === 'abandoned' ? derived : (current ? 'active' : 'paused'),
     current: Boolean(current) && unfinished,
     currentStage: state.currentStage ?? null,
@@ -477,6 +486,19 @@ export function gateInfo(graph, scope, stage, depth = 'full') {
   return { id: phase?.gate ?? null, phase: stage.phase, finalStage };
 }
 
+export function gateRecommendationPath(root, intentId, stage) {
+  return join(intentDir(root, intentId), stage.phase, stage.id, 'gate-recommendation.md');
+}
+
+function gateRecommendationExists(root, intentId, stage) {
+  try {
+    const text = readFileSync(gateRecommendationPath(root, intentId, stage), 'utf8');
+    return text.trim().length > 0;
+  } catch {
+    return false;
+  }
+}
+
 function nearestConfigParent(root) {
   let current = dirname(root);
   const stop = dirname(current);
@@ -501,10 +523,10 @@ function requireInitialized(root) {
   throw new Error(`Project is not initialized at ${root}. Run 'dtech-aidlc onboard --harness <claude|deepseek> --scope <solo|team|enterprise>' there first.${parent ? ` An initialized project exists at ${parent}; run the command there or pass --project ${parent}.` : ''}`);
 }
 
-function draftIntent(root, scope, intent, graph, scopeSource, projectScope, depth = 'full') {
+function draftIntent(root, scope, intent, graph, scopeSource, projectScope, depth = 'full', mode = 'human') {
   const intentId = freeIntentId(root, intentSlug(intent));
   return {
-    version: 2, intentId, intent, scope, scopeSource, depth, status: 'active', currentStage: null, stages: {}, dependencies: {},
+    version: 2, intentId, intent, scope, scopeSource, projectScope: projectScope ?? null, depth, mode, status: 'active', currentStage: null, stages: {}, dependencies: {},
     createdAt: new Date().toISOString(),
   };
 }
@@ -521,6 +543,8 @@ export function buildDirective({ root, graph, config, state, stage, warnings = [
     intentDir: intentDir(root, state.intentId),
     scope: state.scope,
     depth: state.depth || 'full',
+    mode: state.mode ?? 'human',
+    orchestrationMode: state.mode ?? 'human',
     scopeSource: state.scopeSource ?? 'config',
     ...(state.currentUnit ? { currentUnit: state.currentUnit } : {}),
     ...(state.assignee ? { assignee: state.assignee } : {}),
@@ -570,10 +594,16 @@ export function orchestrateNext(root, options = {}, hooks = {}) {
     if (options.depth && options.depth !== 'full' && !options.approvedBy) {
       throw new Error('Creating an intent with --depth requires --approved-by NAME');
     }
-    state = draftIntent(root, scope, requested, graph, scopeSource, projectScope, depth);
+    const mode = effectiveMode(config, options.mode ?? null);
+    const modeSource = options.mode ? 'flag' : 'config';
+    state = draftIntent(root, scope, requested, graph, scopeSource, projectScope, depth, mode);
+    state.modeSource = modeSource;
     isNewIntent = true;
     if (options.scope && projectScope && options.scope !== projectScope) {
       warnings.push(`Intent scope '${scope}' overrides the project scope '${projectScope}' from .aidlc/config.json (given by --scope).`);
+    }
+    if (options.mode && (config.mode ?? 'human') !== options.mode) {
+      warnings.push(`Intent mode '${mode}' overrides the project mode '${config.mode ?? 'human'}' from .aidlc/config.json (given by --mode).`);
     }
   } else if (options.depth && resolveDepth(graph, options.depth) !== (state.depth || 'full')) {
     throw new Error(`Intent '${state.intentId}' uses depth ${state.depth || 'full'}; the depth cannot change after an intent starts. Use 'dtech-aidlc intent depth'.`);
@@ -584,6 +614,8 @@ export function orchestrateNext(root, options = {}, hooks = {}) {
     throw new Error(`Intent '${state.intentId}' is still in progress (stage ${state.currentStage || nextUnfinished?.id}, ${done} of ${total} stages finished). Finish it, set it aside with 'dtech-aidlc intent pause', or close it with 'dtech-aidlc intent abandon --detail "<reason>"', then start the new intent.`);
   } else if (options.scope && options.scope !== state.scope) {
     throw new Error(`Intent '${state.intentId}' uses scope ${state.scope}; the scope cannot change after an intent starts. Omit --scope to continue it.`);
+  } else if (options.mode && options.mode !== (state.mode ?? 'human')) {
+    throw new Error(`Intent '${state.intentId}' uses mode ${state.mode ?? 'human'}; the mode cannot change after an intent starts. Omit --mode to continue it.`);
   }
 
   if (!isNewIntent && !existsSync(configPath(root))) {
@@ -629,7 +661,7 @@ export function orchestrateNext(root, options = {}, hooks = {}) {
     writeIntentMarkdown(root, state.intentId, state.intent);
     saveIntent(root, state, graph);
     savePointer(root, state.intentId);
-    audit(root, 'intent.created', { intent: state.intent, intentId: state.intentId, scope: state.scope, scopeSource, projectScope });
+    audit(root, 'intent.created', { intent: state.intent, intentId: state.intentId, scope: state.scope, scopeSource, projectScope, mode: state.mode ?? 'human', modeSource: state.modeSource ?? 'config' });
     if ((state.depth || 'full') !== 'full') {
       const who = resolveApprover(root, options.approvedBy);
       audit(root, 'depth.chosen', { intentId: state.intentId, depth: state.depth, by: who.by, bySource: who.bySource, detail: options.detail ?? null });
@@ -720,17 +752,27 @@ export function orchestrateReport(root, options = {}) {
   }
   const now = new Date().toISOString();
   const previous = state.stages[stage.id] || {};
+  const mode = state.mode ?? 'human';
   let approvalRecord = null;
   let recordedApproval = null;
   let approver = { by: null, bySource: null };
   if (phaseGate && options.approval) {
     approver = resolveApprover(root, options.approvedBy);
+    if (mode === 'ai' && approver.by !== AI_ORCHESTRATOR) {
+      throw new Error(`Intent '${state.intentId}' runs in AI orchestrator mode; gate approvals must use --approved-by "${AI_ORCHESTRATOR}". Human approvals apply to human-mode intents.`);
+    }
+    if (mode === 'human' && approver.by === AI_ORCHESTRATOR) {
+      throw new Error(`Intent '${state.intentId}' runs in human mode; "${AI_ORCHESTRATOR}" cannot approve a human-mode gate.`);
+    }
+    if (mode === 'ai' && options.approval === 'approved' && !gateRecommendationExists(root, state.intentId, stage)) {
+      throw new Error(`AI gate approval for ${gate.id} requires a gate-recommendation artifact; the agent must research options and write its recommendation first.`);
+    }
     const allowed = allowedApprovers(loadConfig(root), gate.id);
-    if (allowed && !allowed.includes(approver.by)) {
+    if (mode === 'human' && allowed && !allowed.includes(approver.by)) {
       throw new Error(`Approver '${approver.by}' is not allowed for gate ${gate.id}. Allowed: ${allowed.join(', ')}`);
     }
     recordedApproval = options.approval;
-    approvalRecord = { decision: options.approval, by: approver.by, bySource: approver.bySource, note: options.approvalNote ?? null };
+    approvalRecord = { decision: options.approval, by: approver.by, bySource: approver.bySource, mode, note: options.approvalNote ?? null };
   }
   const reports = [...(previous.reports || []), { at: now, result, detail: options.detail ?? null, ...(approvalRecord ? { approval: approvalRecord } : {}) }];
   const unitKey = state.currentUnit || '_';
@@ -761,7 +803,7 @@ export function orchestrateReport(root, options = {}) {
     const skippedStages = phaseStages.filter((item) => (item.id === stage.id ? result : state.stages[item.id]?.status) === 'skipped').map((item) => item.id);
     state.gates ??= {};
     state.gates[gate.id] = {
-      phase: gate.phase, stage: stage.id, decision: options.approval, result, by: approver.by, bySource: approver.bySource,
+      phase: gate.phase, stage: stage.id, decision: options.approval, result, by: approver.by, bySource: approver.bySource, mode,
       at: now, note: options.approvalNote ?? null, detail: options.detail ?? null, skippedStages, artifacts: [],
     };
   }
@@ -775,7 +817,7 @@ export function orchestrateReport(root, options = {}) {
   if (approvalRecord) {
     audit(root, 'gate.decided', {
       intentId: state.intentId, gate: gate.id, phase: gate.phase, stage: stage.id, decision: options.approval, result,
-      by: approver.by, bySource: approver.bySource, note: options.approvalNote ?? null, detail: options.detail ?? null,
+      by: approver.by, bySource: approver.bySource, mode, note: options.approvalNote ?? null, detail: options.detail ?? null,
       skippedStages: state.gates[gate.id].skippedStages, artifacts: [],
     });
   }
