@@ -4,6 +4,7 @@ Each release lists the behaviour changes a user or a script can notice.
 
 ## 0.6.0
 
+- Human gates and material unknowns are presented with direct AskUserQuestion calls: the question names the gate, criteria, and artifacts; options state consequences with the recommendation first and marked `(Recommended)`; `Other` free text is treated as the decision. Skipping a question is never approval.
 - Intents run in an orchestration mode: `human` (default, the owner approves every phase gate) or `ai` (the AI orchestrator researches each gate, records a `gate-recommendation.md`, and approves as `"AI Orchestrator"`). Set the project default with `dtech-aidlc config mode ai|human`; override per intent with `orchestrate next --mode`. Directives carry `mode` and `orchestrationMode`; `intent list` and `status` show the mode; the `gate.decided` audit row and `state.gates` record `mode` alongside the approver. The CLI rejects human approver names in AI mode, rejects `"AI Orchestrator"` in human mode, and refuses AI gate approval without a non-empty `gate-recommendation.md`.
 
 ## 0.5.0
