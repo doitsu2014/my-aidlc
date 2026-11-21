@@ -16,7 +16,7 @@ test('skills use file-based requests and current directive/report contracts', ()
 
 test('Claude skill uses model preferences safely for stage delegation', () => {
   const claude = skills[0];
-  for (const required of ['`stage.model`', 'Claude Code Agent tool', 'requested model', 'expected artifacts', 'continue the stage directly', 'must not run orchestration/report commands', 'must not', 'human-mode gates still require explicit human approval', 'AI-mode gates still require the conductor']) {
+  for (const required of ['`stage.model`', 'Claude Code Agent tool', 'passing `stage.model` explicitly as the requested model', '`stage.model` takes precedence over any `model` recommendation in `stage.agentFile`', 'directive carries the effective configured preference', 'verify that the Agent tool call actually includes the directive\'s `stage.model`', 'requested model', 'expected artifacts', 'do the stage directly and disclose that the preference could not be honored', 'must not run orchestration/report commands', 'must not', 'human-mode gates still require explicit human approval', 'AI-mode gates still require the conductor']) {
     assert.ok(claude.includes(required), `missing ${required}`);
   }
 });
