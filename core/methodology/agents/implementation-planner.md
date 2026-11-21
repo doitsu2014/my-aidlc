@@ -1,7 +1,6 @@
 ---
 id: implementation-planner
 phase: develop
-model: sonnet
 ---
 
 # implementation-planner

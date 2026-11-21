@@ -1,7 +1,6 @@
 ---
 id: decision-facilitator
 phase: ideate
-model: opus
 ---
 
 # decision-facilitator

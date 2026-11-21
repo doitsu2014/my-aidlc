@@ -1,7 +1,6 @@
 ---
 id: knowledge-archivist
 phase: archived
-model: sonnet
 ---
 
 # knowledge-archivist

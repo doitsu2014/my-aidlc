@@ -1,7 +1,6 @@
 ---
 id: context-risk-analyst
 phase: analyze
-model: sonnet
 ---
 
 # context-risk-analyst

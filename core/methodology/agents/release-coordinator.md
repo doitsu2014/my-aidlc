@@ -1,7 +1,6 @@
 ---
 id: release-coordinator
 phase: launch
-model: sonnet
 ---
 
 # release-coordinator

@@ -1,7 +1,6 @@
 ---
 id: solution-explorer
 phase: ideate
-model: opus
 ---
 
 # solution-explorer

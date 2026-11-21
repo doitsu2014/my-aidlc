@@ -1,7 +1,6 @@
 ---
 id: builder-verifier
 phase: develop
-model: sonnet
 ---
 
 # builder-verifier

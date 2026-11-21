@@ -1,7 +1,6 @@
 ---
 id: operations-handoff
 phase: launch
-model: sonnet
 ---
 
 # operations-handoff

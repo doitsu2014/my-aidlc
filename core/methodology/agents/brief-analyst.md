@@ -1,7 +1,6 @@
 ---
 id: brief-analyst
 phase: analyze
-model: sonnet
 ---
 
 # brief-analyst

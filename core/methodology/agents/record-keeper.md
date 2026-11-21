@@ -1,7 +1,6 @@
 ---
 id: record-keeper
 phase: archived
-model: haiku
 ---
 
 # record-keeper

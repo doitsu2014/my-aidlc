@@ -1,7 +1,6 @@
 ---
 id: knowledge-steward
 phase: curate
-model: haiku
 ---
 
 # knowledge-steward
