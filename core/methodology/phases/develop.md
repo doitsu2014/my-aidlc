@@ -31,13 +31,17 @@ On rejection, address the findings and rerun the relevant verification. Do not e
 
 ## Stages
 
-1. **implementation-design** — `implementation-planner`. Produces an implementation plan, interfaces and contracts, a functional design, a test strategy, and work units. Write the design with [the IEEE 1016 template](../templates/functional-design.md). Write the strategy with [the test-strategy template](../templates/test-strategy.md) and the units with [the work-units template](../templates/work-units.md). Trace every function to an Analyze acceptance-criterion identifier.
-2. **red-tests** — `builder-verifier`. Produce failing tests from the acceptance criteria before production code, at the levels the test strategy names. Record the red run. On a project that already has tests, run the existing suite first and record the baseline. Repeat once per work unit.
+1. **implementation-design** — `implementation-planner`. Produces an implementation plan, interfaces and contracts, a functional design, a test strategy, work units with their `work-units.json`, and the ID registry `ids.json`. Write the design with [the IEEE 1016 template](../templates/functional-design.md). Write the strategy with [the test-strategy template](../templates/test-strategy.md), the units with [the work-units template](../templates/work-units.md), and the registry with [the ID registry template](../templates/id-registry.md). Trace every function to an Analyze acceptance-criterion identifier. This stage is the only one that mints `FN-`, `IF-`, `TS-`, `WU-` and `CFG-` identifiers.
+2. **red-tests** — `builder-verifier`. Check the environment first. Produce failing tests from the acceptance criteria before production code, at the levels the test strategy names. Record the red run. On a project that already has tests, run the existing suite once per intent and record the baseline. Repeat once per work unit.
 3. **build-and-verify** — `builder-verifier`. Write only enough implementation to turn those tests green. Produce the implementation, the green verification report, the regression report, and known limitations. The green report ends with a trace table. This stage is the phase gate. Repeat once per work unit; the release-candidate gate is presented once, after the last unit.
 
 ## Activities
 
 - Turn the approved direction into tasks, interfaces, and a functional design before coding.
+- Before the first stage that runs code, make sure the environment is ready: the commands and prerequisites in `PROJECT.md` work and `dtech-aidlc config prerequisite check` passes. A missing environment is reported blocked with `--needs <name>`, not discovered halfway through a work unit.
+- Cite identifiers only from `ids.json` and the Analyze artifacts. `orchestrate report` refuses a Develop stage whose artifacts cite an unregistered identifier; a missing identifier sends the work back to `implementation-design`.
+- In a compiled language, write stubs with the planned signatures so a red test compiles and fails at run time. A compile error is not red evidence. Format new tests before recording the red run.
+- Fixes follow red first too: a rework that changes behavior starts with a failing test.
 - On an existing project, follow the conventions and structure recorded in the codebase map, PROJECT.md and the registered conventions sources.
 - Run the existing test suite before the first change and again after the new tests pass. A regression blocks the release candidate.
 - Follow red, then green. Write the test, run it, and keep the observed failure. Do not start production code for a behavior whose test has not failed for the intended reason.

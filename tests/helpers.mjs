@@ -48,6 +48,10 @@ export function writeArtifacts(project, directive) {
     if (item.output === 'knowledge-record' || item.path?.includes('/.aidlc/knowledge/') || String(item.path).startsWith('.aidlc/knowledge/')) {
       const id = directive.intentId;
       writeFileSync(path, `---\nid: ${id}\ntitle: ${directive.intent || id}\norigin: intent\nscope: ${directive.scope}\nclosed: 2026-11-20T00:00:00Z\nphases-run: analyze, ideate, develop, archived\n---\n\n# ${directive.intent || id}\n\n## Outcome\n\nDone.\n\n## Decisions\n\nNone.\n\n## Limitations\n\nNone.\n\n## Follow-ups\n\nNone.\n\n## Links\n\nNone.\n`);
+    } else if (item.output === 'work-units-json') {
+      writeFileSync(path, `${JSON.stringify({ units: [{ id: 'U-01' }] }, null, 2)}\n`);
+    } else if (item.output === 'id-registry') {
+      writeFileSync(path, `${JSON.stringify({ schemaVersion: 1, ids: {} }, null, 2)}\n`);
     } else {
       writeFileSync(path, `# ${item.output}\n\nDraft.\n`);
       if (item.output === 'work-units') {

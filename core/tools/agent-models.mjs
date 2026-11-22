@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { configPath, configuredHarnesses, loadHarnessManifest, MODEL_ALIASES, ORCHESTRATION_MODES, stateDir } from './lib.mjs';
+import { configPath, configuredHarnesses, GATE_MODE_OVERRIDES, loadHarnessManifest, MODEL_ALIASES, ORCHESTRATION_MODES, stateDir } from './lib.mjs';
+import { validatePrerequisite } from './prerequisites.mjs';
 export { MODEL_ALIASES, ORCHESTRATION_MODES };
 
 export function aliasChoices() { return `choose ${MODEL_ALIASES.slice(0, -1).join(', ')}, or ${MODEL_ALIASES.at(-1)}`; }
@@ -33,6 +34,21 @@ export function validateModelConfig(root, graph) {
       if (!ids.has(id)) throw new Error(`Unknown agent in agentModels: ${id}`);
       if (!MODEL_ALIASES.includes(model)) throw new Error(`Invalid model alias for ${id}: ${String(model)}; ${aliasChoices()}`);
     }
+  }
+  if (config.gateModes !== undefined) {
+    if (!config.gateModes || typeof config.gateModes !== 'object' || Array.isArray(config.gateModes)) throw new Error('Invalid gateModes: expected an object mapping gate ids to "human"');
+    const gates = new Set(graph.phases?.map((phase) => phase.gate) ?? []);
+    for (const [gate, value] of Object.entries(config.gateModes)) {
+      if (gates.size && !gates.has(gate)) throw new Error(`Unknown gate in gateModes: ${gate}`);
+      if (!GATE_MODE_OVERRIDES.includes(value)) throw new Error(`Invalid gateModes.${gate}: a gate can only be pinned to ${GATE_MODE_OVERRIDES.join(', ')}`);
+    }
+  }
+  if (config.prerequisites !== undefined) {
+    if (!config.prerequisites || typeof config.prerequisites !== 'object' || Array.isArray(config.prerequisites)) throw new Error('Invalid prerequisites: expected an object mapping names to { check }');
+    for (const [name, definition] of Object.entries(config.prerequisites)) validatePrerequisite(name, definition, graph.phases ? graph : null);
+  }
+  if (config.unitSplitThreshold !== undefined && (!Number.isInteger(config.unitSplitThreshold) || config.unitSplitThreshold < 1)) {
+    throw new Error('Invalid unitSplitThreshold: expected a positive integer');
   }
   if (config.roles !== undefined) {
     if (!config.roles || typeof config.roles !== 'object' || Array.isArray(config.roles)) throw new Error('Invalid roles: expected an object');

@@ -31,7 +31,7 @@ Develop a bounded set of feasible, meaningfully distinct options. Describe trade
 
 ### Develop
 
-Plan and implement only the approved direction. Define interfaces and contracts, and trace them to the acceptance criteria approved in Analyze, before relying on implementation claims. Verification reports identify checks actually performed, their results, and any coverage gaps; they do not substitute confidence or code inspection for an unrun test. Keep the implementation aligned to approved scope. Surface deviations for approval rather than making unilateral product decisions.
+Plan and implement only the approved direction. Define interfaces and contracts, and trace them to the acceptance criteria approved in Analyze, before relying on implementation claims. The design stage mints every Develop identifier once, in a machine-readable `ids.json`, and writes the work units as `work-units.json`; later artifacts cite those identifiers and never mint new ones, and the CLI refuses a stage that cites an unregistered identifier. Stages that run code check the environment before writing tests, and a missing environment is reported as a named prerequisite. Verification reports identify checks actually performed, their results, and any coverage gaps; they do not substitute confidence or code inspection for an unrun test. Keep the implementation aligned to approved scope. Surface deviations for approval rather than making unilateral product decisions.
 
 **Approval gate — release candidate (`release-candidate`).** The project owner reviews the implementation, verification evidence, and known limitations, including anything the owner must know about undoing the change. Approval authorizes preparation to launch, not necessarily deployment or any external action. Rejected candidates return for correction and re-verification.
 
@@ -76,9 +76,9 @@ Select the scope with the project owner before execution. These labels determine
 An intent runs in one of two orchestration modes. The project default is set with `dtech-aidlc config mode <ai|human>` (default `human` when unset) and can be overridden per intent with `orchestrate next --mode <ai|human>`; the mode is fixed once the intent starts and is reported in every directive as `orchestrationMode`.
 
 - **Human mode** is the default: every phase gate pauses for the project owner's explicit approval, as described below.
-- **AI orchestrator mode** lets the agent approve gates itself after research: before reporting a gate, it writes a `gate-recommendation.md` artifact (researched options, evidence trace, rationale, boundary statement) and reports with `--approval approved --approved-by "AI Orchestrator"`. The full contract is in [contracts.md](contracts.md). All AI approvals are audited with `mode: "ai"` so they stay distinguishable from human decisions.
+- **AI orchestrator mode** lets the agent approve gates itself after research: before reporting a gate, it writes a `gate-recommendation.md` artifact (researched options, evidence trace, rationale, boundary statement, and an `## Open items` section that tags every deferral `[written-approval]` or `[follow-up]`) and reports with `--approval approved --approved-by "AI Orchestrator"`. A recommendation that leaves a `[written-approval]` item open cannot be approved: the gate is reported blocked. The full contract is in [contracts.md](contracts.md). All AI approvals are audited with `mode: "ai"` so they stay distinguishable from human decisions.
 
-Choose the mode with the project owner before execution. AI mode trades human review for speed; surface residual risks and follow-ups rather than implying they were reviewed.
+Choose the mode with the project owner before execution. AI mode trades human review for speed; surface residual risks and follow-ups rather than implying they were reviewed. Settle open questions at the Ideate gate before relying on AI mode, or pin decision-heavy gates to people with `dtech-aidlc config gate-mode <gate> human`; the directive's `gateMode` shows who decides the current phase's gate.
 
 ## Agent roster and model recommendations
 

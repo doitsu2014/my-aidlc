@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.4.0",
+  "schemaVersion": "1.5.0",
   "modelAliases": ["opus", "sonnet", "haiku", "fable"],
   "phases": [
     {"id": "analyze", "name": "Analyze", "order": 1, "gate": "analysis-baseline", "file": "methodology/phases/analyze.md", "agents": ["brief-analyst", "context-risk-analyst"], "stages": ["problem-framing", "context-and-risk"]},
@@ -14,10 +14,10 @@
     {"id": "context-and-risk", "phase": "analyze", "order": 2, "agent": "context-risk-analyst", "inputs": {"artifacts": ["problem-statement", "success-measures", "stakeholder-map", "acceptance-criteria", "user-stories"], "context": ["request", "project", "sources", "knowledge", "profile", "repos"]}, "produces": ["constraints-and-assumptions", "evidence-log", "risk-register", "open-questions", "quality-requirements"]},
     {"id": "option-generation", "phase": "ideate", "order": 1, "agent": "solution-explorer", "inputs": {"artifacts": ["problem-statement", "success-measures", "stakeholder-map", "acceptance-criteria", "user-stories", "constraints-and-assumptions", "evidence-log", "risk-register", "open-questions", "quality-requirements"], "context": ["request", "project", "sources", "knowledge", "profile", "repos"]}, "produces": ["solution-options", "trade-off-matrix"]},
     {"id": "direction-selection", "phase": "ideate", "order": 2, "agent": "decision-facilitator", "inputs": {"artifacts": ["solution-options", "trade-off-matrix", "problem-statement", "success-measures", "stakeholder-map", "acceptance-criteria", "user-stories", "constraints-and-assumptions", "evidence-log", "risk-register", "open-questions", "quality-requirements"], "context": ["request", "project", "sources", "knowledge", "profile", "repos"]}, "produces": ["recommended-direction", "decision-record", "scope-boundary", "architecture-design", "threat-model"]},
-    {"id": "implementation-design", "phase": "develop", "order": 1, "agent": "implementation-planner", "inputs": {"artifacts": ["recommended-direction", "decision-record", "scope-boundary", "architecture-design", "acceptance-criteria", "user-stories", "constraints-and-assumptions", "risk-register", "quality-requirements", "threat-model"], "context": ["request", "project", "sources", "profile", "repos"]}, "produces": ["implementation-plan", "interfaces-and-contracts", "functional-design", "test-strategy", "work-units"]},
-    {"id": "red-tests", "phase": "develop", "order": 2, "agent": "builder-verifier", "repeat": "work-unit", "inputs": {"artifacts": ["implementation-plan", "interfaces-and-contracts", "functional-design", "acceptance-criteria", "test-strategy", "work-units"], "context": ["request", "project", "sources", "profile", "repos"]}, "produces": ["failing-tests", "red-evidence"]},
-    {"id": "build-and-verify", "phase": "develop", "order": 3, "agent": "builder-verifier", "repeat": "work-unit", "inputs": {"artifacts": ["implementation-plan", "interfaces-and-contracts", "functional-design", "acceptance-criteria", "failing-tests", "red-evidence", "test-strategy", "quality-requirements", "threat-model", "work-units"], "context": ["request", "project", "sources", "profile", "repos"]}, "produces": ["implementation", "green-verification-report", "regression-report", "known-limitations"]},
-    {"id": "release-readiness", "phase": "launch", "order": 1, "agent": "release-coordinator", "inputs": {"artifacts": ["implementation", "green-verification-report", "regression-report", "known-limitations"], "context": ["request", "project", "sources"]}, "produces": ["release-checklist", "deployment-and-rollback-plan", "communications-draft"]},
+    {"id": "implementation-design", "phase": "develop", "order": 1, "agent": "implementation-planner", "inputs": {"artifacts": ["recommended-direction", "decision-record", "scope-boundary", "architecture-design", "acceptance-criteria", "user-stories", "constraints-and-assumptions", "risk-register", "quality-requirements", "threat-model"], "context": ["request", "project", "sources", "profile", "repos"]}, "produces": ["implementation-plan", "interfaces-and-contracts", "functional-design", "test-strategy", "work-units", "work-units-json", "id-registry"]},
+    {"id": "red-tests", "phase": "develop", "order": 2, "agent": "builder-verifier", "repeat": "work-unit", "inputs": {"artifacts": ["implementation-plan", "interfaces-and-contracts", "functional-design", "acceptance-criteria", "test-strategy", "work-units", "work-units-json", "id-registry"], "context": ["request", "project", "sources", "profile", "repos"]}, "produces": ["failing-tests", "red-evidence"]},
+    {"id": "build-and-verify", "phase": "develop", "order": 3, "agent": "builder-verifier", "repeat": "work-unit", "inputs": {"artifacts": ["implementation-plan", "interfaces-and-contracts", "functional-design", "acceptance-criteria", "failing-tests", "red-evidence", "test-strategy", "quality-requirements", "threat-model", "work-units", "work-units-json", "id-registry"], "context": ["request", "project", "sources", "profile", "repos"]}, "produces": ["implementation", "green-verification-report", "regression-report", "known-limitations"]},
+    {"id": "release-readiness", "phase": "launch", "order": 1, "agent": "release-coordinator", "inputs": {"artifacts": ["implementation", "green-verification-report", "regression-report", "known-limitations"], "optionalArtifacts": ["id-registry"], "context": ["request", "project", "sources"]}, "produces": ["release-checklist", "deployment-and-rollback-plan", "communications-draft"]},
     {"id": "operational-handoff", "phase": "launch", "order": 2, "agent": "operations-handoff", "inputs": {"artifacts": ["release-checklist", "deployment-and-rollback-plan", "communications-draft"], "context": ["request", "project", "sources"], "external": ["support-context"]}, "produces": ["launch-record", "monitoring-and-support-ownership", "handoff-record"]},
     {"id": "outcome-review", "phase": "curate", "order": 1, "agent": "outcome-curator", "inputs": {"artifacts": ["success-measures", "decision-record", "launch-record"], "context": ["request", "project"], "external": ["observed-outcomes"]}, "produces": ["outcome-summary", "lessons-learned", "follow-up-register"]},
     {"id": "knowledge-maintenance", "phase": "curate", "order": 2, "agent": "knowledge-steward", "inputs": {"artifacts": ["outcome-summary", "lessons-learned", "follow-up-register", "decision-record", "known-limitations"], "context": ["request", "project", "knowledge"]}, "produces": ["curated-project-record", "retention-and-access-notes", "closure-recommendation"]},
@@ -45,9 +45,19 @@
     }
   },
   "outputs": {
+    "acceptance-criteria": { "template": "methodology/templates/acceptance-criteria.md" },
+    "user-stories": { "template": "methodology/templates/user-stories.md" },
+    "quality-requirements": { "template": "methodology/templates/quality-requirements.md" },
+    "architecture-design": { "template": "methodology/templates/architecture-design.md" },
+    "threat-model": { "template": "methodology/templates/threat-model.md" },
+    "functional-design": { "template": "methodology/templates/functional-design.md" },
+    "test-strategy": { "template": "methodology/templates/test-strategy.md" },
+    "work-units": { "template": "methodology/templates/work-units.md" },
+    "work-units-json": { "kind": "data", "path": ".aidlc/intents/{intentId}/{phase}/{stage}/work-units.json", "template": "methodology/templates/work-units.md" },
+    "id-registry": { "kind": "data", "path": ".aidlc/intents/{intentId}/{phase}/{stage}/ids.json", "template": "methodology/templates/id-registry.md" },
     "failing-tests": { "kind": "code-manifest" },
     "implementation": { "kind": "code-manifest" },
-    "knowledge-record": { "path": ".aidlc/knowledge/{intentId}.md" }
+    "knowledge-record": { "path": ".aidlc/knowledge/{intentId}.md", "template": "methodology/templates/knowledge-record.md" }
   },
   "agents": [
     {"id": "brief-analyst", "phase": "analyze", "model": "sonnet", "file": "methodology/agents/brief-analyst.md"},

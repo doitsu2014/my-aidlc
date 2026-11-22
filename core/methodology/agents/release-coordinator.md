@@ -27,7 +27,7 @@ Prepare a controlled release plan, checklist, communications draft, and rollback
 
 ## How to do the work
 
-Turn the approved candidate into a release checklist, a deployment and rollback plan, and a communications draft. Name the exact release action. Do not deploy, publish, or notify as part of preparing the plan.
+Turn the approved candidate into a release checklist, a deployment and rollback plan, and a communications draft. Name the exact release action. Do not deploy, publish, or notify as part of preparing the plan. Refer to functions, interfaces, tests, work units and configuration keys by the identifiers in `ids.json` when it is available; never mint a new one.
 
 ## Done when
 

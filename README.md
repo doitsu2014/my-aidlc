@@ -158,13 +158,17 @@ Source kinds include `project`, `docs`, `requirements`, `architecture`, `adr`, `
 
 - **Scope** defines lifecycle coverage: `solo`, `team`, or `enterprise`; it does not imply team size, risk rating, compliance status, or authority to act.
 - **Depth** defines rigor: `full`, `standard`, or `fast`. Faster depth omits some stages or outputs; it does not mean omitted risks have been addressed. Record residual concerns and follow-ups.
-- **Mode** defines who approves phase gates: `human` (the owner approves every gate) or `ai` (the AI orchestrator researches each gate, records a `gate-recommendation.md`, and approves as `"AI Orchestrator"`). The default is `human`; it can be overridden per intent.
+- **Mode** defines who approves phase gates: `human` (the owner approves every gate) or `ai` (the AI orchestrator researches each gate, records a `gate-recommendation.md`, and approves as `"AI Orchestrator"`). The default is `human`; it can be overridden per intent. `dtech-aidlc config gate-mode <gate> human` keeps a single gate with people inside an AI-mode intent, and an AI recommendation that leaves an item for written approval cannot pass its gate.
+- **Prerequisites** name what the environment must provide before a stage can run code, such as Docker or a toolchain. `dtech-aidlc config prerequisite set docker --check "docker info" --hint "Start Docker Desktop" --applies-to develop` declares one; `orchestrate next` runs the check before a matching stage, and a stage reported `--result blocked --needs docker` resumes only once the check passes.
+- **Identifiers** for functions, interfaces, tests, work units and configuration keys are minted once in the intent's `ids.json` during `implementation-design`. `dtech-aidlc ids check` lists cited identifiers that are not registered, and `orchestrate report` refuses a Develop or Launch stage that cites one.
 - Each methodology agent has a model alias recommendation. It is a preference only; it does not switch the assistant's model or guarantee availability. Claude harness projects may configure supported agent preferences; DeepSeek-only projects do not use Claude model aliases.
 
 ```sh
 dtech-aidlc config scope
 dtech-aidlc config agents
 dtech-aidlc config mode
+dtech-aidlc config gate-mode
+dtech-aidlc config prerequisite
 ```
 
 Depth can be selected when starting an intent or changed with `dtech-aidlc intent depth`; changing depth requires an approver and rationale. Mode can be set with `dtech-aidlc config mode ai|human` or chosen per intent with `orchestrate next --mode`; it cannot change mid-intent. The command help (`dtech-aidlc help`) lists the supported options.

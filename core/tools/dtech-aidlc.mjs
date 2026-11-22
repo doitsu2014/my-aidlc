@@ -2,7 +2,7 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { audit, configPath, loadConfig, configuredHarnesses, listHarnesses, loadHarnessManifest, projectHarnessFiles, parseArgs, readGraph, readJson, safeId, stateDir, statePath, auditPath, copyTreePreserving, orderedStages, resolveDepth, engineRoot, repoRoot, assertSafeStateDir, ensureWithin, writeJsonAtomic, writeFileAtomic, assertNoSymlinkComponents } from './lib.mjs';
+import { GATE_MODE_OVERRIDES, audit, configPath, loadConfig, configuredHarnesses, listHarnesses, loadHarnessManifest, projectHarnessFiles, parseArgs, readGraph, readJson, safeId, stateDir, statePath, auditPath, copyTreePreserving, orderedStages, resolveDepth, engineRoot, repoRoot, assertSafeStateDir, ensureWithin, writeJsonAtomic, writeFileAtomic, assertNoSymlinkComponents } from './lib.mjs';
 import { projectionStatus, updateProjectionStamp, refreshProjection, projectionDoctorRows, projectionNotices, legacyMethodologyStatus, refreshLegacyMethodology } from './projection.mjs';
 import { GLOBAL_FLAGS, COMMAND_FLAGS, COMMAND_MAX_ARGS, commandKey, optionTypes } from './cli-spec.mjs';
 import {
@@ -12,6 +12,8 @@ import {
 import { MODEL_ALIASES, ORCHESTRATION_MODES, aliasChoices, aliasesSupported, resolveAgentModel, validateModelConfig, validateMode, writeModelConfig } from './agent-models.mjs';
 import { addDependency, importDependencies, listDependencies, projectDependenciesPath, pullDependencies, removeDependency, validateDependencies } from './dependencies.mjs';
 import { detectDocumentation, onboardCommands, planRegistration, scanProject, sourceStatus, writeProjectProfile, writeSourcesSnapshot } from './onboard.mjs';
+import { CITATION_PHASES, citationReport, loadRegistry, markdownFilesUnder, uncoveredFunctions } from './ids.mjs';
+import { prerequisitesOf, runPrerequisites, validatePrerequisite } from './prerequisites.mjs';
 import {
   addSource, checkRecords, defaultKnowledgeManifest, ensureIgnoreFile, ensureKnowledgeDir, initKnowledge, inspectSources, knowledgePreflight,
   loadKnowledgeManifest, readRecords, removeSource, writeIndex, writeKnowledgeManifest,
@@ -34,12 +36,18 @@ const HELP = [
   '  scope [NAME] [--depth NAME]  List scopes or show stages in a scope',
   '  status [--intent ID]    Show current intent and stage progress',
   '  doctor                  Validate graph, state, config, and projection',
-  '  orchestrate next [--intent TEXT] [--description TEXT] [--intent-file PATH|-] [--scope NAME] [--depth NAME] [--mode ai|human] [--approved-by NAME] [--detail TEXT]',
+  '  orchestrate next [--intent TEXT] [--description TEXT] [--intent-file PATH|-] [--scope NAME] [--depth NAME] [--mode ai|human] [--approved-by NAME] [--detail TEXT] [--force-resume]',
   '                          Use --intent-file to avoid shell quoting; - reads standard input',
-  '  orchestrate report --result complete|blocked|skipped [--approval approved] [--approved-by NAME] [--approval-note TEXT] [--detail TEXT] [--stage ID]',
+  '                          --force-resume --detail TEXT selects a stage whose prerequisite check still fails (owner only)',
+  '  orchestrate report --result complete|blocked|skipped [--approval approved] [--approved-by NAME] [--approval-note TEXT] [--detail TEXT] [--stage ID] [--needs NAME]...',
+  '                          --needs names a declared prerequisite; the stage resumes once its check passes',
+  '  ids check [--stage ID]   List cited identifiers that are not in the intent\'s ID registry',
   '  config agents            List effective agent models',
   '  config scope [NAME]     Show or set the default scope for new intents',
   '  config mode [ai|human]   Show or set the default orchestration mode for new intents',
+  '  config gate-mode [GATE] [human|default]  Pin a gate to human approval, or list pinned gates',
+  '  config prerequisite [set NAME --check CMD [--hint TEXT] [--applies-to STAGE]...|remove NAME|check [NAME]]',
+  '                          Declare, remove, run or list named environment prerequisites',
   `  config agents set <agent-id> <${MODEL_ALIASES.join('|')}> (claude harness)`,
   '  config agents reset <agent-id>',
   '  repos add <name> <url> [--ref REF]',
@@ -320,7 +328,79 @@ function main() {
       }
       return out({ mode, appliesTo: 'new intents' });
     }
-    if (section !== 'agents') throw new Error('Use config agents, config scope, or config mode');
+    if (section === 'gate-mode' || section === 'prerequisite') {
+      const graph = readGraph();
+      const hasConfig = existsSync(configPath(root)), config = hasConfig ? loadConfig(root) : {};
+      const configured = ['solo', 'team', 'enterprise'].includes(config.scope) && configuredHarnesses(config).length > 0;
+      const requireConfigured = (what) => {
+        if (!hasConfig) throw new Error(`Initialize the project before changing ${what}`);
+        if (!configured) throw new Error('Invalid .aidlc/config.json: harness or scope is missing or unknown; correct the file');
+      };
+      if (section === 'gate-mode') {
+        const gates = graph.phases.map((phase) => phase.gate);
+        if (!args.length) return out({ gateModes: config.gateModes ?? {}, gates });
+        const gate = args[0];
+        if (!gates.includes(gate)) throw new Error(`Unknown gate '${gate}'. Gates: ${gates.join(', ')}`);
+        if (args.length < 2) return out({ gate, mode: config.gateModes?.[gate] ?? 'default' });
+        const value = args[1];
+        if (![...GATE_MODE_OVERRIDES, 'default'].includes(value)) {
+          throw new Error(`Gate mode must be ${[...GATE_MODE_OVERRIDES, 'default'].join(' or ')}: a gate can be pinned to human approval, never to AI approval`);
+        }
+        requireConfigured('gate modes');
+        const from = config.gateModes?.[gate] ?? 'default';
+        if (from !== value) {
+          if (value === 'default') {
+            delete config.gateModes[gate];
+            if (!Object.keys(config.gateModes).length) delete config.gateModes;
+          } else {
+            config.gateModes = { ...(config.gateModes ?? {}), [gate]: value };
+          }
+          writeJsonAtomic(configPath(root), config);
+          audit(root, 'config.gate-mode.changed', { gate, from, to: value });
+        }
+        return out({ gate, mode: value, appliesTo: 'every intent, from its next report of this gate' });
+      }
+      const defined = prerequisitesOf(config);
+      const action = args[0];
+      if (!action) return out(Object.entries(defined).map(([name, definition]) => ({ name, ...definition })));
+      if (action === 'check') {
+        const names = args[1] ? [args[1]] : Object.keys(defined);
+        if (args[1] && !Object.hasOwn(defined, args[1])) throw new Error(`Unknown prerequisite '${args[1]}'. Declared: ${Object.keys(defined).join(', ') || 'none'}`);
+        const results = runPrerequisites(root, config, names);
+        out({ ok: results.every((item) => item.ok), results });
+        if (!results.every((item) => item.ok)) process.exitCode = 1;
+        return;
+      }
+      if (action === 'set') {
+        const name = args[1];
+        if (!name) throw new Error('Usage: config prerequisite set NAME --check "COMMAND" [--hint TEXT] [--applies-to STAGE]...');
+        const definition = {
+          check: flags.check,
+          ...(flags.hint !== undefined ? { hint: flags.hint } : {}),
+          ...(flags['applies-to'] ? { stages: [...new Set(flags['applies-to'])] } : {}),
+        };
+        validatePrerequisite(name, definition, graph);
+        requireConfigured('prerequisites');
+        config.prerequisites = { ...defined, [name]: definition };
+        writeJsonAtomic(configPath(root), config);
+        audit(root, 'config.prerequisite.set', { name, check: definition.check, stages: definition.stages ?? [] });
+        return out({ name, ...definition });
+      }
+      if (action === 'remove') {
+        const name = args[1];
+        if (!name || !Object.hasOwn(defined, name)) throw new Error(`Unknown prerequisite '${name ?? '(missing name)'}'`);
+        requireConfigured('prerequisites');
+        const rest = { ...defined };
+        delete rest[name];
+        if (Object.keys(rest).length) config.prerequisites = rest;
+        else delete config.prerequisites;
+        writeJsonAtomic(configPath(root), config);
+        audit(root, 'config.prerequisite.removed', { name });
+        return out({ name, removed: true });
+      }
+      throw new Error('Use config prerequisite set, remove or check');
+    }
+    if (section !== 'agents') throw new Error('Use config agents, config scope, config mode, config gate-mode, or config prerequisite');
     const graph = readGraph(), config = validateModelConfig(root, graph), action = args.shift();
     if (!action) return out(graph.agents.map(agent => ({ id: agent.id, phase: agent.phase, ...resolveAgentModel(agent, config) })));
     if (action !== 'set' && action !== 'reset') throw new Error('Use config agents set or config agents reset');
@@ -431,6 +511,13 @@ function main() {
         return [{ status: rowStatus, message: `Knowledge sources: ${status.sources} registered, ${missing} missing, ${changed} changed since last scan` }];
       },
       (ctx) => checkWorkflowState(ctx.root, ctx.graph),
+      (ctx) => {
+        const names = Object.keys(prerequisitesOf(ctx.config));
+        return runPrerequisites(ctx.root, ctx.config, names).map((item) => ({
+          status: item.ok ? 'pass' : 'warn',
+          message: `Prerequisite ${item.name}: ${item.ok ? 'check passed' : `check failed (${item.check})${item.hint ? `; ${item.hint}` : ''}`}`,
+        }));
+      },
       (ctx) => [{ status: !existsSync(auditPath(ctx.root)) || readFileSync(auditPath(ctx.root), 'utf8').split(/\r?\n/).filter(Boolean).every((line) => { try { JSON.parse(line); return true; } catch { return false; } }) ? 'pass' : 'fail', message: 'Audit log contains valid JSON lines' }],
       (ctx) => { const legacy = legacyMethodologyStatus(ctx.root); return legacy ? [{ status: 'warn', message: `Unused methodology copy at .aidlc/methodology from an earlier version; ${legacy.pristine.length} pristine file(s) can be removed by harness refresh, ${legacy.modified.length} modified or unknown file(s) will be kept` }] : []; },
       (ctx) => {
@@ -481,7 +568,13 @@ function main() {
       }
       if (intentText !== null) intentText = normalizeIntentText(intentText);
       if (flags.mode !== undefined) validateMode(flags.mode);
-      const directive = orchestrateNext(root, { intent: intentText, scope: flags.scope || null, depth: flags.depth, mode: flags.mode ?? null, approvedBy: flags['approved-by'], detail: flags.detail });
+      if (flags['force-resume'] && !flags.detail) throw new Error('--force-resume requires --detail "<reason>"');
+      const directive = orchestrateNext(root, { intent: intentText, scope: flags.scope || null, depth: flags.depth, mode: flags.mode ?? null, approvedBy: flags['approved-by'], detail: flags.detail, forceResume: Boolean(flags['force-resume']) });
+      if (directive.blocked) {
+        out(directive);
+        process.exitCode = 3;
+        return;
+      }
       if (directive.stage) {
         ensureKnowledgeDir(root);
         ensureIgnoreFile(root);
@@ -492,7 +585,7 @@ function main() {
     if (action === 'report') {
       const result = orchestrateReport(root, {
         stage: flags.stage, result: flags.result, approval: flags.approval, detail: flags.detail,
-        approvedBy: flags['approved-by'], approvalNote: flags['approval-note'],
+        approvedBy: flags['approved-by'], approvalNote: flags['approval-note'], needs: flags.needs,
       });
       if (result.stage === 'knowledge-writeback' && result.result === 'complete') {
         writeIndex(root);
@@ -501,6 +594,35 @@ function main() {
       return out(result);
     }
     throw new Error('Use orchestrate next or orchestrate report');
+  }
+  if (cmd === 'ids') {
+    const action = args.shift(), graph = readGraph();
+    if (action !== 'check') throw new Error('Use ids check');
+    const state = loadWorkflow(root, graph).state;
+    if (!state?.intentId) throw new Error('No active intent');
+    const inScope = orderedStages(graph, state.scope, state.depth || 'full');
+    if (flags.stage && !inScope.some((stage) => stage.id === flags.stage)) throw new Error(`Stage ${flags.stage} is not in the active intent's scope`);
+    const selected = flags.stage
+      ? inScope.filter((stage) => stage.id === flags.stage)
+      : inScope.filter((stage) => CITATION_PHASES.includes(stage.phase));
+    const dir = intentDir(root, state.intentId);
+    const registry = loadRegistry(root, graph, state.intentId);
+    const stages = selected.map((stage) => {
+      const report = citationReport(root, graph, state.intentId, markdownFilesUnder(join(dir, stage.phase, stage.id)));
+      return { stage: stage.id, checked: report.checked, unregistered: report.unregistered };
+    });
+    const unregistered = stages.flatMap((row) => row.unregistered);
+    const result = {
+      intentId: state.intentId,
+      registry: { path: registry.path, exists: registry.exists, ...(registry.error ? { error: registry.error } : {}), counts: Object.fromEntries(Object.entries(registry.byPrefix).map(([prefix, ids]) => [prefix, ids.length])) },
+      applies: registry.exists && !registry.notApplicable && !registry.error,
+      ok: unregistered.length === 0 && !registry.error,
+      stages,
+      uncoveredFunctions: uncoveredFunctions(root, graph, state.intentId, dir),
+    };
+    out(result);
+    if (!result.ok) process.exitCode = 1;
+    return;
   }
   if (cmd === 'intent') {
     const action = args.shift(), graph = readGraph();

@@ -88,7 +88,7 @@ test('AI mode requires gate-recommendation and records AI approval', (t) => {
   // With the recommendation file, AI approval succeeds and is audited.
   const rec = join(gate.intentDir, gate.stage.phase, gate.stage.id, 'gate-recommendation.md');
   mkdirSync(join(gate.intentDir, gate.stage.phase, gate.stage.id), { recursive: true });
-  writeFileSync(rec, '# Gate recommendation\n\n## Options\n\nA vs B.\n\n## Evidence\n\nObserved.\n\n## Decision\n\nA.\n');
+  writeFileSync(rec, '# Gate recommendation\n\n## Options\n\nA vs B.\n\n## Evidence\n\nObserved.\n\n## Decision\n\nA.\n\n## Open items\n\n- [follow-up] Tune the retry count after launch.\n');
   const approved = json(project, 'orchestrate', 'report', '--result', 'complete', '--approval', 'approved', '--approved-by', 'AI Orchestrator');
   assert.equal(approved.approval, 'approved');
   assert.equal(approved.approvedBy, 'AI Orchestrator');
@@ -125,7 +125,7 @@ test('AI mode drive to completion uses AI approvals', (t) => {
     if (next.stage.phaseGate) {
       const dir = join(next.intentDir, next.stage.phase, next.stage.id);
       mkdirSync(dir, { recursive: true });
-      writeFileSync(join(dir, 'gate-recommendation.md'), '# Gate recommendation\n\nResearched; approved.\n');
+      writeFileSync(join(dir, 'gate-recommendation.md'), '# Gate recommendation\n\nResearched; approved.\n\n## Open items\n\n- None\n');
       json(project, 'orchestrate', 'report', '--result', 'complete', '--approval', 'approved', '--approved-by', 'AI Orchestrator');
     } else {
       json(project, 'orchestrate', 'report', '--result', 'complete');
@@ -137,4 +137,82 @@ test('AI mode drive to completion uses AI approvals', (t) => {
     assert.equal(row.mode, 'ai');
     assert.equal(row.by, 'AI Orchestrator');
   }
+});
+
+function writeRecommendation(directive, text) {
+  const dir = join(directive.intentDir, directive.stage.phase, directive.stage.id);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'gate-recommendation.md'), text);
+}
+
+test('AI gate approval counts deferrals in the Open items section', (t) => {
+  const project = tempProject(t);
+  initProject(project);
+  json(project, 'config', 'mode', 'ai');
+  const first = json(project, 'orchestrate', 'next', '--intent', 'deferral counting');
+  writeArtifacts(project, first);
+  json(project, 'orchestrate', 'report', '--result', 'complete');
+  const gate = json(project, 'orchestrate', 'next');
+  writeArtifacts(project, gate);
+  const approve = () => run(project, 'orchestrate', 'report', '--result', 'complete', '--approval', 'approved', '--approved-by', 'AI Orchestrator');
+
+  writeRecommendation(gate, '# Gate recommendation\n\n## Decision\n\nA.\n');
+  let refused = approve();
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /needs an '## Open items' section/);
+
+  writeRecommendation(gate, '# Gate recommendation\n\n## Open items\n\n');
+  assert.match(approve().stderr, /empty '## Open items' section/);
+
+  writeRecommendation(gate, '# Gate recommendation\n\n## Open items\n\n- Confirm the retention period.\n');
+  assert.match(approve().stderr, /without a \[written-approval\] or \[follow-up\] tag/);
+
+  writeRecommendation(gate, '# Gate recommendation\n\n## Open items\n\n- [written-approval] Owner confirms the retention period.\n- [follow-up] Tune alerts.\n');
+  refused = approve();
+  assert.equal(refused.status, 1);
+  assert.match(refused.stderr, /leaves 1 item\(s\) that need written approval open/);
+  assert.match(refused.stderr, /config gate-mode analysis-baseline human/);
+
+  const blocked = run(project, 'orchestrate', 'report', '--result', 'blocked', '--detail', 'Owner must confirm the retention period');
+  assert.equal(blocked.status, 0, blocked.stderr);
+  const again = json(project, 'orchestrate', 'next');
+  assert.equal(again.stage.id, gate.stage.id);
+  writeRecommendation(again, '# Gate recommendation\n\n## Open items\n\n- [follow-up] Tune alerts.\n');
+  const approved = approve();
+  assert.equal(approved.status, 0, approved.stderr);
+  const decided = readAudit(project).find((row) => row.event === 'gate.decided');
+  assert.deepEqual(decided.openItems, { writtenApproval: 0, followUp: 1 });
+});
+
+test('config gate-mode pins a gate to human approval inside an AI-mode intent', (t) => {
+  const project = tempProject(t);
+  initProject(project);
+  json(project, 'config', 'mode', 'ai');
+  assert.deepEqual(json(project, 'config', 'gate-mode', 'analysis-baseline', 'human'), { gate: 'analysis-baseline', mode: 'human', appliesTo: 'every intent, from its next report of this gate' });
+  const toAi = run(project, 'config', 'gate-mode', 'analysis-baseline', 'ai');
+  assert.equal(toAi.status, 1);
+  assert.match(toAi.stderr, /never to AI approval/);
+  assert.equal(run(project, 'config', 'gate-mode', 'no-such-gate', 'human').status, 1);
+  assert.deepEqual(json(project, 'config', 'gate-mode').gateModes, { 'analysis-baseline': 'human' });
+
+  const first = json(project, 'orchestrate', 'next', '--intent', 'pinned gate');
+  assert.equal(first.orchestrationMode, 'ai');
+  assert.equal(first.gateMode, 'human');
+  writeArtifacts(project, first);
+  json(project, 'orchestrate', 'report', '--result', 'complete');
+  const gate = json(project, 'orchestrate', 'next');
+  writeArtifacts(project, gate);
+  writeRecommendation(gate, '# Gate recommendation\n\n## Open items\n\n- None\n');
+  const ai = run(project, 'orchestrate', 'report', '--result', 'complete', '--approval', 'approved', '--approved-by', 'AI Orchestrator');
+  assert.equal(ai.status, 1);
+  assert.match(ai.stderr, /pinned to human mode/);
+  json(project, 'orchestrate', 'report', '--result', 'complete', '--approval', 'approved', '--approved-by', 'Owner');
+  const state = readActiveState(project);
+  assert.equal(state.gates['analysis-baseline'].mode, 'human');
+  assert.equal(state.gates['analysis-baseline'].pinned, true);
+
+  const ideate = json(project, 'orchestrate', 'next');
+  assert.equal(ideate.gateMode, 'ai');
+  assert.deepEqual(json(project, 'config', 'gate-mode', 'analysis-baseline', 'default'), { gate: 'analysis-baseline', mode: 'default', appliesTo: 'every intent, from its next report of this gate' });
+  assert.equal(json(project, 'config', 'gate-mode').gateModes['analysis-baseline'], undefined);
 });

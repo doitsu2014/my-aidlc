@@ -55,5 +55,6 @@ Use this for the Develop output `functional-design`. Follow the design views in 
 Rules:
 
 - Every function traces to at least one `AC-` identifier. A function with no criterion is out of scope until Analyze adds one.
+- Register every `FN-` identifier, and every interface (`IF-`) named in section 5, in `ids.json` ([the ID registry template](id-registry.md)) before citing it.
 - Specify behavior and interfaces. Do not turn this document into source code.
 - Name the error the actor can observe, not only the internal exception type.

@@ -1,12 +1,13 @@
 export const GLOBAL_FLAGS = Object.freeze({ project: 'string', help: 'boolean', version: 'boolean' });
 export const TWO_WORD_COMMANDS = Object.freeze([
-  'orchestrate', 'config', 'repos', 'deps', 'completion', 'intent', 'knowledge', 'harness',
+  'orchestrate', 'config', 'repos', 'deps', 'completion', 'intent', 'knowledge', 'harness', 'ids',
 ]);
 export const COMMAND_FLAGS = Object.freeze({
   init: { harness: 'string', scope: 'string', docs: 'list', 'no-detect': 'boolean', rescan: 'boolean' },
   onboard: { harness: 'string', scope: 'string', docs: 'list', 'no-detect': 'boolean', rescan: 'boolean' },
-  'orchestrate next': { intent: 'string', description: 'string', scope: 'string', 'intent-file': 'string', depth: 'string', mode: 'string', 'approved-by': 'string', detail: 'string' },
-  'orchestrate report': { result: 'string', approval: 'string', detail: 'string', stage: 'string', 'approved-by': 'string', 'approval-note': 'string' },
+  'orchestrate next': { intent: 'string', description: 'string', scope: 'string', 'intent-file': 'string', depth: 'string', mode: 'string', 'approved-by': 'string', detail: 'string', 'force-resume': 'boolean' },
+  'orchestrate report': { result: 'string', approval: 'string', detail: 'string', stage: 'string', 'approved-by': 'string', 'approval-note': 'string', needs: 'list' },
+  'ids check': { stage: 'string' },
   scope: { depth: 'string' },
   status: { intent: 'string' },
   doctor: {},
@@ -19,6 +20,8 @@ export const COMMAND_FLAGS = Object.freeze({
   'config agents': {},
   'config scope': {},
   'config mode': {},
+  'config gate-mode': {},
+  'config prerequisite': { check: 'string', hint: 'string', 'applies-to': 'list' },
   'harness add': {},
   'repos add': { ref: 'string' },
   'repos pull': { file: 'string' },
@@ -56,6 +59,9 @@ export const COMMAND_MAX_ARGS = Object.freeze({
   'config agents': 3,
   'config scope': 1,
   'config mode': 1,
+  'config gate-mode': 2,
+  'config prerequisite': 2,
+  'ids check': 0,
   'harness add': 1,
   'intent list': 0,
   'intent pause': 0,

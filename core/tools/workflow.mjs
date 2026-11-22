@@ -4,13 +4,17 @@ import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, renameSync
 import { userInfo } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
-  assertNoSymlinkComponents, audit, configPath, engineRoot, loadConfig, orderedStages, readGraph, readJsonStrict, resolveDepth, resolveMode, stateDir, statePath, writeJsonAtomic,
+  assertNoSymlinkComponents, audit, configPath, effectiveGateMode, engineRoot, loadConfig, orderedStages, readGraph, readJsonStrict, resolveDepth, resolveMode, stateDir, statePath, writeJsonAtomic,
 } from './lib.mjs';
 import { resolveAgentModel, validateModelConfig } from './agent-models.mjs';
 import { ARTIFACT_VALIDATORS, extraRequiredArtifacts } from './context.mjs';
 import { artifactPathFor, expectedArtifacts, verifyArtifacts } from './artifacts.mjs';
 import { buildDirectiveContext } from './context.mjs';
 import { knowledgeGateCheck, writeIndex } from './knowledge.mjs';
+import { CITATION_PHASES, citationReport, formatUnregistered, uncoveredFunctions, unitsFromData } from './ids.mjs';
+import { preflightNames, requireKnownPrerequisites, runPrerequisites } from './prerequisites.mjs';
+
+export const DEFAULT_UNIT_SPLIT_THRESHOLD = 6;
 
 const ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
 const STATUSES = new Set(['in_progress', 'complete', 'blocked', 'skipped']);
@@ -395,9 +399,8 @@ function applyWorkUnits(root, graph, state) {
   const jsonPath = design.find((item) => item.output === 'work-units')?.path?.replace(/\.md$/, '.json');
   if (!jsonPath || !existsSync(jsonPath)) return;
   try {
-    const data = JSON.parse(readFileSync(jsonPath, 'utf8'));
-    const units = Array.isArray(data.units) ? data.units : data;
-    if (!Array.isArray(units) || !units.length) return;
+    const units = unitsFromData(JSON.parse(readFileSync(jsonPath, 'utf8')));
+    if (!units.length) return;
     state.units = units.map((row, index) => ({
       id: String(row.id || `U-${String(index + 1).padStart(2, '0')}`),
       status: 'in_progress',
@@ -502,13 +505,50 @@ export function gateRecommendationPath(root, intentId, stage) {
   return join(intentDir(root, intentId), stage.phase, stage.id, 'gate-recommendation.md');
 }
 
-function gateRecommendationExists(root, intentId, stage) {
+function readGateRecommendation(root, intentId, stage) {
   try {
     const text = readFileSync(gateRecommendationPath(root, intentId, stage), 'utf8');
-    return text.trim().length > 0;
+    return text.trim().length > 0 ? text : null;
   } catch {
-    return false;
+    return null;
   }
+}
+
+// The '## Open items' section of a gate recommendation. Each item is tagged
+// [written-approval] (needs a human's written decision) or [follow-up] (tracked work that
+// does not block the gate); '- None' states there is nothing open.
+export function gateOpenItems(text) {
+  const lines = String(text).split(/\r?\n/);
+  const start = lines.findIndex((line) => /^#{2,3}\s+open items\s*$/i.test(line.trim()));
+  if (start < 0) return { present: false, none: false, writtenApproval: [], followUp: [], untagged: [] };
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => /^#{1,3}\s/.test(line.trim()));
+  const body = (end < 0 ? rest : rest.slice(0, end)).map((line) => line.trim()).filter(Boolean);
+  const items = body.filter((line) => /^([-*]|\d+\.)\s+/.test(line)).map((line) => line.replace(/^([-*]|\d+\.)\s+/, '').trim());
+  const isNone = (line) => /^none\.?$/i.test(line);
+  const open = items.filter((item) => !isNone(item));
+  const none = open.length === 0 && (items.some(isNone) || body.some(isNone));
+  return {
+    present: true,
+    none,
+    writtenApproval: open.filter((item) => /^\[written-approval\]/i.test(item)),
+    followUp: open.filter((item) => /^\[follow-up\]/i.test(item)),
+    untagged: open.filter((item) => !/^\[(written-approval|follow-up)\]/i.test(item)),
+  };
+}
+
+function aiApprovalProblem(text, gateId) {
+  if (!text) return `AI gate approval for ${gateId} requires a gate-recommendation artifact; the agent must research options and write its recommendation first.`;
+  const open = gateOpenItems(text);
+  if (!open.present) return `gate-recommendation.md for ${gateId} needs an '## Open items' section: list each deferred item tagged [written-approval] or [follow-up], or write '- None'.`;
+  if (!open.none && open.writtenApproval.length + open.followUp.length + open.untagged.length === 0) {
+    return `gate-recommendation.md for ${gateId} has an empty '## Open items' section; write '- None' when nothing is open.`;
+  }
+  if (open.untagged.length) return `gate-recommendation.md for ${gateId} has ${open.untagged.length} open item(s) without a [written-approval] or [follow-up] tag; classify each one.`;
+  if (open.writtenApproval.length) {
+    return `Gate ${gateId} cannot be approved by the AI Orchestrator: gate-recommendation.md leaves ${open.writtenApproval.length} item(s) that need written approval open. Report the stage blocked with those items in --detail, or ask the owner to pin the gate to human approval with 'dtech-aidlc config gate-mode ${gateId} human'.`;
+  }
+  return null;
 }
 
 function nearestConfigParent(root) {
@@ -562,8 +602,15 @@ export function buildDirective({ root, graph, config, state, stage, warnings = [
     ...(state.assignee ? { assignee: state.assignee } : {}),
     warnings,
     gate,
+    // The mode that decides this phase's gate: the intent's mode unless config pins the gate to human.
+    gateMode: effectiveGateMode(config, state, gate.id),
     approvalRequiredAfter: gate.finalStage,
-    artifacts: expected.map(({ output, kind, relPath }) => ({ output, kind, path: relPath })),
+    contractsFile: join(engineRoot(), 'methodology', 'contracts.md'),
+    suggestedBranch: `feature/${state.intentId}`,
+    artifacts: expected.map(({ output, kind, relPath }) => {
+      const template = graph.outputs?.[output]?.template;
+      return { output, kind, path: relPath, ...(template ? { template: join(engineRoot(), template) } : {}) };
+    }),
     stage: {
       ...stage,
       phaseGate,
@@ -646,6 +693,43 @@ export function orchestrateNext(root, options = {}, hooks = {}) {
   const reports = Array.isArray(row.reports) ? row.reports : [];
   const lastReport = reports.at(-1);
   const wasBlocked = row.status === 'blocked' || lastReport?.result === 'blocked';
+
+  // Named prerequisites: the ones the last blocked report named, plus preflight checks the
+  // owner attached to this stage or phase. Nothing is persisted while one is still failing.
+  const needed = [...(wasBlocked && Array.isArray(lastReport?.needs) ? lastReport.needs : []), ...preflightNames(config, next)];
+  let prerequisites;
+  if (needed.length) {
+    prerequisites = runPrerequisites(root, config, needed);
+    const failing = prerequisites.filter((item) => !item.ok);
+    if (failing.length && !options.forceResume) {
+      if (!isNewIntent) audit(root, 'prerequisite.checked', { intentId: state.intentId, stage: next.id, results: prerequisites.map(({ name, ok, exitCode }) => ({ name, ok, exitCode })) });
+      const hints = failing.map((item) => `${item.name}${item.hint ? ` (${item.hint})` : ''}`).join(', ');
+      return {
+        complete: false,
+        blocked: true,
+        intentId: isNewIntent ? null : state.intentId,
+        stage: next.id,
+        ...(state.currentUnit ? { currentUnit: state.currentUnit } : {}),
+        needs: prerequisites,
+        hint: `Stage ${next.id} needs ${hints}, and its check is failing. Fix the environment and run 'dtech-aidlc orchestrate next' again${isNewIntent ? ' with the same request (the intent was not created yet)' : ''}. Only the owner may override with --force-resume --detail "<reason>".`,
+      };
+    }
+    if (failing.length) {
+      if (!options.detail) throw new Error('--force-resume requires --detail "<reason>"');
+      warnings.push(`Prerequisite check failing and overridden with --force-resume: ${failing.map((item) => item.name).join(', ')}.`);
+    }
+  }
+
+  if (next.repeat === 'work-unit') {
+    if (!(Array.isArray(state.units) && state.units.length) && (state.depth || 'full') !== 'fast') {
+      warnings.push('No work-units.json was read for this intent, so Develop runs as one implicit work unit. Write it beside work-units.md in implementation-design.');
+    }
+    const threshold = Number.isInteger(config.unitSplitThreshold) && config.unitSplitThreshold > 0 ? config.unitSplitThreshold : DEFAULT_UNIT_SPLIT_THRESHOLD;
+    const firstRepeat = stages.find((item) => item.repeat === 'work-unit');
+    if (state.units?.length > threshold && next.id === firstRepeat?.id && state.currentUnit === state.units[0].id) {
+      warnings.push(`This intent has ${state.units.length} work units, more than the split threshold of ${threshold}. Consider asking the owner to split it into separate intents (for example backend, then API/UI) before building.`);
+    }
+  }
   let rework;
   if (wasBlocked) {
     state.stages[next.id] = { ...row, status: 'in_progress', startedAt: row.startedAt, resumedAt: row.resumedAt ?? new Date().toISOString() };
@@ -653,6 +737,7 @@ export function orchestrateNext(root, options = {}, hooks = {}) {
       blockedAt: lastReport?.at ?? row.reportedAt ?? null,
       detail: lastReport?.detail ?? row.detail ?? null,
       attempt: (reports.length || 1) + 1,
+      ...(Array.isArray(lastReport?.needs) && lastReport.needs.length ? { needs: lastReport.needs } : {}),
     };
   } else {
     state.stages[next.id] ??= { status: 'in_progress', startedAt: new Date().toISOString() };
@@ -666,6 +751,7 @@ export function orchestrateNext(root, options = {}, hooks = {}) {
   };
   const context = contextProvider(contextInput);
   const directive = buildDirective({ root, graph, config, state, stage: next, warnings, context, rework });
+  if (prerequisites) directive.prerequisites = prerequisites;
 
   if (isNewIntent) {
     mkdirSync(intentDir(root, state.intentId), { recursive: true });
@@ -679,6 +765,11 @@ export function orchestrateNext(root, options = {}, hooks = {}) {
     }
   } else {
     persistWorkflow(root, state, graph);
+  }
+  if (prerequisites) {
+    audit(root, 'prerequisite.checked', { intentId: state.intentId, stage: next.id, results: prerequisites.map(({ name, ok, exitCode }) => ({ name, ok, exitCode })) });
+    const overridden = prerequisites.filter((item) => !item.ok).map((item) => item.name);
+    if (overridden.length) audit(root, 'prerequisite.overridden', { intentId: state.intentId, stage: next.id, names: overridden, detail: options.detail });
   }
   audit(root, 'stage.selected', { intent: state.intent, intentId: state.intentId, stage: next.id, rework: Boolean(rework) });
   return directive;
@@ -722,6 +813,12 @@ export function orchestrateReport(root, options = {}) {
   if (options.approval === 'approved' && result === 'blocked') {
     throw new Error('--approval approved cannot be combined with --result blocked; a blocked report never passes a gate');
   }
+  const config = loadConfig(root);
+  const needs = [...new Set(options.needs ?? [])];
+  if (needs.length) {
+    if (result !== 'blocked') throw new Error('--needs is only accepted with --result blocked');
+    requireKnownPrerequisites(config, needs);
+  }
   const stages = orderedStages(graph, state.scope, state.depth || 'full');
   if (!stages.some((item) => item.id === stage.id)) throw new Error(`Stage ${stage.id} is not included in the active ${state.scope} scope`);
   const gate = gateInfo(graph, state.scope, stage, state.depth || 'full');
@@ -763,10 +860,18 @@ export function orchestrateReport(root, options = {}) {
       const check = knowledgeGateCheck(root, graph, state);
       if (!check.ok) throw new Error(`Knowledge record is not ready: ${check.errors[0]} (${check.path})`);
     }
+    if (CITATION_PHASES.includes(stage.phase)) {
+      const citations = citationReport(root, graph, state.intentId, expected.map((item) => item.path));
+      if (citations.unregistered.length) {
+        throw new Error(`Stage ${stage.id} cannot be reported complete: ${citations.unregistered.length} cited identifier(s) are not registered.\n${formatUnregistered(citations.unregistered)}\nCite only identifiers in ${citations.registry} and the Analyze artifacts. A new identifier is minted by implementation-design: report this stage blocked and rework the design. Run 'dtech-aidlc ids check' to list them.`);
+      }
+    }
   }
   const now = new Date().toISOString();
   const previous = state.stages[stage.id] || {};
-  const mode = state.mode ?? 'human';
+  const mode = phaseGate ? effectiveGateMode(config, state, gate.id) : (state.mode ?? 'human');
+  const gatePinned = mode !== (state.mode ?? 'human');
+  let openItems = null;
   let approvalRecord = null;
   let recordedApproval = null;
   let approver = { by: null, bySource: null };
@@ -776,19 +881,30 @@ export function orchestrateReport(root, options = {}) {
       throw new Error(`Intent '${state.intentId}' runs in AI orchestrator mode; gate approvals must use --approved-by "${AI_ORCHESTRATOR}". Human approvals apply to human-mode intents.`);
     }
     if (mode === 'human' && approver.by === AI_ORCHESTRATOR) {
-      throw new Error(`Intent '${state.intentId}' runs in human mode; "${AI_ORCHESTRATOR}" cannot approve a human-mode gate.`);
+      throw new Error(gatePinned
+        ? `Gate ${gate.id} is pinned to human mode by 'config gate-mode'; "${AI_ORCHESTRATOR}" cannot approve it. Present it to the owner.`
+        : `Intent '${state.intentId}' runs in human mode; "${AI_ORCHESTRATOR}" cannot approve a human-mode gate.`);
     }
-    if (mode === 'ai' && options.approval === 'approved' && !gateRecommendationExists(root, state.intentId, stage)) {
-      throw new Error(`AI gate approval for ${gate.id} requires a gate-recommendation artifact; the agent must research options and write its recommendation first.`);
+    if (mode === 'ai' && options.approval === 'approved') {
+      const text = readGateRecommendation(root, state.intentId, stage);
+      const problem = aiApprovalProblem(text, gate.id);
+      if (problem) throw new Error(problem);
+      const open = gateOpenItems(text);
+      openItems = { writtenApproval: open.writtenApproval.length, followUp: open.followUp.length };
     }
-    const allowed = allowedApprovers(loadConfig(root), gate.id);
+    const allowed = allowedApprovers(config, gate.id);
     if (mode === 'human' && allowed && !allowed.includes(approver.by)) {
       throw new Error(`Approver '${approver.by}' is not allowed for gate ${gate.id}. Allowed: ${allowed.join(', ')}`);
     }
     recordedApproval = options.approval;
-    approvalRecord = { decision: options.approval, by: approver.by, bySource: approver.bySource, mode, note: options.approvalNote ?? null };
+    approvalRecord = {
+      decision: options.approval, by: approver.by, bySource: approver.bySource, mode, note: options.approvalNote ?? null,
+      ...(gatePinned ? { pinned: true } : {}), ...(openItems ? { openItems } : {}),
+    };
   }
-  const reports = [...(previous.reports || []), { at: now, result, detail: options.detail ?? null, ...(approvalRecord ? { approval: approvalRecord } : {}) }];
+  const reports = [...(previous.reports || []), {
+    at: now, result, detail: options.detail ?? null, ...(needs.length ? { needs } : {}), ...(approvalRecord ? { approval: approvalRecord } : {}),
+  }];
   const unitKey = state.currentUnit || '_';
   const unitMap = { ...(previous.units || {}) };
   if (stage.repeat === 'work-unit') unitMap[unitKey] = { status: result, reportedAt: now };
@@ -821,6 +937,7 @@ export function orchestrateReport(root, options = {}) {
     state.gates[gate.id] = {
       phase: gate.phase, stage: stage.id, decision: options.approval, result, by: approver.by, bySource: approver.bySource, mode,
       at: now, note: options.approvalNote ?? null, detail: options.detail ?? null, skippedStages, artifacts: [],
+      ...(gatePinned ? { pinned: true } : {}), ...(openItems ? { openItems } : {}),
     };
   }
   state.currentStage = null;
@@ -828,18 +945,26 @@ export function orchestrateReport(root, options = {}) {
   audit(root, 'stage.reported', {
     intent: state.intent, intentId: state.intentId, stage: stage.id, phase: stage.phase, result,
     detail: options.detail ?? null, phaseGate, gate: phaseGate ? gate.id : null, gateApproval: recordedApproval,
-    approvedBy: approver.by,
+    approvedBy: approver.by, ...(needs.length ? { needs } : {}),
   });
   if (approvalRecord) {
     audit(root, 'gate.decided', {
       intentId: state.intentId, gate: gate.id, phase: gate.phase, stage: stage.id, decision: options.approval, result,
       by: approver.by, bySource: approver.bySource, mode, note: options.approvalNote ?? null, detail: options.detail ?? null,
       skippedStages: state.gates[gate.id].skippedStages, artifacts: [],
+      ...(gatePinned ? { pinned: true } : {}), ...(openItems ? { openItems } : {}),
     });
+  }
+  const warnings = [];
+  if (result === 'complete' && phaseGate && stage.id === 'build-and-verify') {
+    const uncovered = uncoveredFunctions(root, graph, state.intentId, intentDir(root, state.intentId));
+    if (uncovered.length) warnings.push(`Registered functions with no row in any green verification report trace table: ${uncovered.join(', ')}.`);
   }
   return {
     recorded: true, intentId: state.intentId, stage: stage.id, result, phaseGate, gate: gate.id,
     approval: recordedApproval, approvedBy: approver.by, intentComplete: deriveStatus(state, graph) === 'complete',
+    ...(needs.length ? { needs } : {}),
+    ...(warnings.length ? { warnings } : {}),
     ...(result === 'complete' ? { artifacts: verified.artifacts } : {}),
   };
 }

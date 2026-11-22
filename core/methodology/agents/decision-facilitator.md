@@ -39,4 +39,4 @@ The decision record distinguishes the recommendation from the approved choice an
 
 This stage is the Ideate gate. Develop starts only after the owner approves the direction.
 
-In AI orchestrator mode (`orchestrationMode: "ai"` in the directive), research the direction decision yourself, write `gate-recommendation.md` in this stage's directory, and approve with `--approved-by "AI Orchestrator"` as the [AI orchestrator approval contract](../contracts.md#ai-orchestrator-approval-contract) requires.
+In AI orchestrator mode (`orchestrationMode: "ai"` in the directive), research the direction decision yourself, write `gate-recommendation.md` in this stage's directory, and approve with `--approved-by "AI Orchestrator"` as the [AI orchestrator approval contract](../contracts.md#ai-orchestrator-approval-contract) requires. This gate is where open questions from Analyze are settled: list every open question the chosen direction depends on under `## Open items` as `[written-approval]`, which blocks AI approval until the owner answers. When the directive's `gateMode` is `human`, present the gate to the owner instead.

@@ -30,7 +30,7 @@ export function readGraph() {
   let graph;
   try { graph = JSON.parse(readFileSync(path, 'utf8')); } catch { throw new Error(`Invalid phase-graph.json: malformed JSON (${path})`); }
   const invalid = message => { throw new Error(`Invalid phase-graph.json: ${message}`); };
-  if (!graph || typeof graph !== 'object' || Array.isArray(graph) || graph.schemaVersion !== '1.4.0') invalid('schemaVersion must be 1.4.0 (depths and work-unit repeat are required)');
+  if (!graph || typeof graph !== 'object' || Array.isArray(graph) || graph.schemaVersion !== GRAPH_SCHEMA_VERSION) invalid(`schemaVersion must be ${GRAPH_SCHEMA_VERSION} (depths, work-unit repeat and data outputs are required)`);
   for (const key of ['phases', 'stages', 'agents']) if (!Array.isArray(graph[key])) invalid(`${key} must be an array`);
   if (!Array.isArray(graph.modelAliases) || graph.modelAliases.length === 0 || graph.modelAliases.some(x => !MODEL_ALIASES.includes(x)) || new Set(graph.modelAliases).size !== graph.modelAliases.length) invalid('modelAliases must be a unique allowlisted alias array');
   const unique = (rows, label) => {
@@ -88,6 +88,11 @@ export function readGraph() {
     for (const id of stage.inputs.artifacts) {
       if (id !== '*' && (typeof id !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(id))) invalid(`stage ${stage.id} inputs.artifacts has invalid id`);
     }
+    if (stage.inputs.optionalArtifacts !== undefined) {
+      if (!Array.isArray(stage.inputs.optionalArtifacts) || stage.inputs.optionalArtifacts.some((id) => typeof id !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(id))) {
+        invalid(`stage ${stage.id} inputs.optionalArtifacts has invalid id`);
+      }
+    }
     for (const output of stage.produces) {
       if (typeof output !== 'string' || !/^[a-z0-9][a-z0-9-]*$/.test(output)) invalid(`stage ${stage.id} produces an invalid output id`);
     }
@@ -104,10 +109,13 @@ export function readGraph() {
       if (!seen.has(id)) invalid(`outputs.${id} is not produced by any stage`);
       if (!entry || typeof entry !== 'object' || Array.isArray(entry)) invalid(`outputs.${id} must be an object`);
       const keys = Object.keys(entry);
-      if (keys.some((key) => key !== 'kind' && key !== 'path')) invalid(`outputs.${id} has unknown keys`);
-      if (entry.kind !== undefined && entry.kind !== 'document' && entry.kind !== 'code-manifest') invalid(`outputs.${id} kind must be document or code-manifest`);
+      if (keys.some((key) => !['kind', 'path', 'template'].includes(key))) invalid(`outputs.${id} has unknown keys`);
+      if (entry.kind !== undefined && !OUTPUT_KINDS.includes(entry.kind)) invalid(`outputs.${id} kind must be ${OUTPUT_KINDS.join(', ')}`);
+      if (entry.kind === 'data' && entry.path === undefined) invalid(`outputs.${id} of kind data must declare a .json path`);
+      if (entry.template !== undefined) filePath(entry.template, `outputs.${id} template`);
       if (entry.path !== undefined) {
-        if (typeof entry.path !== 'string' || isAbsolute(entry.path) || entry.path.includes('\\') || entry.path.split('/').includes('..') || !entry.path.endsWith('.md')) {
+        const extension = entry.kind === 'data' ? '.json' : '.md';
+        if (typeof entry.path !== 'string' || isAbsolute(entry.path) || entry.path.includes('\\') || entry.path.split('/').includes('..') || !entry.path.endsWith(extension)) {
           invalid(`outputs.${id} path is invalid`);
         }
         if (/\{(?!intentId\}|phase\}|stage\}|output\}|unitId\})/.test(entry.path.replaceAll('{intentId}', '').replaceAll('{phase}', '').replaceAll('{stage}', '').replaceAll('{output}', '').replaceAll('{unitId}', ''))) {
@@ -153,8 +161,18 @@ export function readGraph() {
   }
   return graph;
 }
+export const GRAPH_SCHEMA_VERSION = '1.5.0';
+export const OUTPUT_KINDS = Object.freeze(['document', 'code-manifest', 'data']);
 export const MODEL_ALIASES = Object.freeze(['opus', 'sonnet', 'haiku', 'fable']);
 export const ORCHESTRATION_MODES = Object.freeze(['human', 'ai']);
+// A gate may be pinned to human approval while the rest of an AI-mode intent runs on.
+// Only 'human' is accepted: config can add human oversight to a gate, never remove it.
+export const GATE_MODE_OVERRIDES = Object.freeze(['human']);
+export function effectiveGateMode(config, state, gateId) {
+  const pinned = config?.gateModes?.[gateId];
+  if (GATE_MODE_OVERRIDES.includes(pinned)) return pinned;
+  return state?.mode ?? 'human';
+}
 export function resolveMode(config, flag = null) {
   const mode = flag ?? config?.mode ?? 'human';
   if (!ORCHESTRATION_MODES.includes(mode)) {

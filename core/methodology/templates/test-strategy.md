@@ -23,12 +23,17 @@ Use this for the Develop output `test-strategy`. For each level say whether it a
 - Why:
 
 ## Criterion to level
-| Criterion | Level |
-| AC-001 | unit |
+| Test | Criterion | Function | Level |
+| TS-001 | AC-001 | FN-001 | unit |
 
 ## Commands
 - Build:
+- Format:
 - Test:
+- Baseline (whole existing suite):
+
+## Environment prerequisites
+- Name, check command, and how to fix it (for example: docker — `docker info` — start Docker Desktop)
 
 ## Environments and data
 -

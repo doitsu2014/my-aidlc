@@ -6,6 +6,8 @@ import { inspectSources, loadKnowledgeManifest, readRecords, expectedRecordFront
 import { engineRoot } from './lib.mjs';
 import { join } from 'node:path';
 import { codebaseMapStatus, requiredProjectArtifacts, sourceStatus } from './onboard.mjs';
+import { artifactPathFor } from './artifacts.mjs';
+import { registryProblems, unitIdsFromFile, workUnitProblems } from './ids.mjs';
 
 export function buildDirectiveContext(input) {
   try {
@@ -22,6 +24,10 @@ export function buildDirectiveContext(input) {
         if (granted.includes('project')) {
           result.project = inspected.project ? { ...inspected.project, provenance: 'User-provided' } : null;
           if (!inspected.project) result.warnings.push('No project source is declared in aidlc.knowledge.json');
+          else if (inspected.project.path) {
+            try { result.warnings.push(...projectFileWarnings(root, inspected.project.path, { developing: stage.phase === 'develop' })); }
+            catch { /* advisory only */ }
+          }
         }
         if (granted.includes('sources')) {
           result.sources = inspected.sources.filter((item) => item.kind !== 'project').map((item) => ({ ...item, provenance: 'Observed' }));
@@ -48,6 +54,12 @@ export function buildDirectiveContext(input) {
     if (granted.includes('profile')) {
       try { result.codebaseMap = codebaseMapStatus(root); }
       catch (error) { result.warnings.push(`codebase map status could not be listed: ${error.message}`); }
+    }
+    if (stage.repeat === 'work-unit' && state?.intentId) {
+      // One baseline per intent: the first unit records the existing suite's result here and
+      // later units reuse it instead of rediscovering the same failures.
+      const path = `.aidlc/intents/${state.intentId}/${stage.phase}/baseline.md`;
+      result.baseline = { path, exists: existsSync(resolve(root, path)) };
     }
     if (granted.includes('knowledge')) {
       try {
@@ -81,19 +93,48 @@ export function buildDirectiveContext(input) {
 }
 
 export const ARTIFACT_VALIDATORS = {
-  'work-units': (absolutePath, text) => {
-    const jsonPath = absolutePath.replace(/\.md$/, '.json');
-    if (!existsSync(jsonPath)) return [];
-    try {
-      const data = JSON.parse(readFileSync(jsonPath, 'utf8'));
-      const units = Array.isArray(data.units) ? data.units : data;
-      if (!Array.isArray(units) || units.some((row) => !row?.id)) return ['work-units.json must list units with id'];
-    } catch {
-      return ['work-units.json is not valid JSON'];
-    }
-    return [];
+  'work-units-json': (absolutePath, text) => workUnitProblems(text),
+  'id-registry': (absolutePath, text, { root, graph, intentId }) => {
+    const unitIds = root && graph && intentId ? unitIdsFromFile(artifactPathFor(root, graph, intentId, 'work-units-json')) : null;
+    return registryProblems(text, { unitIds });
   },
 };
+
+const PROJECT_SECTIONS = Object.freeze(['Environment prerequisites', 'Commands', 'Known baseline failures']);
+
+function sectionBody(text, heading) {
+  const lines = text.split(/\r?\n/);
+  const start = lines.findIndex((line) => line.trim().toLowerCase() === `## ${heading}`.toLowerCase());
+  if (start < 0) return null;
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => /^##?\s/.test(line));
+  return (end < 0 ? rest : rest.slice(0, end)).join('\n');
+}
+
+// Lines the owner wrote, ignoring the scaffold's own headings and placeholder text.
+function ownedLines(text, scaffoldLines) {
+  return text.split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !scaffoldLines.has(line));
+}
+
+export function projectFileWarnings(root, projectPath, { developing = false } = {}) {
+  const scaffoldPath = join(engineRoot(), 'data', 'scaffold', 'PROJECT.md');
+  let text;
+  let scaffold;
+  try { text = readFileSync(resolve(root, projectPath), 'utf8'); } catch { return []; }
+  try { scaffold = readFileSync(scaffoldPath, 'utf8'); } catch { return []; }
+  const scaffoldLines = new Set(scaffold.split(/\r?\n/).map((line) => line.trim()).filter(Boolean));
+  if (ownedLines(text, scaffoldLines).length === 0) {
+    return [`${projectPath} is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first.`];
+  }
+  if (!developing) return [];
+  const empty = PROJECT_SECTIONS.filter((heading) => {
+    const body = sectionBody(text, heading);
+    return body === null || ownedLines(body, scaffoldLines).length === 0;
+  });
+  return empty.length
+    ? [`${projectPath} has no content under ${empty.map((heading) => `'## ${heading}'`).join(', ')}. Develop runs code: record the commands, the environment it needs and the failures already present, or the agents will rediscover them on every work unit.`]
+    : [];
+}
 export function extraRequiredArtifacts({ root, stage }) {
   return requiredProjectArtifacts(root, stage.id);
 }

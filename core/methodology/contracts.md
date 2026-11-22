@@ -32,6 +32,12 @@ Agents may help prepare actions, checklists, and drafts. Authority remains with 
 
 At a stage handoff, the producing agent identifies the outputs created, their status, any missing outputs, and material uncertainties. The receiving stage uses only outputs whose status and provenance are clear. A failed or blocked stage is reported as such; downstream stages must not describe its expected outputs as completed. Where stages can run in parallel, their results must be reconciled before a phase decision is presented.
 
+A stage blocked by its environment (a service that is not running, a missing toolchain) names the blocker as a declared prerequisite with `--needs <name>`, so the CLI can check it before the stage resumes. Prerequisites and their check commands are declared by the owner with `dtech-aidlc config prerequisite set`; an agent never declares one or overrides a failing check.
+
+## Identifier contract
+
+Identifiers are minted once and cited everywhere else. Analyze mints acceptance criteria (`AC-`) and user stories (`US-`). `implementation-design` mints functions (`FN-`), interfaces (`IF-`), tests (`TS-`), work units (`WU-`) and configuration keys (`CFG-`) in the intent's `ids.json`, using [the ID registry template](templates/id-registry.md). Every later artifact cites identifiers from those sources and mints none; a writer that needs a new identifier reports the gap, and the design is reworked. `orchestrate report` refuses to complete a Develop or Launch stage whose artifacts cite an unregistered identifier, and `dtech-aidlc ids check` lists them.
+
 ## Human approval contract
 
 The graph marks phase gates as required. Approval must be explicit, attributable to the project owner or delegated approver, and attached to the specific artifact/version and decision. Record approval or rejection, time, rationale or conditions, and any requested changes. The default for missing or ambiguous approval is **paused**.
@@ -55,8 +61,11 @@ Each gate approval in AI mode requires a `gate-recommendation.md` file in the ga
 - **Evidence trace:** the artifacts, checks, or observations the recommendation rests on, distinguishing observed facts from assumptions and open questions.
 - **Selected direction and rationale:** which option is approved and why it satisfies the gate's exit criteria, including residual risks and follow-ups.
 - **Boundary statement:** what the approval does and does not authorize (a release-candidate approval still does not authorize deployment; launch approval still does not authorize access or retention changes).
+- **Open items:** a `## Open items` section listing every deferred item, each tagged `[written-approval]` (a person must decide it in writing — including an Analyze open question the decision depends on) or `[follow-up]` (tracked work that does not block the gate), or `- None`.
 
-The conductor never approves its own gate without this artifact: the CLI refuses `--approval approved` in AI mode when the `gate-recommendation.md` file is missing or empty. A rejected or uncertain gate is reported `blocked` with the reason, exactly as in human mode. All AI approvals are recorded in `state.gates` and the `gate.decided` audit row with `mode: "ai"` and `by: "AI Orchestrator"` so they remain queryable and attributable.
+The conductor never approves its own gate without this artifact: the CLI refuses `--approval approved` in AI mode when the `gate-recommendation.md` file is missing or empty, has no `## Open items` section, has an untagged open item, or has any `[written-approval]` item. A recommendation that leaves an item for written approval is a blocked gate, not an approved one; the audit row records how many follow-ups were accepted.
+
+The owner can keep a decision-heavy gate with people while the rest of an intent runs in AI mode: `dtech-aidlc config gate-mode <gate> human` pins that gate to human approval for every intent, and the directive's `gateMode` shows the result. A gate can be pinned to human approval, never to AI approval. A rejected or uncertain gate is reported `blocked` with the reason, exactly as in human mode. All AI approvals are recorded in `state.gates` and the `gate.decided` audit row with `mode: "ai"` and `by: "AI Orchestrator"` so they remain queryable and attributable.
 
 ## Quality and verification contract
 

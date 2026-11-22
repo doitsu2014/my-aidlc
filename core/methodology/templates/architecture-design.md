@@ -41,6 +41,7 @@ Use this for the Ideate output `architecture-design`. Follow the arc42 structure
 - Security: see threat-model.md
 - Data:
 - Observability:
+- Configuration: keys, flags and environment variables (Develop registers each as `CFG-` in ids.json)
 
 ## 9. Architecture decisions
 - ADR-001 <title> — <proposed | accepted | superseded> — see decision-record.md

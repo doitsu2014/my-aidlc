@@ -89,7 +89,7 @@ if (await exists('core/data/phase-graph.json')) {
       }
       const phases = new Set((graph.phases ?? []).map((phase) => phase?.id).filter(Boolean));
       const agentIds = new Set((graph.agents ?? []).map((agent) => agent?.id).filter(Boolean));
-      if (graph.schemaVersion !== '1.4.0') errors.push('phase-graph schemaVersion must be 1.4.0');
+      if (graph.schemaVersion !== '1.5.0') errors.push('phase-graph schemaVersion must be 1.5.0');
       const stageIds = (graph.stages ?? []).map((stage) => stage?.id).filter(Boolean);
       for (const phase of graph.phases ?? []) if (!phase?.id || !phase?.name) errors.push('each phase must define id and name');
       for (const stage of graph.stages ?? []) {

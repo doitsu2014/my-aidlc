@@ -2,6 +2,21 @@
 
 Each release lists the behaviour changes a user or a script can notice.
 
+## 0.7.0
+
+Changes from the backup-restore pilot review.
+
+- The directive now returns `contractsFile` (the skills already told agents to read it, but it was never returned), a `template` path on each artifact that has one, `suggestedBranch` (`feature/<intentId>`), and `gateMode`.
+- `implementation-design` produces two data outputs listed in the directive's `artifacts`: `work-units.json` and `ids.json`. Reporting the stage fails when either is missing or invalid: unit ids must be `WU-NN` (legacy `U-NN` is still read), unique, with `dependsOn` naming known units and no cycles. Previously a missing `work-units.json` quietly ran Develop as one implicit unit. Graph schema is 1.5.0, with a `data` output kind and a `template` key on outputs.
+- ID registry: `ids.json` registers `FN-`, `IF-`, `TS-`, `WU-` and `CFG-` identifiers. `orchestrate report` refuses a Develop or Launch stage whose Markdown cites an identifier that is not registered, or an `AC-`/`US-` identifier that Analyze did not define. New `dtech-aidlc ids check [--stage ID]` lists them, plus registered functions no green verification report cites.
+- Named prerequisites: `dtech-aidlc config prerequisite set NAME --check CMD [--hint TEXT] [--applies-to STAGE|PHASE]...`, `remove`, `check`. `orchestrate report --result blocked --needs NAME` records the blocker; `orchestrate next` re-runs its check and, while it fails, returns `blocked: true` with the `needs` list and exits with status 3 instead of re-selecting the stage. `--applies-to` makes a check a preflight before matching stages. The owner can override with `orchestrate next --force-resume --detail TEXT`, which is audited. `doctor` reports each prerequisite.
+- AI-mode gates count deferrals: `gate-recommendation.md` needs an `## Open items` section whose items are tagged `[written-approval]` or `[follow-up]`, or `- None`. Any `[written-approval]` item, an untagged item, or a missing section refuses the AI approval. `gate.decided` records the counts.
+- `dtech-aidlc config gate-mode GATE human|default` pins a gate to human approval inside AI-mode intents. A gate can never be pinned to AI approval.
+- The `PROJECT.md` scaffold gains Commands, Environment prerequisites, and Known baseline failures sections. The directive warns while `PROJECT.md` is still the unedited scaffold, and in Develop when those sections are empty.
+- Repeating Develop directives carry `context.baseline` (one baseline file per intent), and the first `red-tests` directive warns when the plan has more work units than `unitSplitThreshold` (default 6).
+- Skills: one dynamic workflow per stage directive in AI mode (was one per phase); delegates are briefed with the directive JSON and the phase, agent, contracts and template files rather than a summary; writers cite registered identifiers and never mint them; environment check on the first turn of any stage that runs code; red first for fixes; depth proposal recommends `standard` for pilots and splitting unrelated work.
+- Agents: `builder-verifier` checks the environment first, records the baseline once per intent, writes compiling stubs in compiled languages (a compile error is not red evidence), formats new tests before the red run, and applies red first to rework. `implementation-planner` mints and registers identifiers and recommends splitting oversized intents.
+
 ## 0.6.4
 
 - The CLI starts again: 0.6.3 removed `model:` from agent Markdown while graph validation still required it, so every command failed with "agent ... id, phase, or model disagrees with Markdown". `phase-graph.json` is now the only source of an agent's model alias, and agent Markdown that declares `model:` is rejected.

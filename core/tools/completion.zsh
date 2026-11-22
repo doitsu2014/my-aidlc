@@ -35,7 +35,8 @@ _dtech-aidlc() {
         'status:Show the active intent'
         'doctor:Validate project setup'
         'orchestrate:Advance or report a stage'
-        'config:Configure agent models or default scope'
+        'config:Configure agent models, default scope, mode, gate modes or prerequisites'
+        'ids:Check cited identifiers against the ID registry'
         'repos:Manage dependency repositories'
         'deps:Manage workflow dependency edges'
         'intent:List, pause, resume, or abandon intents'
@@ -92,12 +93,13 @@ _dtech-aidlc() {
             action) _values 'action' next report ;;
             rest)
               case ${words[1]} in
-                next) _arguments '--intent[Intent text]:intent:' '--scope[Workflow scope]:scope:(solo team enterprise)' '--depth[Depth]:depth:(full standard fast)' '--mode[Orchestration mode]:mode:(human ai)' '--approved-by[Approver]:name:' '--detail[Reason]:detail:' ;;
+                next) _arguments '--intent[Intent text]:intent:' '--scope[Workflow scope]:scope:(solo team enterprise)' '--depth[Depth]:depth:(full standard fast)' '--mode[Orchestration mode]:mode:(human ai)' '--approved-by[Approver]:name:' '--detail[Reason]:detail:' '--force-resume[Override a failing prerequisite check]' ;;
                 report)
                   _arguments \
                     '--stage[Stage identifier]:stage:' \
                     '--result[Stage result]:result:(complete blocked skipped)' \
                     '--approval[Phase approval]:approval:(approved)' \
+                    '--needs[Named prerequisite that blocks the stage]:name:' \
                     '--detail[Result detail]:detail:'
                   ;;
               esac
@@ -108,10 +110,12 @@ _dtech-aidlc() {
           _arguments -C '1:action:(add status refresh)' '--dry-run[Show planned changes]' '--force[Back up and replace edited files]' '1:name:(claude deepseek)'
           ;;
         config)
-          _arguments -C '1:section:(agents scope mode)' '2:action:->action' '*::arg:->rest'
+          _arguments -C '1:section:(agents scope mode gate-mode prerequisite)' '2:action:->action' '*::arg:->rest'
           case ${words[1]} in
             mode) _arguments '1:mode:(human ai)' ;;
             scope) _arguments '1:scope:(solo team enterprise)' ;;
+            gate-mode) _arguments '1:gate:(analysis-baseline solution-direction release-candidate launch-and-handoff closure intent-closure)' '2:mode:(human default)' ;;
+            prerequisite) _arguments '1:action:(set remove check)' '2:name:' '--check[Check command]:command:' '--hint[Hint shown when the check fails]:hint:' '--applies-to[Stage or phase to preflight]:stage:' ;;
           esac
           case ${words[2]} in
             set) _arguments '1:agent:(brief-analyst context-risk-analyst solution-explorer decision-facilitator implementation-planner builder-verifier release-coordinator operations-handoff outcome-curator knowledge-steward record-keeper knowledge-archivist)' '2:model:(opus sonnet haiku fable)' ;;
@@ -133,6 +137,9 @@ _dtech-aidlc() {
           ;;
         deps)
           _arguments '1:action:(add list pull)' '2:id:' '3:dependency:'
+          ;;
+        ids)
+          _arguments '1:action:(check)' '--stage[Stage identifier]:stage:'
           ;;
         completion)
           _arguments '1:shell:(zsh)'
