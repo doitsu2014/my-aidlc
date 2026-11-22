@@ -410,6 +410,18 @@ function unitFinished(unit) {
   return ['complete', 'skipped'].includes(unit.status);
 }
 
+// A repeating stage passes the phase gate only on the last unfinished work unit;
+// earlier units report without approval. Non-repeating stages always qualify.
+function isFinalUnit(state, stage) {
+  if (stage.repeat !== 'work-unit') return true;
+  const current = state.currentUnit || null;
+  return workUnitsOf(state).every((unit) => (unit.id || null) === current || unitFinished(unit));
+}
+
+function isPhaseGate(graph, state, stage) {
+  return stage.id === gateInfo(graph, state.scope, stage, state.depth || 'full').finalStage && isFinalUnit(state, stage);
+}
+
 function lastRepeatOfPhase(graph, state, stage) {
   const stages = orderedStages(graph, state.scope, state.depth || 'full').filter((item) => item.phase === stage.phase && item.repeat === 'work-unit');
   return stages.at(-1)?.id === stage.id;
@@ -535,7 +547,7 @@ export function buildDirective({ root, graph, config, state, stage, warnings = [
   const model = stage.agent ? resolveAgentModel(graph.agents.find((agent) => agent.id === stage.agent), config) : {};
   const phase = graph.phases.find((item) => item.id === stage.phase);
   const gate = gateInfo(graph, state.scope, stage, state.depth || 'full');
-  const phaseGate = stage.id === gate.finalStage;
+  const phaseGate = isPhaseGate(graph, state, stage);
   const expected = expectedArtifacts(root, graph, state, stage);
   const directive = {
     intent: state.intent,
@@ -646,8 +658,7 @@ export function orchestrateNext(root, options = {}, hooks = {}) {
     state.stages[next.id] ??= { status: 'in_progress', startedAt: new Date().toISOString() };
   }
   state.currentStage = next.id;
-  const gate = gateInfo(graph, state.scope, next, state.depth || 'full');
-  const stageForContext = { ...next, phaseGate: next.id === gate.finalStage };
+  const stageForContext = { ...next, phaseGate: isPhaseGate(graph, state, next) };
   const expected = expectedArtifacts(root, graph, state, next);
   const contextInput = {
     root, graph, config, state, stage: stageForContext, intentDir: intentDir(root, state.intentId),
@@ -714,9 +725,12 @@ export function orchestrateReport(root, options = {}) {
   const stages = orderedStages(graph, state.scope, state.depth || 'full');
   if (!stages.some((item) => item.id === stage.id)) throw new Error(`Stage ${stage.id} is not included in the active ${state.scope} scope`);
   const gate = gateInfo(graph, state.scope, stage, state.depth || 'full');
-  const phaseGate = stage.id === gate.finalStage;
+  const phaseGate = isPhaseGate(graph, state, stage);
   if (!phaseGate && (options.approval || options.approvedBy || options.approvalNote)) {
-    throw new Error(`Stage ${stage.id} is not a phase gate; --approval, --approved-by and --approval-note are only accepted on ${gate.finalStage}, the last stage of the ${gate.phase} phase`);
+    const where = stage.id === gate.finalStage
+      ? `on the last work unit of ${stage.id}; work unit ${state.currentUnit} is not the last`
+      : `on ${gate.finalStage}, the last stage of the ${gate.phase} phase`;
+    throw new Error(`Stage ${stage.id} is not a phase gate here; --approval, --approved-by and --approval-note are only accepted ${where}`);
   }
   if ((options.approvedBy || options.approvalNote) && !options.approval) {
     throw new Error('--approved-by and --approval-note require --approval');
@@ -785,9 +799,11 @@ export function orchestrateReport(root, options = {}) {
     return ['complete', 'skipped'].includes(status);
   });
   const stageStatusValue = stage.repeat === 'work-unit' && !repeatingDone ? 'in_progress' : result;
-  if (stage.repeat === 'work-unit' && repeatingDone && state.units) {
+  // The current unit is finished once the phase's last repeating stage completes for it,
+  // independent of whether the other units have reached that stage yet.
+  if (stage.repeat === 'work-unit' && ['complete', 'skipped'].includes(result) && state.units && lastRepeatOfPhase(graph, state, stage)) {
     const current = state.units.find((unit) => (unit.id || null) === (state.currentUnit || null));
-    if (current && lastRepeatOfPhase(graph, state, stage)) current.status = result === 'skipped' ? 'skipped' : 'complete';
+    if (current) current.status = result;
   }
   state.stages[stage.id] = {
     ...previous,

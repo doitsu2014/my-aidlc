@@ -2,6 +2,16 @@
 
 Each release lists the behaviour changes a user or a script can notice.
 
+## 0.6.4
+
+- The CLI starts again: 0.6.3 removed `model:` from agent Markdown while graph validation still required it, so every command failed with "agent ... id, phase, or model disagrees with Markdown". `phase-graph.json` is now the only source of an agent's model alias, and agent Markdown that declares `model:` is rejected.
+- `red-tests` and `build-and-verify` now run once per work unit for every unit in `work-units.json`, in order. Previously only the first unit ran and the intent was reported complete without the rest.
+- The release-candidate gate is presented once, on the last work unit's `build-and-verify`. Earlier units report without `--approval`, and their directives carry `stage.phaseGate: false`; passing `--approval` on them is refused.
+
+## 0.6.3
+
+- Agent Markdown files no longer carry a `model:` field; the directive's `stage.model` is the model preference for delegation. (This release fails graph validation on every command; use 0.6.4.)
+
 ## 0.6.2
 
 - Claude stage delegation treats the directive's configured model preference as authoritative over methodology agent-file recommendations and verifies the requested model is passed to the Agent tool.

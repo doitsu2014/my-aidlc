@@ -24,8 +24,8 @@ test('every dtech-aidlc command in a README sh block is listed by help', () => {
 
 test('CHANGELOG has a section for each release', () => {
   const changelog = readFileSync(join(repo, 'CHANGELOG.md'), 'utf8');
-  for (const version of ['0.1.3', '0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.6.1']) assert.match(changelog, new RegExp(`^## ${version.replaceAll('.', '\.')}$`, 'm'), version);
-  assert.equal(JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8')).version, '0.6.1');
+  for (const version of ['0.1.3', '0.2.0', '0.3.0', '0.4.0', '0.5.0', '0.6.0', '0.6.1', '0.6.2', '0.6.3', '0.6.4']) assert.match(changelog, new RegExp(`^## ${version.replaceAll('.', '\.')}$`, 'm'), version);
+  assert.equal(JSON.parse(readFileSync(join(repo, 'package.json'), 'utf8')).version, '0.6.4');
 });
 
 test('the approval record fields in the methodology README match the gate.decided audit row', (t) => {

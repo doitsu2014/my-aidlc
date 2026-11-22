@@ -1,7 +1,6 @@
 ---
 id: outcome-curator
 phase: curate
-model: sonnet
 ---
 
 # outcome-curator

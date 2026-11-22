@@ -119,7 +119,9 @@ export function readGraph() {
   for (const agent of graph.agents) {
     if (!phaseIds.has(agent.phase) || typeof agent.model !== 'string' || !graph.modelAliases.includes(agent.model)) invalid(`invalid phase or model for agent ${agent.id}`);
     const md = frontmatter(filePath(agent.file, `agent ${agent.id}`), `agent ${agent.id}`);
-    if (md.fields.id !== agent.id || md.fields.phase !== agent.phase || md.fields.model !== agent.model) invalid(`agent ${agent.id} id, phase, or model disagrees with Markdown`);
+    // The graph is the only source of an agent's model; Markdown carries no model field.
+    if (md.fields.id !== agent.id || md.fields.phase !== agent.phase) invalid(`agent ${agent.id} id or phase disagrees with Markdown`);
+    if (md.fields.model !== undefined) invalid(`agent ${agent.id} Markdown must not declare a model; set it in phase-graph.json`);
     if (!phaseById.get(agent.phase).agents.includes(agent.id)) invalid(`agent ${agent.id} missing from phase membership`);
   }
   for (const phase of graph.phases) {
