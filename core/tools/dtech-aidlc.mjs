@@ -6,7 +6,7 @@ import { GATE_MODE_OVERRIDES, audit, configPath, loadConfig, configuredHarnesses
 import { projectionStatus, updateProjectionStamp, refreshProjection, projectionDoctorRows, projectionNotices, legacyMethodologyStatus, refreshLegacyMethodology } from './projection.mjs';
 import { GLOBAL_FLAGS, COMMAND_FLAGS, COMMAND_MAX_ARGS, commandKey, optionTypes } from './cli-spec.mjs';
 import {
-  assignIntent, changeIntentDepth, checkWorkflowState, deriveStatus, intentDir, listIntents, loadIntent, loadWorkflow, normalizeIntentText, orchestrateNext, orchestrateReport,
+  assignIntent, changeIntentDepth, checkWorkflowState, deriveStatus, intentDir, listIntents, loadIntent, loadWorkflow, normalizeIntentText, orchestrateNext, orchestrateReport, requestDesignRework,
   persistWorkflow, quarantineCorruptPointer, readPointer, saveIntent, savePointer, unfinishedIds,
 } from './workflow.mjs';
 import { MODEL_ALIASES, ORCHESTRATION_MODES, aliasChoices, aliasesSupported, resolveAgentModel, validateModelConfig, validateMode, writeModelConfig } from './agent-models.mjs';
@@ -63,6 +63,7 @@ const HELP = [
   '  intent resume <id>',
   '  intent abandon [<id>] --detail TEXT',
   '  intent depth NAME --approved-by NAME --detail TEXT',
+  '  intent rework --detail TEXT  Return blocked Develop work to implementation-design',
   '  intent assign NAME     Assign the active intent',
   '  knowledge init          Create PROJECT.md and .aidlc/knowledge/ if missing',
   '  knowledge sources [--kind KIND] [--description TEXT]',
@@ -630,6 +631,12 @@ function main() {
     if (action === 'depth') {
       if (!args[0]) throw new Error('Usage: intent depth NAME --approved-by NAME --detail TEXT');
       return out(changeIntentDepth(root, args[0], { approvedBy: flags['approved-by'], detail: flags.detail }));
+    }
+    if (action === 'rework') {
+      if (!flags.detail) throw new Error('Usage: intent rework --detail "<reason>"');
+      const loaded = loadWorkflow(root, graph, { migrate: true });
+      if (!loaded.state) throw new Error('No active workflow state');
+      return out(requestDesignRework(root, loaded.state, graph, flags.detail));
     }
     if (action === 'assign') {
       if (!args[0]) throw new Error('Usage: intent assign NAME');

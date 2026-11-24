@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { mkdtempSync } from 'node:fs';
 import { writeFileAtomic, assertNoSymlinkComponents } from '../core/tools/lib.mjs';
-import { initProject, json, readActiveState, run, tempProject } from './helpers.mjs';
+import { initProject, json, readActiveState, run, tempProject, symlinkOrSkip } from './helpers.mjs';
 
 const LEGACY = {
   version: 1,
@@ -130,7 +130,7 @@ test('symlinked .aidlc and intents paths are refused', (t) => {
   const project = tempProject(t, 'aidlc-mig-link-');
   const target = mkdtempSync(join(tmpdir(), 'aidlc-link-target-'));
   t.after(() => { try { require('node:fs').rmSync(target, { recursive: true, force: true }); } catch {} });
-  symlinkSync(target, join(project, '.aidlc'));
+  if (!symlinkOrSkip(t, target, join(project, '.aidlc'), 'junction')) return;
   const init = run(project, 'init', '--harness', 'claude', '--scope', 'solo');
   assert.equal(init.status, 1);
   assert.match(init.stderr, /Refusing to access symlink \.aidlc directory/);
@@ -140,7 +140,7 @@ test('symlinked .aidlc and intents paths are refused', (t) => {
   mkdirSync(join(other, '.aidlc'));
   const intentsTarget = mkdtempSync(join(tmpdir(), 'aidlc-intents-target-'));
   t.after(() => { try { require('node:fs').rmSync(intentsTarget, { recursive: true, force: true }); } catch {} });
-  symlinkSync(intentsTarget, join(other, '.aidlc', 'intents'));
+  if (!symlinkOrSkip(t, intentsTarget, join(other, '.aidlc', 'intents'), 'junction')) return;
   const status = run(other, 'status');
   assert.equal(status.status, 1);
   assert.match(status.stderr, /Refusing to write through symlink: \.aidlc\/intents/);
@@ -151,16 +151,16 @@ test('writeFileAtomic and assertNoSymlinkComponents refuse links', (t) => {
   const target = join(dir, 'target.txt');
   writeFileSync(target, 'keep');
   const link = join(dir, 'link.txt');
-  symlinkSync(target, link);
+  if (!symlinkOrSkip(t, target, link, 'file')) return;
   assert.throws(() => writeFileAtomic(link, 'nope'), /Refusing to write through symlink:/);
   assert.equal(readFileSync(target, 'utf8'), 'keep');
   mkdirSync(join(dir, 'a'));
-  symlinkSync(join(dir, 'a'), join(dir, 'a-link'));
+  if (!symlinkOrSkip(t, join(dir, 'a'), join(dir, 'a-link'), 'junction')) return;
   mkdirSync(join(dir, 'a-link-real'));
-  symlinkSync(join(dir, 'a'), join(dir, 'nested'));
+  if (!symlinkOrSkip(t, join(dir, 'a'), join(dir, 'nested'), 'junction')) return;
   assert.throws(() => {
     mkdirSync(join(dir, 'x'));
-    symlinkSync(join(dir, 'x'), join(dir, 'a', 'b'));
+    if (!symlinkOrSkip(t, join(dir, 'x'), join(dir, 'a', 'b'), 'junction')) return;
     assertNoSymlinkComponents(dir, 'a/b/c.txt');
   }, /a\/b/);
   assert.doesNotThrow(() => assertNoSymlinkComponents(dir, 'missing/b/c.txt'));

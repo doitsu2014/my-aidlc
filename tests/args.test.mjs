@@ -129,6 +129,7 @@ test('help lists global and previously undocumented options', () => {
     '  init [--harness NAME] [--scope NAME]    Alias of onboard (--harness is required the first time)',
     '  scope [NAME] [--depth NAME]  List scopes or show stages in a scope',
     '  status [--intent ID]    Show current intent and stage progress',
+    '  intent rework --detail TEXT  Return blocked Develop work to implementation-design',
     '  doctor                  Validate graph, state, config, and projection',
     '  config agents            List effective agent models',
     '  completion zsh          Print the zsh completion function',

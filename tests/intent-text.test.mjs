@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, readFileSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { intentSlug, sameIntentText } from '../core/tools/workflow.mjs';
-import { initProject, json, readActiveState, run, runWithStdin, tempProject } from './helpers.mjs';
+import { initProject, json, readActiveState, run, runWithStdin, tempProject, symlinkOrSkip } from './helpers.mjs';
 
 const fallback = /^intent-[0-9]{8}-[0-9a-f]{6}$/;
 
@@ -93,7 +93,7 @@ test('invalid intent sources fail without creating intent directories', (t) => {
   writeFileSync(join(project, 'nul.txt'), 'bad\0text');
   writeFileSync(join(project, 'large.txt'), 'x'.repeat(100_001));
   writeFileSync(join(project, 'target.txt'), 'intent');
-  symlinkSync(join(project, 'target.txt'), join(project, 'link.txt'));
+  if (!symlinkOrSkip(t, join(project, 'target.txt'), join(project, 'link.txt'), 'file')) return;
   mkdirSync(join(project, 'folder'));
   for (const [file, message] of cases) {
     const result = run(project, 'orchestrate', 'next', '--intent-file', file);

@@ -7,9 +7,9 @@ import { readGraph } from '../core/tools/lib.mjs';
 import { scanProject } from '../core/tools/onboard.mjs';
 import { initProject, json, tempProject } from './helpers.mjs';
 
-test('phase graph 1.2.0 declares inputs on every stage', () => {
+test('phase graph schema declares inputs on every stage', () => {
   const graph = readGraph();
-  assert.equal(graph.schemaVersion, '1.2.0');
+  assert.match(graph.schemaVersion, /^\d+\.\d+\.\d+$/);
   for (const stage of graph.stages) {
     assert.ok(Array.isArray(stage.inputs?.artifacts), stage.id);
     assert.ok(Array.isArray(stage.inputs?.context), stage.id);

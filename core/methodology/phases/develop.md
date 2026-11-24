@@ -42,6 +42,7 @@ On rejection, address the findings and rerun the relevant verification. Do not e
 - Cite identifiers only from `ids.json` and the Analyze artifacts. `orchestrate report` refuses a Develop stage whose artifacts cite an unregistered identifier; a missing identifier sends the work back to `implementation-design`.
 - In a compiled language, write stubs with the planned signatures so a red test compiles and fails at run time. A compile error is not red evidence. Format new tests before recording the red run.
 - Fixes follow red first too: a rework that changes behavior starts with a failing test.
+- If a blocked Develop stage shows that the approved design or work-unit split must change, stop work and ask the owner to authorize `dtech-aidlc intent rework --detail "<reason>"`. This supported route sends Develop back to `implementation-design` and resets downstream Develop stage/unit completion; it does not bypass Analyze or Ideate approval gates.
 - On an existing project, follow the conventions and structure recorded in the codebase map, PROJECT.md and the registered conventions sources.
 - Run the existing test suite before the first change and again after the new tests pass. A regression blocks the release candidate.
 - Follow red, then green. Write the test, run it, and keep the observed failure. Do not start production code for a behavior whose test has not failed for the intended reason.

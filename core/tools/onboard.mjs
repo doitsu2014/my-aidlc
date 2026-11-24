@@ -476,7 +476,7 @@ export function requiredProjectArtifacts(root, stageId) {
 export function codebaseMapStatus(root) {
   const path = '.aidlc/knowledge/_codebase-map.md';
   const abs = join(resolve(root), path);
-  const template = join(engineRoot(), 'methodology', 'templates', 'codebase-map.md');
+  const template = resolve(engineRoot(), 'methodology', 'templates', 'codebase-map.md');
   let profile = null;
   try { profile = readProjectProfile(root); } catch {}
   let stat;

@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync, symlinkSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { writeArtifacts } from './helpers.mjs';
+import { writeArtifacts, symlinkOrSkip } from './helpers.mjs';
 
 const repo = resolve(import.meta.dirname, '..');
 const cli = join(repo, 'core/tools/dtech-aidlc.mjs');
@@ -84,12 +84,12 @@ test('next directive and scope include resolved model and provenance; doctor det
 
 test('refuses symlinked state directory and config file', t => {
   const project = temp(); const outside = temp(); t.after(() => { rmSync(project, { recursive: true, force: true }); rmSync(outside, { recursive: true, force: true }); });
-  symlinkSync(outside, join(project, '.aidlc'));
+  if (!symlinkOrSkip(t, outside, join(project, '.aidlc'), 'junction')) return;
   assert.notEqual(run(project, 'config', 'agents', 'set', 'brief-analyst', 'fable').status, 0);
   rmSync(join(project, '.aidlc'));
   mkdirSync(join(project, '.aidlc'));
   writeFileSync(join(outside, 'config.json'), '{"harness":"claude","scope":"solo","initializedAt":"x"}');
-  symlinkSync(join(outside, 'config.json'), join(project, '.aidlc/config.json'));
+  if (!symlinkOrSkip(t, join(outside, 'config.json'), join(project, '.aidlc/config.json'), 'file')) return;
   assert.notEqual(run(project, 'config', 'agents').status, 0);
 });
 

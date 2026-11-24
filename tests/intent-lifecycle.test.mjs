@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { join } from 'node:path';
 import { listIntents } from '../core/tools/workflow.mjs';
 import { readGraph } from '../core/tools/lib.mjs';
-import { driveToCompletion, initProject, json, readActiveState, run, tempProject } from './helpers.mjs';
+import { driveToCompletion, initProject, json, readActiveState, run, tempProject, writeArtifacts } from './helpers.mjs';
 
 test('a finished intent can be followed by another, listed, paused, resumed, and abandoned', (t) => {
   const project = tempProject(t, 'aidlc-life-');
@@ -78,6 +78,58 @@ test('a finished intent can be followed by another, listed, paused, resumed, and
   const shown = json(project, 'status', '--intent', firstId);
   assert.ok(shown.stages['knowledge-writeback']);
   assert.match(run(project, 'status', '--intent', 'nope').stderr, /Unknown intent 'nope'/);
+});
+
+test('intent rework returns a blocked Develop stage to implementation-design', (t) => {
+  const project = tempProject(t, 'aidlc-life-rework-');
+  initProject(project);
+  const design = json(project, 'orchestrate', 'next', '--intent', 'Split the export intent');
+  assert.equal(design.stage.id, 'problem-framing');
+
+  let current = design;
+  for (let guard = 0; guard < 30 && current.stage.id !== 'red-tests'; guard += 1) {
+    writeArtifacts(project, current);
+    const extra = current.stage.phaseGate ? ['--approval', 'approved', '--approved-by', 'Owner'] : [];
+    assert.equal(run(project, 'orchestrate', 'report', '--result', 'complete', ...extra).status, 0);
+    current = json(project, 'orchestrate', 'next');
+  }
+  assert.equal(current.stage.id, 'red-tests');
+  writeArtifacts(project, current);
+  const blocked = run(project, 'orchestrate', 'report', '--result', 'blocked', '--detail', 'The approved work-unit split needs revision');
+  assert.equal(blocked.status, 0, blocked.stderr);
+  const beforeInvalid = readActiveState(project);
+  assert.equal(beforeInvalid.stages['red-tests'].reports.at(-1).result, 'blocked');
+  const reselected = json(project, 'orchestrate', 'next');
+  assert.equal(reselected.stage.id, 'red-tests');
+  assert.equal(reselected.stage.rework.attempt, 2);
+
+  const missingReason = run(project, 'intent', 'rework');
+  assert.equal(missingReason.status, 1);
+  assert.match(missingReason.stderr, /Usage: intent rework --detail/);
+  const stillBlocked = readActiveState(project);
+  assert.equal(stillBlocked.stages['red-tests'].reports.at(-1).result, 'blocked');
+  assert.equal(stillBlocked.currentStage, 'red-tests');
+
+  const requested = json(project, 'intent', 'rework', '--detail', 'Owner authorized splitting WU-06');
+  assert.deepEqual(requested, {
+    reworkRequested: true,
+    intentId: 'split-the-export-intent',
+    fromStage: 'red-tests',
+    nextStage: 'implementation-design',
+  });
+  const next = json(project, 'orchestrate', 'next');
+  assert.equal(next.stage.id, 'implementation-design');
+  assert.deepEqual(next.stage.rework, {
+    requestedAt: next.stage.rework.requestedAt,
+    fromStage: 'red-tests',
+    detail: 'Owner authorized splitting WU-06',
+  });
+  assert.equal(next.stage.rework.requestedAt.length > 0, true);
+  const state = readActiveState(project);
+  assert.equal(state.stages['implementation-design'].status, 'in_progress');
+  assert.equal(state.stages['red-tests'].status, 'in_progress');
+  assert.equal(state.units, undefined);
+  assert.equal(readFileSync(join(project, '.aidlc', 'audit.jsonl'), 'utf8').includes('design.rework.requested'), true);
 });
 
 test('knowledge filename occupies an intent id', (t) => {

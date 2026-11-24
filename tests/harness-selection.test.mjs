@@ -46,7 +46,7 @@ test('harness add projects another harness and preserves config and audit', (t) 
   assert.equal(saved.harness, 'claude');
   assert.deepEqual(saved.harnesses, ['claude', 'deepseek']);
   assert.equal(saved.custom, 1);
-  assert.equal(statSync(configPath(project)).mode & 0o777, 0o600);
+  if (process.platform !== 'win32') assert.equal(statSync(configPath(project)).mode & 0o777, 0o600);
   assert.equal(json(project, 'harness', 'status').harnesses.length, 2);
   const doctor = json(project, 'doctor');
   assert.ok(doctor.checks.some((row) => row.message.includes('Projection claude:')));

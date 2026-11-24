@@ -2,6 +2,11 @@
 
 Each release lists the behaviour changes a user or a script can notice.
 
+## 0.7.1
+
+- `dtech-aidlc intent rework --detail "<reason>"` returns a blocked Develop stage to `implementation-design`. It resets downstream Develop stage and work-unit completion, preserves earlier lifecycle gates, and records the owner-provided reason in workflow state and the audit log.
+- Platform-portable path and filesystem assertions in the test suite.
+
 ## 0.7.0
 
 Changes from the backup-restore pilot review.

@@ -32,7 +32,7 @@ Agents may help prepare actions, checklists, and drafts. Authority remains with 
 
 At a stage handoff, the producing agent identifies the outputs created, their status, any missing outputs, and material uncertainties. The receiving stage uses only outputs whose status and provenance are clear. A failed or blocked stage is reported as such; downstream stages must not describe its expected outputs as completed. Where stages can run in parallel, their results must be reconciled before a phase decision is presented.
 
-A stage blocked by its environment (a service that is not running, a missing toolchain) names the blocker as a declared prerequisite with `--needs <name>`, so the CLI can check it before the stage resumes. Prerequisites and their check commands are declared by the owner with `dtech-aidlc config prerequisite set`; an agent never declares one or overrides a failing check.
+A stage blocked by its environment (a service that is not running, a missing toolchain) names the blocker as a declared prerequisite with `--needs <name>`, so the CLI can check it before the stage resumes. Prerequisites and their check commands are declared by the owner with `dtech-aidlc config prerequisite set`; an agent never declares one or overrides a failing check. If a blocked Develop stage requires a design or work-unit revision, the owner may authorize the explicit `dtech-aidlc intent rework --detail "<reason>"` route; this returns to `implementation-design`, invalidates downstream Develop completion, and does not alter earlier phase gates.
 
 ## Identifier contract
 

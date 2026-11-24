@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, existsSync, symlinkSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -12,6 +12,18 @@ export function tempProject(t, prefix = 'aidlc-test-') {
   const project = mkdtempSync(join(tmpdir(), prefix));
   t.after(() => rmSync(project, { recursive: true, force: true }));
   return project;
+}
+
+export function symlinkOrSkip(t, target, path, type) {
+  try { symlinkSync(target, path, type); }
+  catch (error) {
+    if (['EPERM', 'EACCES', 'ENOTSUP', 'EOPNOTSUPP'].includes(error.code)) {
+      t.skip(`Symbolic links are unavailable in this environment (${error.code})`);
+      return false;
+    }
+    throw error;
+  }
+  return true;
 }
 
 export function run(project, ...args) {

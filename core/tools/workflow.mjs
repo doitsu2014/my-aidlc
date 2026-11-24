@@ -276,7 +276,7 @@ function listRow(state, graph, current) {
     currentStage: state.currentStage ?? null,
     assignee: state.assignee ?? null,
     progress: progressOf(state, graph),
-    units: Array.isArray(state.units) ? state.units : undefined,
+    ...(Array.isArray(state.units) ? { units: state.units } : {}),
     createdAt: state.createdAt ?? null,
     updatedAt: state.updatedAt ?? null,
   };
@@ -394,6 +394,7 @@ function workUnitsOf(state) {
 }
 
 function applyWorkUnits(root, graph, state) {
+  if (state.designReworkPending) return;
   if (Array.isArray(state.units) && state.units.length) return;
   const design = expectedArtifacts(root, graph, { ...state, currentUnit: undefined, depth: state.depth || 'full' }, graph.stages.find((item) => item.id === 'implementation-design') || { produces: [] });
   const jsonPath = design.find((item) => item.output === 'work-units')?.path?.replace(/\.md$/, '.json');
@@ -481,6 +482,62 @@ export function changeIntentDepth(root, name, options = {}) {
   const who = resolveApprover(root, options.approvedBy);
   audit(root, 'depth.changed', { intentId: loaded.state.intentId, from, to: depth, by: who.by, bySource: who.bySource, detail: options.detail });
   return { intentId: loaded.state.intentId, from, to: depth };
+}
+
+export function requestDesignRework(root, state, graph, detail) {
+  if (!detail || !String(detail).trim()) throw new Error('intent rework requires --detail "<reason>"');
+  if (!state.intentId || deriveStatus(state, graph) !== 'active') throw new Error('Design rework requires an active intent');
+  const developStages = orderedStages(graph, state.scope, state.depth || 'full')
+    .filter((stage) => stage.phase === 'develop');
+  if (!developStages.some((stage) => stage.id === 'implementation-design')) {
+    throw new Error('The active intent has no implementation-design stage');
+  }
+  const blockedStage = developStages.find((stage) => {
+    const row = state.stages[stage.id];
+    const lastReport = row?.reports?.at(-1);
+    const reportedAfterReset = !row?.reworkResetAt
+      || (lastReport?.at && Date.parse(lastReport.at) > Date.parse(row.reworkResetAt));
+    return row?.status === 'blocked' || (reportedAfterReset && lastReport?.result === 'blocked');
+  });
+  if (!blockedStage) throw new Error('Design rework is only available after a blocked Develop stage');
+  const blockedRow = state.stages[blockedStage.id];
+  const lastReport = blockedRow.reports?.at(-1);
+
+  const design = state.stages['implementation-design'] ?? {};
+  const now = new Date().toISOString();
+  state.stages['implementation-design'] = {
+    ...design,
+    status: 'in_progress',
+    reworkRequestedAt: now,
+  };
+  for (const stage of developStages) {
+    if (stage.id === 'implementation-design') continue;
+    const row = state.stages[stage.id];
+    if (!row) continue;
+    state.stages[stage.id] = {
+      ...row,
+      status: 'in_progress',
+      reworkResetAt: now,
+      units: Object.fromEntries(Object.entries(row.units ?? {}).map(([id, unit]) => [id, { ...unit, status: 'pending' }])),
+    };
+  }
+  state.units = undefined;
+  state.designReworkPending = true;
+  state.currentUnit = undefined;
+  state.currentStage = null;
+  state.designRework = { requestedAt: now, fromStage: blockedStage.id, detail: String(detail).trim() };
+  persistWorkflow(root, state, graph);
+  audit(root, 'design.rework.requested', {
+    intentId: state.intentId,
+    fromStage: blockedStage.id,
+    detail: state.designRework.detail,
+  });
+  return {
+    reworkRequested: true,
+    intentId: state.intentId,
+    fromStage: blockedStage.id,
+    nextStage: 'implementation-design',
+  };
 }
 
 export function assignIntent(root, name) {
@@ -741,6 +798,15 @@ export function orchestrateNext(root, options = {}, hooks = {}) {
     };
   } else {
     state.stages[next.id] ??= { status: 'in_progress', startedAt: new Date().toISOString() };
+    if (next.id === 'implementation-design' && state.designRework) {
+      rework = {
+        requestedAt: state.designRework.requestedAt,
+        fromStage: state.designRework.fromStage,
+        detail: state.designRework.detail,
+      };
+      delete state.designRework;
+      delete state.designReworkPending;
+    }
   }
   state.currentStage = next.id;
   const stageForContext = { ...next, phaseGate: isPhaseGate(graph, state, next) };

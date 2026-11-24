@@ -5,7 +5,7 @@ import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSyn
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { repo, cli, tempProject, run, initProject, json } from './helpers.mjs';
+import { repo, cli, tempProject, run, initProject, json, symlinkOrSkip } from './helpers.mjs';
 import { compareVersions, hashText, projectionNotices } from '../core/tools/projection.mjs';
 import { loadHarnessManifest, listHarnesses } from '../core/tools/lib.mjs';
 
@@ -25,10 +25,10 @@ test('init stamps projected files, preserves them on repeat, and reports current
   const project = tempProject(t), output = initProject(project);
   assert.equal(output.projections[0].state, 'current');
   const stampPath = join(project, manifest.skillDir, '.projection.json'), stat = lstatSync(stampPath), bytes = readFileSync(stampPath);
-  assert.equal(stat.mode & 0o777, 0o644);
+  if (process.platform !== 'win32') assert.equal(stat.mode & 0o777, 0o644);
   const stamp = JSON.parse(bytes), version = spawnSync(process.execPath, [cli, 'version'], { encoding: 'utf8' }).stdout.trim().replace('dtech-aidlc ', '');
   assert.equal(stamp.engineVersion, version);
-  assert.equal(stamp.files['SKILL.md'].sha256, createHash('sha256').update(source('skills/aidlc/SKILL.md').toString()).digest('hex'));
+  assert.equal(stamp.files['SKILL.md'].sha256, hashText(source('skills/aidlc/SKILL.md').toString()));
   run(project, 'init', '--harness', 'claude', '--scope', 'solo');
   assert.deepEqual(readFileSync(stampPath), bytes);
   assert.equal(json(project, 'harness', 'status').harnesses[0].state, 'current');
@@ -44,7 +44,7 @@ test('init stamps projected files, preserves them on repeat, and reports current
 
 test('init rejects symlinked projection parents before creating .aidlc', (t) => {
   const project = tempProject(t), outside = tempProject(t);
-  symlinkSync(outside, join(project, '.claude'));
+  if (!symlinkOrSkip(t, outside, join(project, '.claude'), 'junction')) return;
   const result = run(project, 'init', '--harness', 'claude', '--scope', 'solo');
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Refusing to write through symlink/);
@@ -80,7 +80,9 @@ test('refresh dry-run is read-only; option order and symlink target protections 
     assert.deepEqual(readFileSync(skill), original);
   }
   assert.match(run(project, 'harness', 'refresh', '--dry-run=yes').stderr, /Option --dry-run does not take a value/);
-  rmSync(skill); symlinkSync(join(project, 'elsewhere'), skill); writeFileSync(join(project, 'elsewhere'), 'target');
+  rmSync(skill);
+  writeFileSync(join(project, 'elsewhere'), 'target');
+  if (!symlinkOrSkip(t, join(project, 'elsewhere'), skill, 'file')) return;
   assert.equal(run(project, 'harness', 'refresh').status, 1);
   assert.equal(run(project, 'harness', 'refresh', '--force').status, 1);
   assert.equal(readFileSync(join(project, 'elsewhere'), 'utf8'), 'target');
@@ -124,7 +126,7 @@ test('projection notices describe configured projection states and tolerate unre
   writeFileSync(stampPath, JSON.stringify(stamp));
   rmSync(skill);
   rmSync(join(project, manifest.skillDir), { recursive: true });
-  symlinkSync(tempProject(t), join(project, manifest.skillDir));
+  if (!symlinkOrSkip(t, tempProject(t), join(project, manifest.skillDir), 'junction')) return;
   assert.deepEqual(projectionNotices(project, '1.1.0'), []);
 });
 
@@ -138,13 +140,16 @@ test('doctor validates configured skill projections and warns about PATH', (t) =
   const dependencies = report.checks.findIndex((row) => row.message.startsWith('Dependency repositories:'));
   assert.ok(projection > config && projection < dependencies);
   assert.ok(report.checks.some((row) => row.status === 'pass' && row.message.startsWith('Projection claude: current')));
-  assert.ok(report.checks.some((row) => row.status === 'warn' && row.message.includes('not on PATH')));
+  if (!process.env.PATH?.split(process.platform === 'win32' ? ';' : ':').some((directory) => {
+    const names = process.platform === 'win32' ? ['dtech-aidlc.cmd', 'dtech-aidlc.exe', 'dtech-aidlc.bat'] : ['dtech-aidlc'];
+    return names.some((name) => existsSync(join(directory, name)));
+  })) assert.ok(report.checks.some((row) => row.status === 'warn' && row.message.includes('not on PATH')));
   assert.equal(report.ok, true);
 
   const skill = join(project, manifest.skillDir, 'SKILL.md');
   writeFileSync(skill, `${readFileSync(skill, 'utf8')}\\nlocal edit`);
   report = JSON.parse(doctor().stdout);
-  assert.ok(report.checks.some((row) => row.status === 'warn' && row.message.includes('.claude/skills/dtech-aidlc/SKILL.md')));
+  assert.ok(report.checks.some((row) => row.status === 'warn' && row.message.includes('SKILL.md')));
   const stampPath = join(project, manifest.skillDir, '.projection.json'), stamp = JSON.parse(readFileSync(stampPath));
   stamp.files['SKILL.md'].sha256 = hashText(readFileSync(skill));
   stamp.engineVersion = '0.0.0'; writeFileSync(stampPath, JSON.stringify(stamp));
@@ -158,8 +163,8 @@ test('doctor validates configured skill projections and warns about PATH', (t) =
   result = doctor(); report = JSON.parse(result.stdout);
   assert.equal(result.status, 1);
   assert.equal(report.ok, false);
-  assert.ok(report.checks.some((row) => row.status === 'fail' && row.message.includes('.claude/skills/dtech-aidlc/SKILL.md is missing')));
-  assert.ok(report.checks.some((row) => row.status === 'fail' && row.message.includes('.claude/skills/dtech-aidlc/onboarding.md is missing')));
+  assert.ok(report.checks.some((row) => row.status === 'fail' && row.message.includes('SKILL.md is missing')));
+  assert.ok(report.checks.some((row) => row.status === 'fail' && row.message.includes('onboarding.md is missing')));
 
   const emptyPath = mkdtempSync(join(tmpdir(), 'aidlc-empty-path-'));
   t.after(() => rmSync(emptyPath, { recursive: true, force: true }));
@@ -181,7 +186,7 @@ test('refresh removes only history-confirmed legacy files and keeps modified or 
   writeFileSync(join(legacy, 'agents/edited.md'), 'edited');
   writeFileSync(join(legacy, 'agents/unknown.md'), 'unknown');
   const target = join(project, 'outside-note'); writeFileSync(target, 'outside');
-  symlinkSync(target, join(legacy, 'agents/link.md'));
+  if (!symlinkOrSkip(t, target, join(legacy, 'agents/link.md'), 'file')) return;
   const dryRun = json(project, 'harness', 'refresh', '--dry-run');
   assert.deepEqual(dryRun.legacyMethodology.removed, [pristinePath]);
   assert.deepEqual(dryRun.legacyMethodology.keptModified, ['agents/edited.md', 'agents/link.md', 'agents/unknown.md']);
@@ -214,9 +219,9 @@ test('legacy methodology status reports unknown entries and refresh dry-run pres
   assert.equal(refreshed.needsAttention, true);
   assert.equal(readFileSync(join(legacy, 'agents/local.md'), 'utf8'), 'project-owned');
   const report = json(project, 'doctor');
-  assert.equal(report.checks.at(-1).status, 'warn');
-  assert.match(report.checks.at(-1).message, /Unused methodology copy at \.aidlc\/methodology/);
-  assert.match(report.checks.at(-1).message, /1 modified or unknown file\(s\) will be kept/);
+  const legacyWarning = report.checks.find((row) => row.message.startsWith('Unused methodology copy at .aidlc/methodology'));
+  assert.equal(legacyWarning.status, 'warn');
+  assert.match(legacyWarning.message, /1 modified or unknown file\(s\) will be kept/);
 });
 
 test('doctor skips projection and PATH rows without configured harnesses', (t) => {
@@ -228,7 +233,8 @@ test('doctor skips projection and PATH rows without configured harnesses', (t) =
 test('doctor reports a symlinked projection as a failed row without aborting checks', (t) => {
   const project = tempProject(t); initProject(project);
   const outside = tempProject(t), skill = join(project, manifest.skillDir, 'SKILL.md');
-  rmSync(skill); symlinkSync(join(outside, 'missing'), skill);
+  rmSync(skill);
+  if (!symlinkOrSkip(t, join(outside, 'missing'), skill, 'file')) return;
   const result = run(project, 'doctor'), report = JSON.parse(result.stdout);
   assert.equal(result.status, 1);
   assert.ok(report.checks.some((row) => row.status === 'fail' && row.message.startsWith('Projection claude:')));

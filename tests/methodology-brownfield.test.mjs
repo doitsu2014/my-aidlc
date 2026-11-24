@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { run, tempProject } from './helpers.mjs';
+import { run, tempProject, symlinkOrSkip } from './helpers.mjs';
 import { codebaseMapStatus } from '../core/tools/onboard.mjs';
 
 const methodology = new URL('../core/methodology/', import.meta.url);
@@ -65,7 +65,7 @@ test('codebase map status reports required state and safely detects regular file
   assert.equal(status.required, true);
   assert.equal(status.exists, false);
   assert.equal(status.path, '.aidlc/knowledge/_codebase-map.md');
-  assert.ok(status.template.startsWith('/'));
+  assert.ok(status.template.includes('codebase-map.md'));
   assert.ok(existsSync(status.template));
   mkdirSync(join(root, '.aidlc/knowledge'), { recursive: true });
   writeFileSync(join(root, status.path), 'map');
@@ -73,7 +73,7 @@ test('codebase map status reports required state and safely detects regular file
   writeFileSync(join(root, status.path), '');
   assert.equal(codebaseMapStatus(root).exists, false);
   rmSync(join(root, status.path));
-  symlinkSync(join(root, 'src/a.ts'), join(root, status.path));
+  if (!symlinkOrSkip(t, join(root, 'src/a.ts'), join(root, status.path), 'file')) return;
   assert.equal(codebaseMapStatus(root).exists, false);
   rmSync(join(root, status.path));
   const directive = JSON.parse(run(root, 'orchestrate', 'next', '--intent', 'x').stdout);
