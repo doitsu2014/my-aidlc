@@ -22,7 +22,7 @@ fn run_pair(args: &[&str]) -> (Output, Output) {
         .current_dir(&node_dir)
         .output()
         .expect("Node CLI must be available for parity tests");
-    let rust = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
+    let rust = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc-rs"))
         .args(args)
         .current_dir(&rust_dir)
         .output()

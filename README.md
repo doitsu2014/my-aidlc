@@ -178,6 +178,26 @@ That's it. The assistant asks the CLI for a directive, does the stage work, and 
 
 ## Install options
 
+### Experimental Rust preview (Cargo)
+
+The Rust port is **not a replacement for the production CLI yet**. The preview supports `version`, `help`, `scope`, and `completion zsh`; project-changing commands are not implemented. It installs as `dtech-aidlc-rs`, leaving the existing `dtech-aidlc` command untouched. The graph and methodology needed by `scope` are embedded in the executable.
+
+From this repository checkout, with Rust and Cargo installed:
+
+```sh
+cargo install --path . --locked --bin dtech-aidlc-rs
+```
+
+To update the preview after updating the checkout, run:
+
+```sh
+cargo install --path . --locked --bin dtech-aidlc-rs --force
+```
+
+The commands work in PowerShell and POSIX shells. Cargo installs into its configured binary directory (normally `%USERPROFILE%\.cargo\bin` on Windows or `~/.cargo/bin` on macOS/Linux); add that directory to `PATH` if necessary. To remove the preview, run `cargo uninstall dtech-aidlc`. This removes the Cargo package's executable, not an independently installed Node CLI. See [the migration plan](plans/rust-cli-migration.md) for remaining work.
+
+### Production CLI
+
 The installer works entirely from the repository checkout and needs no network access.
 
 | | Windows | macOS / Linux |

@@ -74,7 +74,6 @@ fn run() -> Result<(), String> {
         _ => env::current_dir().map_err(|e| e.to_string())?,
     };
     if key == "scope" {
-        let default_engine = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("core");
         let engine = env::var_os("DTECH_AIDLC_HOME")
             .map(std::path::PathBuf::from)
             .and_then(|home| {
@@ -82,9 +81,12 @@ fn run() -> Result<(), String> {
                     candidate.join("data/phase-graph.json").exists()
                         || candidate.join("methodology").exists()
                 })
-            })
-            .unwrap_or(default_engine);
-        let (graph, config) = dtech_aidlc::scope::load_graph(engine, &project)?;
+            });
+        let (graph, config) = if let Some(engine) = engine {
+            dtech_aidlc::scope::load_graph(engine, &project)?
+        } else {
+            dtech_aidlc::scope::load_embedded_graph(&project)?
+        };
         let scope = parsed.positional.get(1).map(String::as_str);
         let depth = match parsed.flags.get("depth") {
             Some(FlagValue::String(value)) => Some(value.as_str()),

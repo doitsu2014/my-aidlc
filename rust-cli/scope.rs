@@ -9,6 +9,10 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
+mod embedded {
+    include!(concat!(env!("OUT_DIR"), "/embedded_assets.rs"));
+}
+
 pub const GRAPH_SCHEMA_VERSION: &str = "1.5.0";
 pub const MODEL_ALIASES: &[&str] = &["opus", "sonnet", "haiku", "fable"];
 pub const SCOPES: &[&str] = &["solo", "team", "enterprise"];
@@ -234,7 +238,22 @@ pub fn load_graph(
         .map_err(|e| format!("Missing methodology graph: {} ({e})", graph_path.display()))?;
     let value: Value = serde_json::from_slice(&bytes)
         .map_err(|e| format!("Invalid phase-graph.json: malformed JSON ({e})"))?;
-    validate_graph(root, &value)?;
+    validate_graph(Some(root), &value)?;
+    let config = load_config(project_root.as_ref())?;
+    validate_config(&config, &value)?;
+    Ok((Graph { raw: value }, config))
+}
+
+/// Load the graph and methodology packaged in this executable.
+pub fn load_embedded_graph(project_root: impl AsRef<Path>) -> Result<(Graph, Value), String> {
+    let bytes = embedded::ASSETS
+        .iter()
+        .find(|(name, _)| *name == "data/phase-graph.json")
+        .map(|(_, bytes)| *bytes)
+        .ok_or("Missing embedded methodology graph")?;
+    let value: Value = serde_json::from_slice(bytes)
+        .map_err(|e| format!("Invalid embedded phase-graph.json: {e}"))?;
+    validate_graph(None, &value)?;
     let config = load_config(project_root.as_ref())?;
     validate_config(&config, &value)?;
     Ok((Graph { raw: value }, config))
@@ -337,10 +356,18 @@ fn safe_file(root: &Path, value: Option<&str>, label: &str) -> Result<PathBuf, S
 fn frontmatter(path: &Path, label: &str) -> Result<(HashMap<String, String>, String), String> {
     let text = fs::read_to_string(path)
         .map_err(|e| invalid(format!("{label} Markdown cannot be read: {e}")))?;
+    parse_frontmatter(&text, label, &path.display().to_string())
+}
+
+fn parse_frontmatter(
+    text: &str,
+    label: &str,
+    location: &str,
+) -> Result<(HashMap<String, String>, String), String> {
     if !text.starts_with("---\n") && !text.starts_with("---\r\n") {
         return Err(invalid(format!(
             "{label} Markdown requires frontmatter: {}",
-            path.display()
+            location
         )));
     }
     let normalized = text.replace("\r\n", "\n");
@@ -351,7 +378,7 @@ fn frontmatter(path: &Path, label: &str) -> Result<(HashMap<String, String>, Str
         .ok_or_else(|| {
             invalid(format!(
                 "{label} Markdown requires frontmatter: {}",
-                path.display()
+                location
             ))
         })?;
     let body = &remainder[..end];
@@ -394,7 +421,38 @@ fn list_field(md: &str, key: &str) -> Vec<String> {
     output
 }
 
-fn validate_graph(root: &Path, g: &Value) -> Result<(), String> {
+fn asset_frontmatter(
+    root: Option<&Path>,
+    file: Option<&str>,
+    label: &str,
+) -> Result<(HashMap<String, String>, String), String> {
+    if let Some(root) = root {
+        return frontmatter(&safe_file(root, file, label)?, label);
+    }
+    let file = file.ok_or_else(|| invalid(format!("{label} file is missing")))?;
+    let bytes = embedded::ASSETS
+        .iter()
+        .find(|(name, _)| *name == file)
+        .map(|(_, bytes)| *bytes)
+        .ok_or_else(|| invalid(format!("{label} file does not exist: {file}")))?;
+    let text = std::str::from_utf8(bytes)
+        .map_err(|e| invalid(format!("{label} Markdown cannot be read: {e}")))?;
+    parse_frontmatter(text, label, file)
+}
+
+fn validate_asset(root: Option<&Path>, file: Option<&str>, label: &str) -> Result<(), String> {
+    if let Some(root) = root {
+        safe_file(root, file, label)?;
+    } else {
+        let file = file.ok_or_else(|| invalid(format!("{label} file is missing")))?;
+        if !embedded::ASSETS.iter().any(|(name, _)| *name == file) {
+            return Err(invalid(format!("{label} file does not exist: {file}")));
+        }
+    }
+    Ok(())
+}
+
+fn validate_graph(root: Option<&Path>, g: &Value) -> Result<(), String> {
     if !g.is_object() || g["schemaVersion"] != GRAPH_SCHEMA_VERSION {
         return Err(invalid(format!("schemaVersion must be {GRAPH_SCHEMA_VERSION} (depths, work-unit repeat and data outputs are required)")));
     }
@@ -428,10 +486,7 @@ fn validate_graph(root: &Path, g: &Value) -> Result<(), String> {
         {
             return Err(invalid(format!("invalid phase metadata: {id}")));
         }
-        let (md, text) = frontmatter(
-            &safe_file(root, string(p, "file"), &format!("phase {id}"))?,
-            &format!("phase {id}"),
-        )?;
+        let (md, text) = asset_frontmatter(root, string(p, "file"), &format!("phase {id}"))?;
         if md.get("id").map(String::as_str) != Some(id) {
             return Err(invalid(format!("phase {id} Markdown id mismatch")));
         }
@@ -564,10 +619,7 @@ fn validate_graph(root: &Path, g: &Value) -> Result<(), String> {
         if !pids.contains(phase) || !string(a, "model").is_some_and(|m| alias_set.contains(m)) {
             return Err(invalid(format!("invalid phase or model for agent {id}")));
         }
-        let (md, _) = frontmatter(
-            &safe_file(root, string(a, "file"), &format!("agent {id}"))?,
-            &format!("agent {id}"),
-        )?;
+        let (md, _) = asset_frontmatter(root, string(a, "file"), &format!("agent {id}"))?;
         if md.get("id").map(String::as_str) != Some(id)
             || md.get("phase").map(String::as_str) != Some(phase)
             || md.contains_key("model")
@@ -663,7 +715,7 @@ fn validate_graph(root: &Path, g: &Value) -> Result<(), String> {
                 )));
             }
             if let Some(template) = entry.get("template") {
-                safe_file(root, template.as_str(), &format!("outputs.{id} template"))?;
+                validate_asset(root, template.as_str(), &format!("outputs.{id} template"))?;
             }
             if let Some(path) = entry.get("path") {
                 let ext = if entry["kind"] == "data" {

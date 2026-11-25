@@ -33,7 +33,7 @@ fn graph_scope_output_matches_node_for_unconfigured_project() {
                 expected,
                 "scope={scope:?}, depth={depth:?}"
             );
-            let mut native = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"));
+            let mut native = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc-rs"));
             native.arg("scope");
             if let Some(scope) = scope {
                 native.arg(scope);
@@ -82,7 +82,7 @@ fn graph_scope_output_matches_node_for_unconfigured_project() {
             graph.scope_output(Some("solo"), None, &loaded).unwrap(),
             expected
         );
-        let native = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
+        let native = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc-rs"))
             .args(["scope", "solo", "--project", temp.to_str().unwrap()])
             .output()
             .unwrap();

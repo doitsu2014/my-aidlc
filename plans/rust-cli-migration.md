@@ -2,7 +2,7 @@
 
 ## Goal and release boundary
 
-Replace the Node.js CLI in one production cutover with a native Rust executable, while retaining compatibility with existing commands, project state, artifacts, harness projections, and installations. The Node CLI remains authoritative and the production entry point until parity and installer upgrade tests pass. The current Rust binary supports version, help, completion and read-only scope inspection; it rejects stateful project commands without changing state. Do not ship it as the replacement.
+Replace the Node.js CLI in one production cutover with a native Rust executable, while retaining compatibility with existing commands, project state, artifacts, harness projections, and installations. The Node CLI remains authoritative and the production entry point until parity and installer upgrade tests pass. The current Rust preview binary `dtech-aidlc-rs` supports version, help, completion and read-only scope inspection; it rejects stateful project commands without changing state. It can be installed separately with Cargo, but must not replace the production executable.
 
 ## Compatibility requirements
 
