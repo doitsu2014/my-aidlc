@@ -1,0 +1,57 @@
+Usage: dtech-aidlc <command> [options]
+
+Commands:
+  help, --help            Show help
+  version, --version      Show version
+  onboard [--harness NAME] [--scope NAME] [--docs PATH] [--no-detect]
+                          Initialize and detect the project in one command (--harness is required the first time)
+  onboard --rescan [--docs PATH]...
+                          Re-scan an initialized project and report documentation changes
+  init [--harness NAME] [--scope NAME]    Alias of onboard (--harness is required the first time)
+  scope [NAME] [--depth NAME]  List scopes or show stages in a scope
+  status [--intent ID]    Show current intent and stage progress
+  doctor                  Validate graph, state, config, and projection
+  orchestrate next [--intent TEXT] [--description TEXT] [--intent-file PATH|-] [--scope NAME] [--depth NAME] [--mode ai|human] [--approved-by NAME] [--detail TEXT] [--force-resume]
+                          Use --intent-file to avoid shell quoting; - reads standard input
+                          --force-resume --detail TEXT selects a stage whose prerequisite check still fails (owner only)
+  orchestrate report --result complete|blocked|skipped [--approval approved] [--approved-by NAME] [--approval-note TEXT] [--detail TEXT] [--stage ID] [--needs NAME]...
+                          --needs names a declared prerequisite; the stage resumes once its check passes
+  ids check [--stage ID]   List cited identifiers that are not in the intent's ID registry
+  config agents            List effective agent models
+  config scope [NAME]     Show or set the default scope for new intents
+  config mode [ai|human]   Show or set the default orchestration mode for new intents
+  config gate-mode [GATE] [human|default]  Pin a gate to human approval, or list pinned gates
+  config prerequisite [set NAME --check CMD [--hint TEXT] [--applies-to STAGE]...|remove NAME|check [NAME]]
+                          Declare, remove, run or list named environment prerequisites
+  config agents set <agent-id> <opus|sonnet|haiku|fable> (claude harness)
+  config agents reset <agent-id>
+  repos add <name> <url> [--ref REF]
+  repos list              List registered dependency repositories
+  repos pull [name] [--file FILE]       Clone or fast-forward repositories from aidlc.deps.json
+  repos remove <name>     Unregister only; preserve checkout
+  completion zsh          Print the zsh completion function
+  deps add <id> <dependency-id>
+  deps list                List dependency edges
+  deps pull <id>           Show direct dependencies and their status
+  intent list             List every intent with its status; paused means: not the active intent of this checkout
+  intent pause [--detail TEXT]
+  intent resume <id>
+  intent abandon [<id>] --detail TEXT
+  intent depth NAME --approved-by NAME --detail TEXT
+  intent rework --detail TEXT  Return blocked Develop work to implementation-design
+  intent assign NAME     Assign the active intent
+  knowledge init          Create PROJECT.md and .aidlc/knowledge/ if missing
+  knowledge sources [--kind KIND] [--description TEXT]
+                          List, add, or remove knowledge sources
+  knowledge list          List knowledge records
+  knowledge show <id>     Show one knowledge record
+  knowledge check         Validate knowledge records
+  knowledge index         Write .aidlc/knowledge/_index.md
+  harness add NAME        Project another harness into this project
+  harness status          Show the state of the projected skill files
+  harness refresh [NAME] [--dry-run] [--force]  Update projected skill files to this engine version
+Global option: --project DIR  Use DIR as the project root instead of the current directory.
+
+Scope values: solo, team, enterprise. Harness values: claude, deepseek.
+Phase gates require explicit --approval approved when reporting a phase's final stage.
+All workflow state and audit records are local under .aidlc/.

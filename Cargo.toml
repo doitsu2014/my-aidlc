@@ -1,0 +1,16 @@
+[package]
+name = "dtech-aidlc"
+version = "0.7.2"
+edition = "2021"
+publish = false
+
+[dependencies]
+serde_json = { version = "1.0", features = ["preserve_order"] }
+sha2 = "0.10"
+
+[lib]
+path = "rust-cli/lib.rs"
+
+[[bin]]
+name = "dtech-aidlc"
+path = "rust-cli/main.rs"
