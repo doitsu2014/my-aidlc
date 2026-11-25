@@ -65,7 +65,7 @@ Approve every gate yourself, or let an AI orchestrator research each gate and re
 <td valign="top">
 
 ### 🧪 Evidence-driven Develop
-A plan, then red tests, then build and verify, run for each work unit. An **ID registry** (`ids.json`) rejects reports that cite functions, tests, or units that were never registered.
+Plan bounded vertical slices, then implement and verify each slice with tests alongside the change (test-first for higher-risk behavior). An **ID registry** (`ids.json`) rejects reports that cite functions, tests, or units that were never registered.
 
 </td>
 </tr>

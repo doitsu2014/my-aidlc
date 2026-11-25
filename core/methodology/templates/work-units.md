@@ -1,6 +1,6 @@
 # Work units
 
-Use this for the Develop outputs `work-units` (Markdown) and `work-units-json` (`work-units.json` beside it). Each unit is testable on its own. Both files are required at `full` and `standard` depth: `orchestrate report` refuses `implementation-design` without a valid `work-units.json`, so a missing file can no longer turn the phase into one implicit unit.
+Use this for the Develop outputs `work-units` (Markdown) and `work-units-json` (`work-units.json` beside it). Each unit is a small, reviewable vertical slice: a coherent behavior with implementation and relevant tests verified together. Use a separate test-first step only when it adds value for the risk (for example regressions, security-sensitive behavior, public contracts, or complex rules); avoid test-only units that leave the slice's behavior unfinished. Both files are required at `full` and `standard` depth: `orchestrate report` refuses `implementation-design` without a valid `work-units.json`, so a missing file can no longer turn the phase into one implicit unit.
 
 ```markdown
 # Work units

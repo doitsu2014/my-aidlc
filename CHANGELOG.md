@@ -2,6 +2,10 @@
 
 Each release lists the behaviour changes a user or a script can notice.
 
+## 0.7.2
+
+- Develop uses test-alongside vertical slices, with test-first focused on behavior where risk justifies it; rework guidance emphasizes local recovery and stopping repeated retries.
+
 ## 0.7.1
 
 - `dtech-aidlc intent rework --detail "<reason>"` returns a blocked Develop stage to `implementation-design`. It resets downstream Develop stage and work-unit completion, preserves earlier lifecycle gates, and records the owner-provided reason in workflow state and the audit log.
