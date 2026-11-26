@@ -1674,6 +1674,66 @@ fn third_identical_blocked_report_auto_parks() {
 }
 
 #[test]
+fn ai_owner_decision_can_be_confirmed_by_the_human_owner() {
+    let project = TempDir::new("ai-confirm");
+    let root = project.path();
+    let id = seed_develop(
+        root,
+        "ai confirmation",
+        &Design::small(json!([{"id": "WU-01"}])),
+    );
+    edit_state(root, &id, |state| state["mode"] = json!("ai"));
+    json_ok(root, &["orchestrate", "next"]);
+    park(
+        root,
+        &["--kind", "owner-decision", "--detail", "needs human review"],
+    );
+    json_ok(
+        root,
+        &[
+            "orchestrate",
+            "revisit",
+            "--unit",
+            "WU-01",
+            "--detail",
+            "AI chose option A",
+        ],
+    );
+    let before = json_ok(root, &["orchestrate", "queue"]);
+    assert_eq!(before["ownerDecisions"][0]["confirmed"], false);
+    assert_eq!(before["ownerDecisions"][0]["pendingConfirmation"], true);
+
+    assert!(fails(
+        root,
+        &["orchestrate", "revisit", "--unit", "WU-01", "--confirm"]
+    )
+    .contains("--approved-by <owner name>"));
+    let confirmed = json_ok(
+        root,
+        &[
+            "orchestrate",
+            "revisit",
+            "--unit",
+            "WU-01",
+            "--confirm",
+            "--approved-by",
+            "Owner",
+        ],
+    );
+    assert_eq!(confirmed["confirmed"][0]["unit"], "WU-01");
+    let after = json_ok(root, &["orchestrate", "queue"]);
+    assert_eq!(after["ownerDecisions"][0]["confirmed"], true);
+    assert_eq!(after["ownerDecisions"][0]["confirmedBy"], "Owner");
+    assert_eq!(
+        events(root, "unit.decision-confirmed").len(),
+        1,
+        "confirmation is audited"
+    );
+    let doctor = json_ok(root, &["doctor"]);
+    assert!(!doctor.to_string().contains("await owner confirmation"));
+}
+
+#[test]
 fn auto_park_threshold_is_configurable_and_needs_never_count() {
     let project = TempDir::new("auto-park-five");
     let root = project.path();
@@ -2505,7 +2565,7 @@ fn queue_commands_validate_their_options() {
         ),
         (
             &["orchestrate", "revisit", "--detail", "x"],
-            "--detail and --approved-by apply to orchestrate revisit --unit ID",
+            "--detail, --approved-by and --confirm apply to orchestrate revisit --unit ID",
         ),
         (
             &["orchestrate", "park", "--stage", "red-tests"],
@@ -5268,6 +5328,44 @@ fn ai_mode_owner_decisions_are_recorded_as_unconfirmed() {
 }
 
 #[test]
+fn parallel_claim_respects_stage_preflight_prerequisites_without_blocking_other_units() {
+    let project = TempDir::new("claim-preflight");
+    let root = project.path();
+    seed_develop(root, "claim preflight", &parallel_design());
+    assert_eq!(
+        step_of(&json_ok(root, &["orchestrate", "next"])),
+        "WU-01:red-tests"
+    );
+    json_ok(
+        root,
+        &[
+            "config",
+            "prerequisite",
+            "set",
+            "docker",
+            "--check",
+            "exit 1",
+            "--applies-to",
+            "red-tests",
+        ],
+    );
+    let output = run(root, &["orchestrate", "next", "--claim"]);
+    assert_eq!(output.status.code(), Some(0));
+    let payload: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(payload["claimed"], false);
+    assert_eq!(payload["reason"], "no-ready-unit");
+    assert!(payload["warnings"][0]
+        .as_str()
+        .unwrap()
+        .contains("stage preflight needs docker"));
+    assert_eq!(payload["parallel"]["inFlight"][0]["unit"], "WU-01");
+    assert!(payload["hint"]
+        .as_str()
+        .unwrap()
+        .contains("failing prerequisite"));
+}
+
+#[test]
 fn env_prerequisite_holds_only_its_unit() {
     let project = TempDir::new("env-hold");
     let root = project.path();
@@ -5463,6 +5561,19 @@ fn complete_unit(root: &Path, unit: &str) -> Value {
             "complete",
         ],
     )
+}
+
+#[test]
+fn active_intent_rejects_an_attempt_to_change_mode() {
+    let project = TempDir::new("mode-fixed");
+    let root = project.path();
+    json_ok(root, &["init", "--harness", "claude", "--scope", "solo"]);
+    json_ok(root, &["orchestrate", "next", "--intent", "fixed mode"]);
+    let error = fails(root, &["orchestrate", "next", "--mode", "ai"]);
+    assert!(
+        error.contains("mode cannot change after an intent starts"),
+        "{error}"
+    );
 }
 
 #[test]

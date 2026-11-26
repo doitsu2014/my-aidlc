@@ -22,8 +22,9 @@ Commands:
   orchestrate park [--unit ID] --kind dep-unit|foreign-regression|owner-decision|design-defect [--blocked-by ID]... --detail TEXT
                           Set a blocked work unit aside; orchestrate next continues with the next ready unit
   orchestrate queue       List ready, waiting, blocked, parked and done work units
-  orchestrate revisit [--unit ID]... [--detail TEXT] [--approved-by NAME]
-                          Return parked units to the queue (without --unit: those whose blockers are done)
+  orchestrate revisit [--unit ID]... [--detail TEXT] [--approved-by NAME] [--confirm]
+                          --confirm records a human owner's review of a closed AI owner decision
+                          Return parked units to the queue; --confirm lets an owner confirm a closed AI decision
   ids check [--stage ID]   List cited identifiers that are not in the intent's ID registry
   config agents            List effective agent models
   config scope [NAME]     Show or set the default scope for new intents

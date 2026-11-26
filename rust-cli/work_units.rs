@@ -3413,8 +3413,36 @@ pub fn stalled_payload(
     })
 }
 
+/// Confirm a closed AI owner decision with a human owner's identity.
+pub fn confirm_owner_decision(
+    state: &mut Value,
+    key: &str,
+    decision: &Value,
+    confirmed_by: &str,
+    confirmed_at: &str,
+) -> Result<(), String> {
+    let history = unit_mut(state, key)
+        .and_then(|unit| unit.get_mut("parkHistory"))
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| format!("{key} has no AI owner decision to confirm"))?;
+    let record = history
+        .iter_mut()
+        .rev()
+        .find(|record| {
+            record == &decision
+                && str_of(record, "kind") == Some("owner-decision")
+                && str_of(record, "revisitReason") == Some("manual")
+                && str_of(record, "decidedBy") == Some(crate::orchestrate::AI_ORCHESTRATOR)
+                && record.get("confirmedBy").is_none_or(Value::is_null)
+        })
+        .ok_or_else(|| format!("{key} has no unconfirmed AI owner decision to confirm"))?;
+    record["confirmedBy"] = json!(confirmed_by);
+    record["confirmedAt"] = json!(confirmed_at);
+    Ok(())
+}
+
 /// Closed `owner-decision` parks with their decision; `confirmed` is false when the
-/// AI orchestrator recorded the decision.
+/// AI orchestrator recorded the decision until a human confirms it.
 pub fn owner_decisions(state: &Value) -> Vec<Value> {
     let mut rows = Vec::new();
     for (key, unit) in active_units(state) {
@@ -3435,7 +3463,12 @@ pub fn owner_decisions(state: &Value) -> Vec<Value> {
                 "decision": record.get("revisitDetail").cloned().unwrap_or(Value::Null),
                 "at": record.get("revisitedAt").cloned().unwrap_or(Value::Null),
                 "decidedBy": by,
-                "confirmed": by.is_some_and(|by| by != crate::orchestrate::AI_ORCHESTRATOR),
+                "confirmed": by.is_some_and(|by| by != crate::orchestrate::AI_ORCHESTRATOR)
+                    || record.get("confirmedBy").and_then(Value::as_str).is_some(),
+                "pendingConfirmation": by == Some(crate::orchestrate::AI_ORCHESTRATOR)
+                    && record.get("confirmedBy").is_none_or(Value::is_null),
+                "confirmedBy": record.get("confirmedBy").cloned().unwrap_or(Value::Null),
+                "confirmedAt": record.get("confirmedAt").cloned().unwrap_or(Value::Null),
                 "parkedFor": record.get("detail").cloned().unwrap_or(Value::Null),
             }));
         }
@@ -3855,7 +3888,7 @@ pub fn doctor_warnings(
     // Owner decisions recorded by the AI orchestrator.
     let unconfirmed: Vec<String> = owner_decisions(state)
         .iter()
-        .filter(|row| row.get("confirmed") == Some(&Value::Bool(false)))
+        .filter(|row| row.get("pendingConfirmation") == Some(&Value::Bool(true)))
         .map(|row| {
             let unit = str_of(row, "unit").unwrap_or("");
             match str_of(row, "decision") {

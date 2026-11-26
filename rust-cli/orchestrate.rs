@@ -1171,6 +1171,20 @@ pub fn orchestrate_next(
 
     match requested {
         None => {
+            if !finished {
+                if let (Some(current), Some(mode)) = (
+                    state.as_ref(),
+                    options.mode.as_deref().filter(|mode| !mode.is_empty()),
+                ) {
+                    if mode != mode_of(current) {
+                        return Err(format!(
+                            "Intent '{}' uses mode {}; the mode cannot change after an intent starts. Omit --mode to continue it.",
+                            str_of(current, "intentId").unwrap_or(""),
+                            mode_of(current)
+                        ));
+                    }
+                }
+            }
             if state.is_none() || finished {
                 if is_complete(&state) {
                     return Ok(NextOutcome::Complete(complete_payload(
@@ -1445,20 +1459,32 @@ pub fn orchestrate_next(
                     });
                 };
                 let stage_id = str_of(&stage, "id").unwrap_or("").to_owned();
-                let needs = unit_needs(&state, &stage_id, &unit);
+                let mut needs = unit_needs(&state, &stage_id, &unit);
+                let preflight = crate::prerequisites::preflight_names(config, &stage);
+                for name in &preflight {
+                    if !needs.contains(name) {
+                        needs.push(name.clone());
+                    }
+                }
                 if !needs.is_empty() && !options.force_resume {
                     let results = crate::prerequisites::run_prerequisites(
                         &root.to_string_lossy(),
                         config,
                         &needs,
                     );
-                    if results
+                    let failing: Vec<String> = results
                         .iter()
-                        .any(|item| item.get("ok") != Some(&Value::Bool(true)))
-                    {
+                        .filter(|item| item.get("ok") != Some(&Value::Bool(true)))
+                        .filter_map(|item| item.get("name").map(js_string))
+                        .collect();
+                    if !failing.is_empty() {
+                        let reason = if preflight.iter().any(|name| failing.contains(name)) {
+                            format!("stage preflight needs {}", failing.join(", "))
+                        } else {
+                            format!("its blocked report needs {}", failing.join(", "))
+                        };
                         warnings.push(format!(
-                            "Work unit {unit} is held: its blocked report needs {}, and the check is failing; it is not claimed.",
-                            needs.join(", ")
+                            "Work unit {unit} is held: {reason}, and the check is failing; it is not claimed."
                         ));
                         skip.push(unit);
                         continue;
@@ -1701,7 +1727,9 @@ pub fn orchestrate_next(
                 },
             );
             payload.insert("stage".into(), json!(next_id));
-            if let Some(unit) = current_unit(&state) {
+            if let Some(unit) = selected_unit.as_ref() {
+                payload.insert("currentUnit".into(), json!(unit));
+            } else if let Some(unit) = current_unit(&state) {
                 payload.insert("currentUnit".into(), unit.clone());
             }
             payload.insert("needs".into(), Value::Array(results.clone()));
@@ -1714,7 +1742,7 @@ pub fn orchestrate_next(
             );
             return Ok(NextOutcome::Blocked(Value::Object(payload)));
         }
-        if !failing.is_empty() {
+        if !failing.is_empty() && options.force_resume {
             if options.detail.as_deref().unwrap_or("").is_empty() {
                 return Err("--force-resume requires --detail \"<reason>\"".into());
             }

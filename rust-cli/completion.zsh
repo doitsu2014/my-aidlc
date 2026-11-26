@@ -116,7 +116,8 @@ _dtech-aidlc() {
                   _arguments \
                     '--unit[Parked work unit to return to the queue]:unit:' \
                     '--detail[Decision or reason]:detail:' \
-                    '--approved-by[Who decided]:name:'
+                    '--approved-by[Who decided]:name:' \
+                    '--confirm[Confirm a closed AI owner decision]'
                   ;;
               esac
               ;;

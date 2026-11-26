@@ -4,7 +4,7 @@ Use this for the Archived output knowledge-record. Write it at the path given in
 ---
 id: <intent-id>
 title: <short title>
-origin: archived
+origin: intent
 scope: solo
 closed: <ISO date>
 phases-run: analyze, ideate, develop, archived

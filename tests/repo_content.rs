@@ -915,6 +915,7 @@ fn skills_use_file_based_requests_and_current_directive_report_contracts() {
             "Do not pass `--force-resume`",
             "Check the environment on turn one",
             "Recommend `standard` for a pilot",
+            "never invent an approver name",
             "`gate.id`",
             "--approved-by",
             "dtech-aidlc intent abandon",
@@ -1005,6 +1006,7 @@ fn skills_and_methodology_explain_unit_scheduling() {
             "## Work units, park, queue and revisit",
             "--unit <id>",
             "`regression.json`",
+            "`failures` is required, even when empty",
             "dtech-aidlc orchestrate park --unit <id> --kind dep-unit|foreign-regression|owner-decision|design-defect",
             "dtech-aidlc orchestrate queue",
             "dtech-aidlc orchestrate revisit --unit <id> --detail \"<decision>\"",
@@ -1037,6 +1039,7 @@ fn skills_and_methodology_explain_unit_scheduling() {
         "`regression.json`",
         "`baseline: true`",
         "dtech-aidlc orchestrate park --unit <id>",
+        "a required `failures` array",
     ] {
         assert!(
             builder.contains(required),
@@ -1047,6 +1050,9 @@ fn skills_and_methodology_explain_unit_scheduling() {
     assert!(planner.contains("never invert a dependency"));
     let template = read_lf("core/methodology/templates/work-units.md");
     assert!(template.contains("\"tests\": [\"TS-001\"]"));
+    let record_template = read_lf("core/methodology/templates/knowledge-record.md");
+    assert!(record_template.contains("origin: intent"));
+    assert!(!record_template.contains("origin: archived"));
     // Projections written by 1.0.0 read as behind, not as edited locally.
     let history: Value = serde_json::from_str(&read("core/data/projection-history.json")).unwrap();
     for (harness, hash) in [
@@ -1100,7 +1106,7 @@ fn harness_skills_share_the_workflow_contract_and_required_sections() {
     let comparable = |content: &str| {
         let normalized = content.replace("\r\n", "\n");
         let start = normalized.find("## Before you start").unwrap();
-        let end = normalized.find("## Harness capabilities").unwrap();
+        let end = normalized.find("## AI orchestrator mode").unwrap();
         let section = &normalized[start..end];
         let without = remove_span(section, "## AI orchestrator mode", "\n## Model preferences");
         let without = remove_span(
@@ -1160,7 +1166,7 @@ fn harness_onboarding_references_the_methodology_projection_and_cli_graph() {
             "{harness} onboarding must not point at a nonexistent projected graph"
         );
         assert!(!onboarding.contains("`.aidlc/methodology/`"));
-        assert!(onboarding.contains("not copied into the project"));
+        assert!(onboarding.contains("materialized read-only under `.aidlc/engine/methodology/`"));
     }
 }
 

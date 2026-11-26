@@ -537,6 +537,7 @@ fn run_unit_queue(
     let config = dtech_aidlc::scope::load_config_unvalidated(&root);
     let options = dtech_aidlc::unit_commands::UnitOptions {
         units: list_flag(flags, "unit")?,
+        confirm: flags.contains_key("confirm"),
         kind: string_flag(flags, "kind").map(str::to_owned),
         blocked_by: list_flag(flags, "blocked-by")?,
         detail: string_flag(flags, "detail").map(str::to_owned),

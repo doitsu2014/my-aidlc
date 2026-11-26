@@ -61,7 +61,7 @@ Each gate approval in AI mode requires a `gate-recommendation.md` file in the ga
 - **Evidence trace:** the artifacts, checks, or observations the recommendation rests on, distinguishing observed facts from assumptions and open questions.
 - **Selected direction and rationale:** which option is approved and why it satisfies the gate's exit criteria, including residual risks and follow-ups.
 - **Boundary statement:** what the approval does and does not authorize (a release-candidate approval still does not authorize deployment; launch approval still does not authorize access or retention changes).
-- **Open items:** a `## Open items` section listing every deferred item, each tagged `[written-approval]` (a person must decide it in writing — including an Analyze open question the decision depends on) or `[follow-up]` (tracked work that does not block the gate), or `- None`.
+- **Open items:** a `## Open items` section listing every deferred item, each list item beginning with `[written-approval]` (a person must decide it in writing — including an Analyze open question the decision depends on) or `[follow-up]` (tracked work that does not block the gate), or `- None`.
 
 The conductor never approves its own gate without this artifact: the CLI refuses `--approval approved` in AI mode when the `gate-recommendation.md` file is missing or empty, has no `## Open items` section, has an untagged open item, or has any `[written-approval]` item. A recommendation that leaves an item for written approval is a blocked gate, not an approved one; the audit row records how many follow-ups were accepted.
 

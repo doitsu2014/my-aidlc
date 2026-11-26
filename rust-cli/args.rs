@@ -199,6 +199,10 @@ const ORCHESTRATE_REVISIT_FLAGS: &[OptionSpec] = &[
         kind: OptionType::List,
     },
     OptionSpec {
+        name: "confirm",
+        kind: OptionType::Boolean,
+    },
+    OptionSpec {
         name: "detail",
         kind: OptionType::String,
     },
@@ -639,7 +643,11 @@ mod tests {
                 &["unit", "kind", "blocked-by", "detail"],
             ),
             ("orchestrate queue", 0, &[]),
-            ("orchestrate revisit", 0, &["unit", "detail", "approved-by"]),
+            (
+                "orchestrate revisit",
+                0,
+                &["unit", "confirm", "detail", "approved-by"],
+            ),
             ("ids check", 0, &["stage"]),
             ("scope", 1, &["depth"]),
             ("status", 0, &["intent"]),

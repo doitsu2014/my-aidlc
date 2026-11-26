@@ -7,6 +7,8 @@
 use serde_json::{Map, Value};
 use std::collections::HashSet;
 use std::io::Read;
+#[cfg(windows)]
+use std::os::windows::process::CommandExt;
 use std::process::{Command, Stdio};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -166,10 +168,7 @@ pub fn run_prerequisite(root: &str, name: &str, definition: &Value) -> Value {
         .unwrap_or(DEFAULT_TIMEOUT_SECONDS);
     let timeout = Duration::from_secs(timeout_seconds);
     let started_at = timestamp_now();
-    let (shell, args) = shell_command(check);
-
-    let mut child = match Command::new(shell)
-        .args(args)
+    let mut child = match shell_command(check)
         .current_dir(root)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -298,13 +297,21 @@ fn graph_ids(graph: &Value) -> HashSet<String> {
 }
 
 #[cfg(windows)]
-fn shell_command(check: &str) -> (&'static str, Vec<String>) {
-    ("cmd", vec!["/C".to_owned(), check.to_owned()])
+fn shell_command(check: &str) -> Command {
+    // `cmd.exe` parses its command line itself. Passing the complete check as a
+    // normal Rust argument escapes embedded quotes for the Windows C runtime, which
+    // cmd.exe does not understand; quoted paths and arguments then break. Use a raw
+    // command-line tail and preserve the exact owner-authored check text.
+    let mut command = Command::new("cmd.exe");
+    command.raw_arg(format!("/D /S /C \"{check}\""));
+    command
 }
 
 #[cfg(not(windows))]
-fn shell_command(check: &str) -> (&'static str, Vec<String>) {
-    ("sh", vec!["-c".to_owned(), check.to_owned()])
+fn shell_command(check: &str) -> Command {
+    let mut command = Command::new("sh");
+    command.args(["-c", check]);
+    command
 }
 
 fn read_pipe<R: Read + Send + 'static>(mut pipe: R) -> thread::JoinHandle<Vec<u8>> {
@@ -493,6 +500,41 @@ mod tests {
             assert_eq!(result["exitCode"], Value::Null);
         }
         assert!(require_runnable("docker", &json!({"check": "docker info"})).is_ok());
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn windows_check_preserves_quotes_around_paths_with_spaces() {
+        let dir = std::env::temp_dir().join(format!(
+            "aidlc prerequisite quoted path {}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let marker = dir.join("marker & file.txt");
+        std::fs::write(&marker, "present").unwrap();
+        let check = format!(
+            "if exist \"{}\" (exit /b 0) else (exit /b 1)",
+            marker.display()
+        );
+
+        let result = run_prerequisite(
+            dir.to_str().unwrap(),
+            "quoted-path",
+            &json!({"check": check}),
+        );
+        assert_eq!(result["ok"], true, "{result}");
+
+        let script = dir.join("check & script.cmd");
+        std::fs::write(&script, "@echo off\r\nexit /b 0\r\n").unwrap();
+        let quoted_executable = format!("\"{}\"", script.display());
+        let result = run_prerequisite(
+            dir.to_str().unwrap(),
+            "quoted-executable",
+            &json!({"check": quoted_executable}),
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+        assert_eq!(result["ok"], true, "{result}");
     }
 
     #[test]

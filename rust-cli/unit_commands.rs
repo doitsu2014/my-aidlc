@@ -27,6 +27,7 @@ use std::path::Path;
 #[derive(Clone, Debug, Default)]
 pub struct UnitOptions {
     pub units: Vec<String>,
+    pub confirm: bool,
     pub kind: Option<String>,
     pub blocked_by: Vec<String>,
     pub detail: Option<String>,
@@ -198,8 +199,13 @@ pub fn revisit_loaded(
 ) -> OrchestrateResult<Value> {
     let detail = trimmed(options.detail.as_deref());
     let approved_by = trimmed(options.approved_by.as_deref());
-    if options.units.is_empty() && (detail.is_some() || approved_by.is_some()) {
-        return Err("--detail and --approved-by apply to orchestrate revisit --unit ID".into());
+    if options.units.is_empty() && (detail.is_some() || approved_by.is_some() || options.confirm) {
+        return Err(
+            "--detail, --approved-by and --confirm apply to orchestrate revisit --unit ID".into(),
+        );
+    }
+    if options.confirm && detail.is_some() {
+        return Err("--confirm cannot be combined with --detail".into());
     }
     let (mut state, stages) = active(graph, loaded)?;
     let now = crate::audit::now_iso();
@@ -213,6 +219,7 @@ pub fn revisit_loaded(
     )?;
     work_units::require_unit_queue(&state, &stages, "revisit")?;
     let id = intent_id(&state);
+    let mut confirmations = Vec::new();
     let revisits = if options.units.is_empty() {
         work_units::auto_revisits(&mut state, &now)
     } else {
@@ -224,6 +231,33 @@ pub fn revisit_loaded(
             let unit = work_units::unit(&state, &key)
                 .cloned()
                 .unwrap_or(Value::Null);
+            if options.confirm {
+                let record = unit
+                    .get("parkHistory")
+                    .and_then(Value::as_array)
+                    .and_then(|history| {
+                        history.iter().rev().find(|row| {
+                            row.get("kind").and_then(Value::as_str) == Some("owner-decision")
+                                && row.get("revisitReason").and_then(Value::as_str)
+                                    == Some("manual")
+                                && row.get("decidedBy").and_then(Value::as_str)
+                                    == Some(AI_ORCHESTRATOR)
+                                && row.get("confirmedBy").is_none_or(Value::is_null)
+                        })
+                    })
+                    .ok_or_else(|| {
+                        format!("{key} has no unconfirmed AI owner decision to confirm")
+                    })?;
+                let Some(approved_by) = approved_by else {
+                    return Err("--confirm requires --approved-by <owner name>".into());
+                };
+                let who = crate::identity::resolve_approver(root, Some(approved_by))?;
+                if who.by == AI_ORCHESTRATOR {
+                    return Err("--confirm requires the human owner's name in --approved-by".into());
+                }
+                confirmations.push((key.clone(), record.clone(), who.by));
+                continue;
+            }
             let kind = unit
                 .get("park")
                 .filter(|park| park.is_object())
@@ -277,10 +311,24 @@ pub fn revisit_loaded(
         }
         rows
     };
-    if revisits.is_empty() {
-        return Ok(json!({"revisited": [], "intentId": id, "next": NEXT}));
+    if revisits.is_empty() && confirmations.is_empty() {
+        return Ok(json!({"revisited": [], "confirmed": [], "intentId": id, "next": NEXT}));
+    }
+    for (unit, decision, by) in &confirmations {
+        work_units::confirm_owner_decision(&mut state, unit, decision, by, &now)?;
     }
     persist(root, graph, loaded, &mut state, &stages, &now, &change)?;
     audit_revisits(root, &id, &revisits)?;
-    Ok(json!({"revisited": revisits, "intentId": id, "next": NEXT}))
+    for (unit, decision, by) in &confirmations {
+        audit(
+            root,
+            "unit.decision-confirmed",
+            json!({"intentId": id, "unit": unit, "parkedAt": decision.get("at"), "decision": decision.get("revisitDetail"), "decidedBy": by, "confirmedAt": now}),
+        )?;
+    }
+    let confirmed: Vec<Value> = confirmations
+        .iter()
+        .map(|(unit, _, by)| json!({"unit": unit, "confirmedBy": by}))
+        .collect();
+    Ok(json!({"revisited": revisits, "confirmed": confirmed, "intentId": id, "next": NEXT}))
 }
