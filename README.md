@@ -6,9 +6,9 @@
 
 **Let the AI do the work. Keep the decisions yours.**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-2563eb?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.0-2563eb?style=flat-square&cacheSeconds=86400)](CHANGELOG.md)
 [![Rust](https://img.shields.io/badge/built%20with-Rust-b7410e?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![Platforms](https://img.shields.io/badge/tested%20on-Windows-475569?style=flat-square)](#install-options)
+[![Platforms](https://img.shields.io/badge/tested%20on-Windows-475569?style=flat-square&cacheSeconds=86400)](#install-options)
 [![Claude Code](https://img.shields.io/badge/harness-Claude%20Code-d97757?style=flat-square)](#harnesses)
 [![DeepSeek](https://img.shields.io/badge/harness-DeepSeek-4d6bfe?style=flat-square)](#harnesses)
 [![Local-first](https://img.shields.io/badge/local--first-no%20network%20needed-0f766e?style=flat-square)](#install-options)
