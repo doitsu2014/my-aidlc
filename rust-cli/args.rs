@@ -132,6 +132,14 @@ const ORCHESTRATE_NEXT_FLAGS: &[OptionSpec] = &[
         name: "force-resume",
         kind: OptionType::Boolean,
     },
+    OptionSpec {
+        name: "claim",
+        kind: OptionType::Boolean,
+    },
+    OptionSpec {
+        name: "unit",
+        kind: OptionType::List,
+    },
 ];
 const ORCHESTRATE_REPORT_FLAGS: &[OptionSpec] = &[
     OptionSpec {
@@ -577,7 +585,7 @@ mod tests {
         assert_eq!(command_max_args("config agents"), Some(3));
         assert_eq!(command_max_args("orchestrate next"), Some(0));
         assert_eq!(command_max_args("not-a-command"), None);
-        assert_eq!(command_flags("orchestrate next").unwrap().len(), 9);
+        assert_eq!(command_flags("orchestrate next").unwrap().len(), 11);
     }
 
     /// Expected `COMMAND_MAX_ARGS` and per-command option names (the published CLI spec).
@@ -607,6 +615,8 @@ mod tests {
                     "approved-by",
                     "detail",
                     "force-resume",
+                    "claim",
+                    "unit",
                 ],
             ),
             (

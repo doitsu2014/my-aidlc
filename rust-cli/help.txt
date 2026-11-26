@@ -11,9 +11,11 @@ Commands:
   scope [NAME] [--depth NAME]  List scopes or show stages in a scope
   status [--intent ID]    Show current intent and stage progress
   doctor                  Validate graph, state, config, and projection
-  orchestrate next [--intent TEXT] [--description TEXT] [--intent-file PATH|-] [--scope NAME] [--depth NAME] [--mode ai|human] [--approved-by NAME] [--detail TEXT] [--force-resume]
+  orchestrate next [--intent TEXT] [--description TEXT] [--intent-file PATH|-] [--scope NAME] [--depth NAME] [--mode ai|human] [--approved-by NAME] [--detail TEXT] [--force-resume] [--claim] [--unit ID]
                           Use --intent-file to avoid shell quoting; - reads standard input
                           --force-resume --detail TEXT selects a stage whose prerequisite check still fails (owner only)
+                          --claim claims one more ready work unit while others are in flight (up to unitWorkers, default 3)
+                          --unit ID prints the directive of a work unit already in flight
   orchestrate report --result complete|blocked|skipped [--approval approved] [--approved-by NAME] [--approval-note TEXT] [--detail TEXT] [--stage ID] [--unit ID] [--needs NAME]...
                           --needs names a declared prerequisite; the stage resumes once its check passes
                           --unit names the work unit being reported (default: the current unit)

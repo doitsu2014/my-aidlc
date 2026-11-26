@@ -476,6 +476,18 @@ fn run_orchestrate(
     if force_resume && string_flag(flags, "detail").is_none() {
         return Err("--force-resume requires --detail \"<reason>\"".into());
     }
+    let claim = flags.contains_key("claim");
+    let units = list_flag(flags, "unit")?;
+    if units.len() > 1 {
+        return Err("--unit takes one work unit for orchestrate next".into());
+    }
+    let unit = units.into_iter().next();
+    if claim && unit.is_some() {
+        return Err("--claim and --unit cannot be combined: --claim takes a new unit, --unit prints one already in flight".into());
+    }
+    if (claim || unit.is_some()) && intent.is_some() {
+        return Err("--claim and --unit continue the active intent; they cannot start one".into());
+    }
     // Node orchestrateNext validates the configuration first (validateModelConfig).
     let config = dtech_aidlc::scope::validate_model_config(&root, graph)?;
     let outcome = orchestrate::orchestrate_next(
@@ -491,6 +503,8 @@ fn run_orchestrate(
             approved_by: string_flag(flags, "approved-by").map(str::to_owned),
             detail: string_flag(flags, "detail").map(str::to_owned),
             force_resume,
+            claim,
+            unit,
         },
     )?;
     match outcome {
@@ -503,7 +517,7 @@ fn run_orchestrate(
             print_json(&directive)?;
             Ok(0)
         }
-        orchestrate::NextOutcome::Complete(payload) => {
+        orchestrate::NextOutcome::Complete(payload) | orchestrate::NextOutcome::Busy(payload) => {
             print_json(&payload)?;
             Ok(0)
         }

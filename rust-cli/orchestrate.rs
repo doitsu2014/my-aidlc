@@ -238,6 +238,10 @@ pub struct NextOptions {
     pub approved_by: Option<String>,
     pub detail: Option<String>,
     pub force_resume: bool,
+    /// `--claim`: claim one more ready work unit while others are in flight.
+    pub claim: bool,
+    /// `--unit`: print the directive of a work unit that is already in flight.
+    pub unit: Option<String>,
 }
 
 /// Options of `orchestrate report`.
@@ -263,6 +267,9 @@ pub enum NextOutcome {
     Complete(Value),
     /// A prerequisite check is failing; exit with [`BLOCKED_EXIT_CODE`].
     Blocked(Value),
+    /// `--claim` found no unit to claim (every worker is busy, or no other unit is
+    /// ready); the units in flight continue. Nothing was selected.
+    Busy(Value),
 }
 
 impl NextOutcome {
@@ -270,14 +277,16 @@ impl NextOutcome {
         match self {
             NextOutcome::Directive(value)
             | NextOutcome::Complete(value)
-            | NextOutcome::Blocked(value) => value,
+            | NextOutcome::Blocked(value)
+            | NextOutcome::Busy(value) => value,
         }
     }
     pub fn into_value(self) -> Value {
         match self {
             NextOutcome::Directive(value)
             | NextOutcome::Complete(value)
-            | NextOutcome::Blocked(value) => value,
+            | NextOutcome::Blocked(value)
+            | NextOutcome::Busy(value) => value,
         }
     }
 }
@@ -1351,14 +1360,152 @@ pub fn orchestrate_next(
     let mut sweep = false;
     let mut revisits: Vec<Value> = Vec::new();
     let mut held_checks: Vec<Value> = Vec::new();
+    let workers = work_units::unit_workers(config);
+    let unit_flag = options
+        .unit
+        .as_deref()
+        .map(str::trim)
+        .filter(|unit| !unit.is_empty());
+    if unit_flag.is_some() && !work_units::has_ledger(&state) {
+        return Err("--unit applies only to work units in flight; this intent has none".into());
+    }
+    // Parallel work units: when the selected step is a claim rather than the current
+    // unit, the directive is built from a view whose current step is the claim, and the
+    // current unit is put back (with the claim in the pool) before the state is written.
+    let mut claim_view: Option<ClaimView> = None;
     let selected = if work_units::has_ledger(&state) {
-        let (mut selection, made) = work_units::select(&mut state, &stages, &now);
-        revisits = made;
+        work_units::sync_parallel_run(&mut state, &stages, &now);
+        let mut pinned: Option<Selection> = None;
+        // `--unit` naming a unit that is not in flight while nothing is: accepted when
+        // plain `next` selects that unit (one unit at a time again).
+        let mut expect_unit: Option<String> = None;
+        let pool = work_units::in_flight(&state, &stages);
+        if let Some(flag) = unit_flag {
+            let key = work_units::resolve_unit(&state, flag)
+                .ok_or_else(|| format!("Unknown work unit {flag}"))?;
+            match work_units::primary_step(&state, &stages) {
+                Some((stage, unit)) if unit == key => {
+                    pinned = Some(unit_selection(&stages, &stage, &unit)?);
+                }
+                _ if pool.is_empty() => expect_unit = Some(key),
+                _ => {
+                    let Some((index, row)) = work_units::take_claim(&mut state, &key) else {
+                        return Err(not_in_flight(&key, &pool));
+                    };
+                    let stage = str_of(&row, "stage").unwrap_or("").to_owned();
+                    claim_view = Some(ClaimView::stash(&mut state, Some(index), row));
+                    // The claim is the current step of the view, so its selectedAt is kept.
+                    state["currentStage"] = json!(stage);
+                    state["currentUnit"] = json!(key);
+                    pinned = Some(unit_selection(&stages, &stage, &key)?);
+                }
+            }
+        } else if options.claim && !pool.is_empty() {
+            if pool.len() as u64 >= workers {
+                return busy(BusyCall {
+                    root,
+                    graph,
+                    loaded: &loaded,
+                    state: &mut state,
+                    stages: &stages,
+                    ledger_change: &ledger_change,
+                    intent_id: &intent_id,
+                    workers,
+                    reason: "workers-busy",
+                    now: &now,
+                    revisits: &revisits,
+                    warnings: &warnings,
+                });
+            }
+            // Parked units whose blockers are done come back before a claim, as they
+            // do before a plain selection.
+            revisits.extend(work_units::claim_revisits(&mut state, &stages, &now));
+            let mut skip: Vec<String> = pool.iter().map(|(unit, _)| unit.clone()).collect();
+            loop {
+                let Selection::Unit { stage, unit } =
+                    work_units::peek_skipping(&state, &stages, &skip)
+                else {
+                    if let Some(row) = work_units::drain_one(&mut state, &stages, &now) {
+                        revisits.push(row);
+                        continue;
+                    }
+                    return busy(BusyCall {
+                        root,
+                        graph,
+                        loaded: &loaded,
+                        state: &mut state,
+                        stages: &stages,
+                        ledger_change: &ledger_change,
+                        intent_id: &intent_id,
+                        workers,
+                        reason: "no-ready-unit",
+                        now: &now,
+                        revisits: &revisits,
+                        warnings: &warnings,
+                    });
+                };
+                let stage_id = str_of(&stage, "id").unwrap_or("").to_owned();
+                let needs = unit_needs(&state, &stage_id, &unit);
+                if !needs.is_empty() && !options.force_resume {
+                    let results = crate::prerequisites::run_prerequisites(
+                        &root.to_string_lossy(),
+                        config,
+                        &needs,
+                    );
+                    if results
+                        .iter()
+                        .any(|item| item.get("ok") != Some(&Value::Bool(true)))
+                    {
+                        warnings.push(format!(
+                            "Work unit {unit} is held: its blocked report needs {}, and the check is failing; it is not claimed.",
+                            needs.join(", ")
+                        ));
+                        skip.push(unit);
+                        continue;
+                    }
+                }
+                if work_units::primary_step(&state, &stages).is_none() {
+                    // As with plain next, the oldest claim becomes the current unit
+                    // (keeping its selection time); the new unit is a claim.
+                    let (old_unit, old_stage) = work_units::claims(&state)[0].clone();
+                    work_units::take_claim(&mut state, &old_unit);
+                    state["currentStage"] = json!(old_stage);
+                    state["currentUnit"] = json!(old_unit);
+                }
+                let row = work_units::claim_row(&unit, &stage_id, &now);
+                claim_view = Some(ClaimView::stash(&mut state, None, row));
+                state["currentStage"] = Value::Null;
+                pinned = Some(Selection::Unit { stage, unit });
+                break;
+            }
+        } else if !options.claim
+            && (work_units::parallel_run(&state) || !work_units::claims(&state).is_empty())
+        {
+            // During a parallel run, plain `next` resumes the current unit, or promotes
+            // the oldest claim when the current unit has left the pool.
+            match work_units::primary_step(&state, &stages) {
+                Some((stage, unit)) => pinned = Some(unit_selection(&stages, &stage, &unit)?),
+                None => {
+                    if let Some((unit, stage)) = work_units::claims(&state).first().cloned() {
+                        work_units::take_claim(&mut state, &unit);
+                        state["currentStage"] = json!(stage);
+                        state["currentUnit"] = json!(unit);
+                        pinned = Some(unit_selection(&stages, &stage, &unit)?);
+                    }
+                }
+            }
+        }
+        let held_free = pinned.is_some();
+        let (mut selection, made) = match pinned {
+            Some(selection) => (selection, Vec::new()),
+            None => work_units::select(&mut state, &stages, &now),
+        };
+        revisits.extend(made);
         // An environment prerequisite named by a unit's blocked report (--needs) holds
         // that unit only: while its check fails, the next ready unit runs. When no other
         // unit can run, the held unit is selected and the hold below applies as before.
         // The owner's --force-resume overrides the hold instead.
-        if !options.force_resume {
+        if !options.force_resume && !held_free {
             let original = selection.clone();
             let mut skip: Vec<String> = Vec::new();
             let mut held_warnings: Vec<String> = Vec::new();
@@ -1406,12 +1553,18 @@ pub fn orchestrate_next(
             }
             warnings.extend(held_warnings);
         }
+        if let Some(key) = &expect_unit {
+            if !matches!(&selection, Selection::Unit { unit, .. } if unit == key) {
+                return Err(not_in_flight(key, &pool));
+            }
+        }
         if let Selection::Stalled { parked, waiting } = &selection {
             // Nothing can run. Revisits made by this call (automatic or drain) are
             // persisted and audited; otherwise nothing is written. currentStage and
             // currentUnit are left as they are.
             let payload = work_units::stalled_payload(&state, &intent_id, parked, waiting);
             if !revisits.is_empty() || ledger_change != LedgerChange::None {
+                work_units::sync_parallel_run(&mut state, &stages, &now);
                 work_units::sync_mirrors(&mut state, &stages, &now);
                 crate::audit::preflight_audit(root)?;
                 persist_active(root, graph, &loaded, &mut state)?;
@@ -1764,6 +1917,16 @@ pub fn orchestrate_next(
         directive["sweep"] = regression::directive_sweep(&state, &location);
         directive["queue"] = work_units::directive_queue(&state);
     }
+    let claimed = claim_view.is_some();
+    if let Some(view) = claim_view.take() {
+        view.restore(&mut state, &next_id);
+    }
+    work_units::sync_parallel_run(&mut state, &stages, &now);
+    if selected_unit.is_some() {
+        let mut parallel = work_units::parallel_view(&state, &stages, workers);
+        parallel["claim"] = json!(claimed);
+        directive["parallel"] = parallel;
+    }
 
     // Everything below writes. Resolve the depth approver first so an invalid
     // --approved-by cannot leave a half-recorded intent behind.
@@ -1843,11 +2006,153 @@ pub fn orchestrate_next(
     let mut selected_row = json!({"intent": state["intent"], "intentId": intent_id, "stage": next_id, "rework": rework.is_some()});
     if let Some(unit) = &selected_unit {
         selected_row["unit"] = json!(unit);
+        if claimed {
+            selected_row["claim"] = json!(true);
+        }
     } else if sweep {
         selected_row["sweep"] = json!(true);
     }
     audit(root, "stage.selected", selected_row)?;
     Ok(NextOutcome::Directive(directive))
+}
+
+/// The current unit, stashed while a claimed unit's step is selected or reported
+/// through a view whose current step is the claim.
+struct ClaimView {
+    index: Option<usize>,
+    row: Value,
+    stage: Value,
+    unit: Option<Value>,
+}
+
+impl ClaimView {
+    fn stash(state: &mut Value, index: Option<usize>, row: Value) -> Self {
+        ClaimView {
+            index,
+            row,
+            stage: state.get("currentStage").cloned().unwrap_or(Value::Null),
+            unit: state.get("currentUnit").cloned(),
+        }
+    }
+
+    /// Put the claim back into the pool on `stage` and restore the current unit.
+    fn restore(self, state: &mut Value, stage: &str) {
+        let ClaimView {
+            index,
+            row,
+            stage: current_stage,
+            unit,
+        } = self;
+        work_units::put_claim(state, index, row, stage);
+        ClaimView {
+            index,
+            row: Value::Null,
+            stage: current_stage,
+            unit,
+        }
+        .restore_current(state);
+    }
+
+    /// Restore the current unit only (the claim left the pool).
+    fn restore_current(self, state: &mut Value) {
+        state["currentStage"] = self.stage;
+        match self.unit {
+            Some(unit) => state["currentUnit"] = unit,
+            None => remove_key(state, "currentUnit"),
+        }
+    }
+}
+
+/// The selection of unit `unit`'s step `stage` (a graph stage of the active span).
+fn unit_selection(stages: &[Value], stage: &str, unit: &str) -> OrchestrateResult<Selection> {
+    let stage = stages
+        .iter()
+        .find(|item| str_of(item, "id") == Some(stage))
+        .cloned()
+        .ok_or_else(|| format!("Stage {stage} is not in the active span"))?;
+    Ok(Selection::Unit {
+        stage,
+        unit: unit.to_owned(),
+    })
+}
+
+fn not_in_flight(key: &str, pool: &[(String, String)]) -> String {
+    let names: Vec<&str> = pool.iter().map(|(unit, _)| unit.as_str()).collect();
+    format!(
+        "Work unit {key} is not in flight (in flight: {}); claim a ready unit with 'dtech-aidlc orchestrate next --claim'",
+        if names.is_empty() { "none".to_owned() } else { names.join(", ") }
+    )
+}
+
+/// The outcome of a `--claim` that cannot claim a unit. Nothing is selected; ledger
+/// changes this call made (a re-sync) are persisted and audited as a stall does.
+struct BusyCall<'a> {
+    root: &'a Path,
+    graph: &'a Value,
+    loaded: &'a LoadedWorkflow,
+    state: &'a mut Value,
+    stages: &'a [Value],
+    ledger_change: &'a LedgerChange,
+    intent_id: &'a str,
+    workers: u64,
+    reason: &'a str,
+    now: &'a str,
+    revisits: &'a [Value],
+    warnings: &'a [String],
+}
+
+fn busy(call: BusyCall) -> OrchestrateResult<NextOutcome> {
+    let BusyCall {
+        root,
+        graph,
+        loaded,
+        state,
+        stages,
+        ledger_change,
+        intent_id,
+        workers,
+        reason,
+        now,
+        revisits,
+        warnings,
+    } = call;
+    if *ledger_change != LedgerChange::None || !revisits.is_empty() {
+        work_units::sync_parallel_run(state, stages, now);
+        work_units::sync_mirrors(state, stages, now);
+        crate::audit::preflight_audit(root)?;
+        persist_active(root, graph, loaded, state)?;
+        for (event, details) in ledger_change.audit_rows(intent_id) {
+            audit(root, event, details)?;
+        }
+        audit_revisits(root, intent_id, revisits)?;
+    }
+    let parallel = work_units::parallel_view(state, stages, workers);
+    let names: Vec<String> = work_units::in_flight(state, stages)
+        .into_iter()
+        .map(|(unit, stage)| format!("{unit} ({stage})"))
+        .collect();
+    let hint = match reason {
+        "workers-busy" => format!(
+            "All {workers} workers are busy: {}. Report one of them, then claim again.",
+            names.join(", ")
+        ),
+        _ => format!(
+            "No other work unit can be claimed now (the rest wait on units in flight, are parked, or are held by a failing prerequisite; see warnings and 'dtech-aidlc orchestrate queue'); continue with the units in flight: {}.",
+            names.join(", ")
+        ),
+    };
+    let mut payload = json!({
+        "complete": false,
+        "claimed": false,
+        "reason": reason,
+        "intentId": intent_id,
+        "parallel": parallel,
+        "hint": hint,
+    });
+    if !warnings.is_empty() {
+        payload["warnings"] = json!(warnings);
+    }
+    Ok(NextOutcome::Busy(payload))
 }
 
 /// The prerequisites named (`--needs`) by the last report of unit `key` on `stage`,
@@ -2479,6 +2784,35 @@ pub fn orchestrate_report_with_engine(
     let loaded = load_workflow(root, graph, true)?;
     let mut state = loaded.state.clone().ok_or("No active workflow state")?;
     let no_current = "No current stage; run orchestrate next first";
+    let unit_flag = options
+        .unit
+        .as_deref()
+        .map(str::trim)
+        .filter(|unit| !unit.is_empty());
+    // Parallel work units: a claimed unit is reported through a view whose current step
+    // is the claim; the current unit is put back before the state is written.
+    let mut claim_view: Option<ClaimView> = None;
+    if let Some(key) = unit_flag.and_then(|flag| work_units::resolve_unit(&state, flag)) {
+        if let Some((index, row)) = work_units::take_claim(&mut state, &key) {
+            let stage = row.get("stage").cloned().unwrap_or(Value::Null);
+            claim_view = Some(ClaimView::stash(&mut state, Some(index), row));
+            state["currentStage"] = stage;
+            state["currentUnit"] = json!(key);
+        }
+    }
+    if unit_flag.is_none()
+        && !truthy(state.get("currentStage"))
+        && !work_units::claims(&state).is_empty()
+    {
+        let names: Vec<String> = work_units::claims(&state)
+            .into_iter()
+            .map(|(unit, _)| unit)
+            .collect();
+        return Err(format!(
+            "{no_current}; work units in flight: {}. Name the one you report with --unit",
+            names.join(", ")
+        ));
+    }
     state
         .get("currentStage")
         .filter(|stage| truthy(Some(stage)))
@@ -2549,6 +2883,18 @@ pub fn orchestrate_report_with_engine(
     } else {
         None
     };
+    if report_unit.is_some() && unit_flag.is_none() && !work_units::claims(&state).is_empty() {
+        let mut names: Vec<String> = current_unit(&state)
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+            .into_iter()
+            .collect();
+        names.extend(work_units::claims(&state).into_iter().map(|(unit, _)| unit));
+        return Err(format!(
+            "Several work units are in flight ({}); name the one you report with --unit",
+            names.join(", ")
+        ));
+    }
     if let Some(flag) = options
         .unit
         .as_deref()
@@ -2786,18 +3132,19 @@ pub fn orchestrate_report_with_engine(
     let mut regression_warning: Option<String> = None;
     if ledger_step && last_repeating && (result == "complete" || (sweep && result == "blocked")) {
         let location = regression::location(root, graph, &state, &stage)?;
-        let selected_at = if sweep {
-            work_units::ledger(&state)
-                .and_then(|ledger| ledger.pointer("/sweep/selectedAt"))
-                .and_then(Value::as_str)
-                .map(str::to_owned)
+        let (selected_at, after_satisfied) = if sweep {
+            (
+                work_units::ledger(&state)
+                    .and_then(|ledger| ledger.pointer("/sweep/selectedAt"))
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
+                false,
+            )
         } else {
             report_unit
                 .as_deref()
-                .and_then(|unit| work_units::unit(&state, unit))
-                .and_then(|unit| unit.get("selectedAt"))
-                .and_then(Value::as_str)
-                .map(str::to_owned)
+                .map(|unit| work_units::freshness_reference(&state, unit))
+                .unwrap_or((None, false))
         };
         let prefix = if result == "complete" {
             format!("Stage {stage_id} cannot be completed: regression.json")
@@ -2812,6 +3159,12 @@ pub fn orchestrate_report_with_engine(
                     "{prefix} is missing ({}); run the regression suites for this step and write it (schemaVersion 1; the directive's {} object names the path)",
                     location.rel_path,
                     if sweep { "sweep" } else { "verification" }
+                ));
+            }
+            regression::Read::Stale { written } if result == "complete" && after_satisfied => {
+                return Err(format!(
+                    "{prefix} predates the last work unit that became satisfied (written {written}, last unit satisfied {}); run the suites again on the integrated tree, which now holds that unit's code",
+                    selected_at.as_deref().unwrap_or("")
                 ));
             }
             regression::Read::Stale { written } if result == "complete" => {
@@ -3176,7 +3529,49 @@ pub fn orchestrate_report_with_engine(
         }
         state["gates"][js_string(&gate.id)] = Value::Object(gate_row);
     }
-    state["currentStage"] = Value::Null;
+    // A unit whose step was reported complete or skipped, and that has another step it
+    // can run, stays in flight on that step while other units are in flight.
+    let continues: Option<String> = report_unit.as_deref().and_then(|unit| {
+        if sweep || last_repeating || auto_parked.is_some() || result == "blocked" {
+            return None;
+        }
+        let entry = work_units::unit(&state, unit)?;
+        let next = work_units::next_step(entry, &work_units::span(&stages).repeating)?;
+        let next_id = str_of(next, "id")?.to_owned();
+        work_units::unit_step_problem(&state, &stages, unit, &next_id)
+            .is_none()
+            .then_some(next_id)
+    });
+    let continues = continues.filter(|_| {
+        claim_view.is_some()
+            || !work_units::claims(&state).is_empty()
+            || work_units::parallel_run(&state)
+    });
+    match claim_view.take() {
+        Some(view) => {
+            match (&report_unit, &continues) {
+                (Some(unit), Some(next_id)) => {
+                    work_units::stamp_selected(&mut state, unit, &now);
+                    view.restore(&mut state, next_id);
+                }
+                _ => view.restore_current(&mut state),
+            }
+            work_units::settle_pool(&mut state, &stages);
+        }
+        None => {
+            match (&report_unit, &continues) {
+                (Some(unit), Some(next_id)) => {
+                    work_units::stamp_selected(&mut state, unit, &now);
+                    state["currentStage"] = json!(next_id);
+                }
+                _ => state["currentStage"] = Value::Null,
+            }
+            if work_units::has_ledger(&state) {
+                work_units::drop_unrunnable_claims(&mut state, &stages);
+            }
+        }
+    }
+    work_units::sync_parallel_run(&mut state, &stages, &now);
     crate::audit::preflight_audit(root)?;
     persist_active(root, graph, &loaded, &mut state)?;
     for (event, details) in ledger_change.audit_rows(&intent_id) {
@@ -3300,6 +3695,12 @@ pub fn orchestrate_report_with_engine(
     }
     if let Some(details) = &attributed {
         output.insert("regression".into(), details.clone());
+    }
+    if report_unit.is_some() {
+        let mut parallel =
+            work_units::parallel_view(&state, &stages, work_units::unit_workers(config));
+        parallel["continues"] = json!(continues);
+        output.insert("parallel".into(), parallel);
     }
     if let Some(Value::Object(summary)) = &release_summary {
         output.extend(summary.clone());

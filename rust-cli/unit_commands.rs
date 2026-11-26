@@ -90,6 +90,7 @@ fn persist(
     now: &str,
     change: &LedgerChange,
 ) -> OrchestrateResult<()> {
+    work_units::sync_parallel_run(state, stages, now);
     work_units::sync_mirrors(state, stages, now);
     crate::audit::preflight_audit(root)?;
     persist_active(root, graph, loaded, state)?;
@@ -170,6 +171,8 @@ fn queue(root: &Path, graph: &Value, config: &Value) -> OrchestrateResult<Value>
         &stages,
         work_units::auto_park_threshold(config),
     );
+    view["parallel"] =
+        work_units::parallel_view(&view_state, &stages, work_units::unit_workers(config));
     view["drift"] = match work_units::drift(root, graph, &view_state).filter(|_| !pending) {
         Some((units, registry)) => json!({"workUnitsJson": units, "idsJson": registry}),
         None => Value::Null,

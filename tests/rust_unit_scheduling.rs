@@ -5392,3 +5392,594 @@ fn migrated_prior_results_are_shown_by_queue_and_doctor() {
     let queue = json_ok(root, &["orchestrate", "queue"]);
     assert_eq!(queue["priorResults"].as_array().unwrap().len(), 12);
 }
+
+// ---------------------------------------------------------------------------
+// Parallel work units: `unitWorkers`, `orchestrate next --claim` / `--unit`
+// ---------------------------------------------------------------------------
+
+/// Four independent units and one that depends on WU-01.
+fn parallel_design() -> Design {
+    Design::small(json!([
+        {"id": "WU-01"},
+        {"id": "WU-02"},
+        {"id": "WU-03"},
+        {"id": "WU-04"},
+        {"id": "WU-05", "dependsOn": ["WU-01"]},
+    ]))
+}
+
+fn claim(root: &Path) -> Value {
+    json_ok(root, &["orchestrate", "next", "--claim"])
+}
+
+fn directive_of(root: &Path, unit: &str) -> Value {
+    json_ok(root, &["orchestrate", "next", "--unit", unit])
+}
+
+fn in_flight_of(view: &Value) -> Vec<String> {
+    view["inFlight"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|row| {
+            format!(
+                "{}:{}",
+                row["unit"].as_str().unwrap(),
+                row["step"].as_str().unwrap()
+            )
+        })
+        .collect()
+}
+
+fn claims_of(state: &Value) -> Vec<String> {
+    state["workUnits"]["claims"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default()
+        .iter()
+        .map(|row| {
+            format!(
+                "{}:{}",
+                row["unit"].as_str().unwrap(),
+                row["stage"].as_str().unwrap()
+            )
+        })
+        .collect()
+}
+
+/// Report unit `unit`'s current step complete with `--unit`, writing its artifacts
+/// (and, on build-and-verify, a clean regression run) first.
+fn complete_unit(root: &Path, unit: &str) -> Value {
+    let directive = directive_of(root, unit);
+    write_artifacts(root, &directive, None);
+    json_ok(
+        root,
+        &[
+            "orchestrate",
+            "report",
+            "--unit",
+            unit,
+            "--result",
+            "complete",
+        ],
+    )
+}
+
+#[test]
+fn claim_hands_out_ready_units_up_to_three_workers_by_default() {
+    let project = TempDir::new("parallel-claim");
+    let root = project.path();
+    let id = seed_develop(root, "parallel claim", &parallel_design());
+
+    let first = json_ok(root, &["orchestrate", "next"]);
+    assert_eq!(step_of(&first), "WU-01:red-tests");
+    assert_eq!(first["parallel"]["workers"], 3);
+    assert_eq!(first["parallel"]["claim"], false);
+    assert_eq!(in_flight_of(&first["parallel"]), ["WU-01:red-tests"]);
+
+    let second = claim(root);
+    assert_eq!(step_of(&second), "WU-02:red-tests");
+    assert_eq!(second["parallel"]["claim"], true);
+    assert_eq!(second["unit"]["id"], "WU-02");
+    let third = claim(root);
+    assert_eq!(step_of(&third), "WU-03:red-tests");
+    assert_eq!(
+        in_flight_of(&third["parallel"]),
+        ["WU-01:red-tests", "WU-02:red-tests", "WU-03:red-tests"]
+    );
+    assert_eq!(third["parallel"]["free"], 0);
+
+    // The current unit stays WU-01; the others are claims.
+    let state = state_of(root, &id);
+    assert_eq!(state["currentUnit"], "WU-01");
+    assert_eq!(state["currentStage"], "red-tests");
+    assert_eq!(claims_of(&state), ["WU-02:red-tests", "WU-03:red-tests"]);
+    let selected_03 = state["workUnits"]["units"]["WU-03"]["selectedAt"].clone();
+    assert!(selected_03.is_string());
+
+    // A fourth claim waits for a free worker; nothing is written.
+    let before = snapshot(root);
+    let busy = claim(root);
+    assert_eq!(busy["claimed"], false);
+    assert_eq!(busy["reason"], "workers-busy");
+    assert!(busy["hint"]
+        .as_str()
+        .unwrap()
+        .contains("All 3 workers are busy"));
+    assert_eq!(before, snapshot(root));
+
+    // Plain next resumes the current unit; --unit prints a claim again and keeps its
+    // selection time.
+    assert_eq!(
+        step_of(&json_ok(root, &["orchestrate", "next"])),
+        "WU-01:red-tests"
+    );
+    let again = directive_of(root, "WU-03");
+    assert_eq!(step_of(&again), "WU-03:red-tests");
+    assert_eq!(again["parallel"]["claim"], true);
+    let state = state_of(root, &id);
+    assert_eq!(
+        state["workUnits"]["units"]["WU-03"]["selectedAt"],
+        selected_03
+    );
+    assert_eq!(state["currentUnit"], "WU-01");
+    assert_eq!(claims_of(&state), ["WU-02:red-tests", "WU-03:red-tests"]);
+
+    assert!(fails(root, &["orchestrate", "next", "--unit", "WU-04"]).contains("is not in flight"));
+    assert!(
+        fails(root, &["orchestrate", "next", "--claim", "--unit", "WU-02"])
+            .contains("cannot be combined")
+    );
+    // With several units in flight a report must name its unit.
+    assert!(
+        fails(root, &["orchestrate", "report", "--result", "complete"])
+            .contains("Several work units are in flight (WU-01, WU-02, WU-03)")
+    );
+
+    let claimed: Vec<Value> = events(root, "stage.selected")
+        .into_iter()
+        .filter(|row| row["claim"] == json!(true))
+        .map(|row| row["unit"].clone())
+        .collect();
+    assert_eq!(claimed, [json!("WU-02"), json!("WU-03"), json!("WU-03")]);
+
+    let queue = json_ok(root, &["orchestrate", "queue"]);
+    assert_eq!(
+        in_flight_of(&queue["parallel"]),
+        ["WU-01:red-tests", "WU-02:red-tests", "WU-03:red-tests"]
+    );
+}
+
+#[test]
+fn claimed_units_report_out_of_order_and_keep_their_worker_between_steps() {
+    let project = TempDir::new("parallel-report");
+    let root = project.path();
+    let id = seed_develop(root, "parallel report", &parallel_design());
+    json_ok(root, &["orchestrate", "next"]);
+    claim(root);
+    claim(root);
+
+    // WU-03 (a claim) finishes red first and keeps its worker for build-and-verify.
+    let red = complete_unit(root, "WU-03");
+    assert_eq!(red["unit"], "WU-03");
+    assert_eq!(red["parallel"]["continues"], "build-and-verify");
+    let state = state_of(root, &id);
+    assert_eq!(state["currentUnit"], "WU-01");
+    assert_eq!(state["currentStage"], "red-tests");
+    assert_eq!(
+        claims_of(&state),
+        ["WU-02:red-tests", "WU-03:build-and-verify"]
+    );
+
+    let build = directive_of(root, "WU-03");
+    assert_eq!(step_of(&build), "WU-03:build-and-verify");
+    assert!(build["verification"]["path"].is_string());
+    let done = complete_unit(root, "WU-03");
+    assert_eq!(done["parallel"]["continues"], Value::Null);
+    let state = state_of(root, &id);
+    assert_eq!(claims_of(&state), ["WU-02:red-tests"]);
+    assert_eq!(state["workUnits"]["units"]["WU-03"]["status"], "verified");
+    assert!(state["workUnits"]["lastSatisfiedAt"].is_string());
+
+    // The freed worker takes the next ready unit. WU-05 waits on WU-01.
+    assert_eq!(step_of(&claim(root)), "WU-04:red-tests");
+    assert_eq!(claim(root)["reason"], "workers-busy");
+
+    // The current unit also keeps its worker while claims are in flight.
+    let red_01 = complete_unit(root, "WU-01");
+    assert_eq!(red_01["parallel"]["continues"], "build-and-verify");
+    let state = state_of(root, &id);
+    assert_eq!(state["currentUnit"], "WU-01");
+    assert_eq!(state["currentStage"], "build-and-verify");
+    complete_unit(root, "WU-01");
+
+    // WU-01 is done: plain next promotes the oldest claim to the current unit, keeping
+    // its selection time, and WU-05 becomes claimable.
+    let selected_02 = state_of(root, &id)["workUnits"]["units"]["WU-02"]["selectedAt"].clone();
+    let promoted = json_ok(root, &["orchestrate", "next"]);
+    assert_eq!(step_of(&promoted), "WU-02:red-tests");
+    assert_eq!(promoted["parallel"]["claim"], false);
+    let state = state_of(root, &id);
+    assert_eq!(state["currentUnit"], "WU-02");
+    assert_eq!(
+        state["workUnits"]["units"]["WU-02"]["selectedAt"],
+        selected_02
+    );
+    assert_eq!(claims_of(&state), ["WU-04:red-tests"]);
+    assert_eq!(step_of(&claim(root)), "WU-05:red-tests");
+
+    // Every unit finishes; the release sweep follows with nothing in flight.
+    for unit in ["WU-05", "WU-04", "WU-02"] {
+        complete_unit(root, unit);
+        complete_unit(root, unit);
+    }
+    let state = state_of(root, &id);
+    assert!(state["workUnits"].get("claims").is_none());
+    let sweep = json_ok(root, &["orchestrate", "next"]);
+    assert_eq!(sweep["stage"]["id"], "build-and-verify");
+    assert!(sweep["currentUnit"].is_null());
+    assert!(sweep["sweep"]["path"].is_string());
+}
+
+#[test]
+fn a_unit_run_must_postdate_the_last_unit_that_became_satisfied() {
+    let project = TempDir::new("parallel-fresh");
+    let root = project.path();
+    seed_develop(
+        root,
+        "parallel freshness",
+        &Design::small(json!([{"id": "WU-01"}, {"id": "WU-02"}])),
+    );
+    json_ok(root, &["orchestrate", "next"]);
+    claim(root);
+    complete_unit(root, "WU-01");
+    complete_unit(root, "WU-02");
+
+    // WU-02's suites ran before WU-01 was integrated and became satisfied.
+    let build_02 = directive_of(root, "WU-02");
+    write_artifacts(root, &build_02, None);
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    complete_unit(root, "WU-01");
+    let refused = fails(
+        root,
+        &[
+            "orchestrate",
+            "report",
+            "--unit",
+            "WU-02",
+            "--result",
+            "complete",
+        ],
+    );
+    assert!(
+        refused.contains("predates the last work unit that became satisfied"),
+        "{refused}"
+    );
+    std::thread::sleep(std::time::Duration::from_millis(20));
+    write_regression(root, &build_02, &[]);
+    let done = json_ok(
+        root,
+        &[
+            "orchestrate",
+            "report",
+            "--unit",
+            "WU-02",
+            "--result",
+            "complete",
+        ],
+    );
+    assert_eq!(done["unit"], "WU-02");
+}
+
+#[test]
+fn blocked_reports_and_parks_free_a_worker() {
+    let project = TempDir::new("parallel-free");
+    let root = project.path();
+    let id = seed_develop(root, "parallel free", &parallel_design());
+    json_ok(root, &["orchestrate", "next"]);
+    claim(root);
+    claim(root);
+
+    // A blocked claim leaves the pool; the current unit is untouched.
+    json_ok(
+        root,
+        &[
+            "orchestrate",
+            "report",
+            "--unit",
+            "WU-02",
+            "--result",
+            "blocked",
+            "--detail",
+            "flaky fixture",
+        ],
+    );
+    let state = state_of(root, &id);
+    assert_eq!(claims_of(&state), ["WU-03:red-tests"]);
+    assert_eq!(state["currentUnit"], "WU-01");
+    assert_eq!(state["currentStage"], "red-tests");
+
+    // Parking a claim counts its attempt and frees its worker too.
+    park(
+        root,
+        &[
+            "--unit",
+            "WU-03",
+            "--kind",
+            "owner-decision",
+            "--detail",
+            "needs a decision",
+        ],
+    );
+    let state = state_of(root, &id);
+    assert!(state["workUnits"].get("claims").is_none());
+    assert_eq!(state["workUnits"]["units"]["WU-03"]["status"], "parked");
+    assert_eq!(
+        state["workUnits"]["units"]["WU-03"]["attempts"]["red-tests"],
+        1
+    );
+    assert_eq!(state["currentStage"], "red-tests");
+
+    // The blocked WU-02 is ready again and is claimed first (array order).
+    assert_eq!(step_of(&claim(root)), "WU-02:red-tests");
+    // A blocked current unit leaves the pool; plain next promotes the claim.
+    json_ok(
+        root,
+        &[
+            "orchestrate",
+            "report",
+            "--unit",
+            "WU-01",
+            "--result",
+            "blocked",
+            "--detail",
+            "missing seam",
+        ],
+    );
+    let promoted = json_ok(root, &["orchestrate", "next"]);
+    assert_eq!(step_of(&promoted), "WU-02:red-tests");
+    assert!(state_of(root, &id)["workUnits"].get("claims").is_none());
+}
+
+#[test]
+fn unit_workers_is_configurable_and_validated() {
+    let project = TempDir::new("parallel-workers");
+    let root = project.path();
+    seed_develop(root, "parallel workers", &parallel_design());
+    let message = "Invalid unitWorkers: expected a positive integer";
+    for bad in [json!(0), json!(1.5), json!("3")] {
+        set_config(root, "unitWorkers", bad.clone());
+        assert!(
+            fails(root, &["orchestrate", "next"]).contains(message),
+            "{bad}"
+        );
+        assert!(
+            fails(root, &["config", "agents"]).contains(message),
+            "{bad}"
+        );
+    }
+
+    // One worker: --claim never adds a unit, so units run one at a time.
+    set_config(root, "unitWorkers", json!(1));
+    let first = json_ok(root, &["orchestrate", "next"]);
+    assert_eq!(first["parallel"]["workers"], 1);
+    assert_eq!(claim(root)["reason"], "workers-busy");
+
+    // Five workers: every independent unit is claimed; WU-05 waits on WU-01.
+    set_config(root, "unitWorkers", json!(5));
+    for unit in ["WU-02", "WU-03", "WU-04"] {
+        assert_eq!(step_of(&claim(root)), format!("{unit}:red-tests"));
+    }
+    let none = claim(root);
+    assert_eq!(none["reason"], "no-ready-unit");
+    assert_eq!(none["parallel"]["free"], 1);
+}
+
+#[test]
+fn claim_without_units_in_flight_is_plain_next_and_one_worker_state_is_unchanged() {
+    let project = TempDir::new("parallel-plain");
+    let root = project.path();
+    let id = seed_develop(root, "parallel plain", &parallel_design());
+    // Nothing in flight: --claim selects like plain next.
+    assert_eq!(step_of(&claim(root)), "WU-01:red-tests");
+    let state = state_of(root, &id);
+    assert_eq!(state["currentUnit"], "WU-01");
+    // An intent that never claims keeps the one-worker state shape.
+    assert!(state["workUnits"].get("claims").is_none());
+    complete_next(root);
+    assert!(state_of(root, &id)["workUnits"].get("claims").is_none());
+    // Before the work units, --unit has nothing to name.
+    let other = TempDir::new("parallel-none");
+    walk_to_design(other.path(), "no units yet");
+    assert!(
+        fails(other.path(), &["orchestrate", "next", "--unit", "WU-01"])
+            .contains("only to work units in flight")
+    );
+}
+
+#[test]
+fn plain_next_keeps_a_promoted_unit_after_the_pool_empties() {
+    let project = TempDir::new("parallel-keep");
+    let root = project.path();
+    let id = seed_develop(root, "parallel keep", &parallel_design());
+    json_ok(root, &["orchestrate", "next"]);
+    claim(root);
+    json_ok(
+        root,
+        &[
+            "orchestrate",
+            "report",
+            "--unit",
+            "WU-01",
+            "--result",
+            "blocked",
+            "--detail",
+            "x",
+        ],
+    );
+    // WU-02 is promoted; WU-01 (blocked, first in order) must not take its place.
+    assert_eq!(
+        step_of(&json_ok(root, &["orchestrate", "next"])),
+        "WU-02:red-tests"
+    );
+    assert_eq!(
+        step_of(&json_ok(root, &["orchestrate", "next"])),
+        "WU-02:red-tests"
+    );
+    let state = state_of(root, &id);
+    assert_eq!(state["currentUnit"], "WU-02");
+    assert!(state["workUnits"]["parallelSince"].is_string());
+    // The promoted unit keeps its worker through its steps and finishes the run.
+    assert_eq!(
+        complete_unit(root, "WU-02")["parallel"]["continues"],
+        "build-and-verify"
+    );
+    assert_eq!(
+        step_of(&json_ok(root, &["orchestrate", "next"])),
+        "WU-02:build-and-verify"
+    );
+    complete_unit(root, "WU-02");
+    // Nothing is in flight any more: the parallel run ends and selection is plain again.
+    let state = state_of(root, &id);
+    assert!(state["workUnits"].get("parallelSince").is_none());
+    assert_eq!(
+        step_of(&json_ok(root, &["orchestrate", "next"])),
+        "WU-01:red-tests"
+    );
+}
+
+#[test]
+fn the_last_unit_of_a_parallel_run_keeps_its_worker_and_its_directive() {
+    let project = TempDir::new("parallel-last");
+    let root = project.path();
+    seed_develop(
+        root,
+        "parallel last",
+        &Design::small(json!([
+            {"id": "WU-02", "dependsOn": ["WU-03"]},
+            {"id": "WU-01"},
+            {"id": "WU-03"},
+        ])),
+    );
+    assert_eq!(
+        step_of(&json_ok(root, &["orchestrate", "next"])),
+        "WU-01:red-tests"
+    );
+    assert_eq!(step_of(&claim(root)), "WU-03:red-tests");
+    complete_unit(root, "WU-03");
+    complete_unit(root, "WU-03");
+    // WU-02 is ready now, but WU-01 (the last unit in flight) keeps its worker.
+    let red = complete_unit(root, "WU-01");
+    assert_eq!(red["parallel"]["continues"], "build-and-verify");
+    assert_eq!(
+        step_of(&directive_of(root, "WU-01")),
+        "WU-01:build-and-verify"
+    );
+    assert_eq!(
+        step_of(&json_ok(root, &["orchestrate", "next"])),
+        "WU-01:build-and-verify"
+    );
+}
+
+#[test]
+fn a_claim_revisits_parks_whose_blockers_are_done() {
+    let project = TempDir::new("parallel-revisit");
+    let root = project.path();
+    let id = seed_develop(root, "parallel revisit", &parallel_design());
+    json_ok(root, &["orchestrate", "next"]);
+    claim(root);
+    park(
+        root,
+        &[
+            "--unit",
+            "WU-03",
+            "--kind",
+            "dep-unit",
+            "--blocked-by",
+            "WU-01",
+            "--detail",
+            "waits",
+        ],
+    );
+    complete_unit(root, "WU-01");
+    complete_unit(root, "WU-01");
+    // WU-01 is done: the claim brings WU-03 back before it looks for a unit.
+    assert_eq!(step_of(&claim(root)), "WU-03:red-tests");
+    let revisited = events(root, "unit.revisited");
+    assert_eq!(revisited.last().unwrap()["unit"], "WU-03");
+    assert_eq!(
+        state_of(root, &id)["workUnits"]["units"]["WU-03"]["status"],
+        "pending"
+    );
+}
+
+#[test]
+fn unit_is_required_when_claims_are_in_flight_and_skipped_red_keeps_the_worker() {
+    let project = TempDir::new("parallel-names");
+    let root = project.path();
+    let id = seed_develop(root, "parallel names", &parallel_design());
+    json_ok(root, &["orchestrate", "next"]);
+    claim(root);
+    assert!(
+        park_fails(root, &["--kind", "owner-decision", "--detail", "d"]).contains(
+            "Several work units are in flight (WU-01, WU-02); name the one you park with --unit"
+        )
+    );
+
+    // A skipped red-tests step keeps the unit in flight on build-and-verify.
+    let skipped = json_ok(
+        root,
+        &[
+            "orchestrate",
+            "report",
+            "--unit",
+            "WU-02",
+            "--result",
+            "skipped",
+            "--detail",
+            "low risk",
+        ],
+    );
+    assert_eq!(skipped["parallel"]["continues"], "build-and-verify");
+    assert_eq!(claims_of(&state_of(root, &id)), ["WU-02:build-and-verify"]);
+
+    // With only a claim in flight, a report without --unit names the claimed units.
+    json_ok(
+        root,
+        &[
+            "orchestrate",
+            "report",
+            "--unit",
+            "WU-01",
+            "--result",
+            "blocked",
+            "--detail",
+            "x",
+        ],
+    );
+    let refused = fails(root, &["orchestrate", "report", "--result", "complete"]);
+    assert!(refused.contains("work units in flight: WU-02"), "{refused}");
+
+    // --claim without a current unit promotes the oldest claim; the new unit is a claim.
+    let claimed = claim(root);
+    assert_eq!(step_of(&claimed), "WU-01:red-tests");
+    assert_eq!(claimed["parallel"]["claim"], true);
+    let state = state_of(root, &id);
+    assert_eq!(state["currentUnit"], "WU-02");
+    assert_eq!(state["currentStage"], "build-and-verify");
+    assert_eq!(claims_of(&state), ["WU-01:red-tests"]);
+}
+
+#[test]
+fn an_intent_that_never_claims_gets_no_parallel_keys() {
+    let project = TempDir::new("parallel-shape");
+    let root = project.path();
+    let id = seed_develop(root, "parallel shape", &parallel_design());
+    complete_next(root);
+    complete_next(root);
+    let state = state_of(root, &id);
+    assert_eq!(state["workUnits"]["units"]["WU-01"]["status"], "verified");
+    for key in ["claims", "parallelSince", "lastSatisfiedAt"] {
+        assert!(state["workUnits"].get(key).is_none(), "{key}");
+    }
+}

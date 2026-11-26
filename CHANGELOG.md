@@ -2,6 +2,18 @@
 
 Each release lists the behaviour changes a user or a script can notice.
 
+## 1.2.0
+
+Parallel work units: up to `unitWorkers` work units (default 3) can be in flight at once. Intents that never claim behave exactly as in 1.1.0.
+
+- New configuration key `unitWorkers` (positive integer, default 3) in `.aidlc/config.json`, validated by `orchestrate next`, `config` and `doctor` like `autoParkThreshold`.
+- `orchestrate next --claim` claims one more ready work unit while others are in flight and prints its ordinary directive. A claim only takes a unit whose dependencies are done and that is not in flight. Claims are kept in the new optional `workUnits.claims` list (`[{unit, stage, claimedAt}]`); the current unit stays in `currentStage`/`currentUnit`. With nothing in flight, `--claim` selects like plain `next`. When no unit can be claimed it prints `{"claimed": false, "reason": "workers-busy" | "no-ready-unit", "parallel": …, "hint": …, "warnings"?: …}` and exits 0. It writes only revisits it made, as a stall does.
+- `orchestrate next --unit <id>` prints the directive of a unit in flight again, keeping its selection time. Plain `orchestrate next` never claims. While claims exist it resumes the current unit, or promotes the oldest claim when the current unit has left the pool.
+- `orchestrate report --unit` and `orchestrate park --unit` accept any unit in flight. `--unit` is required on a report or park while any claimed unit is in flight. During a parallel run (the new `workUnits.parallelSince`, set at the first claim and removed once nothing is in flight), a unit reported complete or skipped on `red-tests` stays in flight on `build-and-verify`, and plain `next` resumes the current unit instead of re-selecting. A unit leaves the pool when its last step is reported, when it is reported blocked, when it is parked, or when it can no longer run. Parking a claimed unit counts its attempt. `--claim` makes the automatic and drain revisits that plain `next` makes, and without a current unit it first promotes the oldest claim.
+- Freshness: a unit's `regression.json` must be written after both the step's selection and the ledger's new `lastSatisfiedAt`, the last time any unit became satisfied during a parallel run. `lastSatisfiedAt` is only stamped during a parallel run, so an intent that never claims gets no new key and no new check. With several, every unit is verified on a tree that holds every finished unit's code.
+- Unit directives and `orchestrate queue` carry a `parallel` view (`workers`, `inFlight`, `free`; directives add `claim`), and unit report outputs add `parallel.continues` (the step the unit stays in flight on, or null). `stage.selected` audit rows of a claimed unit carry `claim: true`.
+- Claude Code skill: a new Parallel work units section. It claims up to the free workers, runs one `Workflow` agent per unit in its own worktree, and integrates and verifies the units one at a time in the main tree, committing each finished unit on the intent branch only with the owner's consent. It falls back to one unit at a time when `Workflow`, worktrees or commits are not available. The DeepSeek skill runs one unit at a time.
+
 ## 1.1.0
 
 Unit-level scheduling of Develop: work units run in dependency order, blocked units are parked while the others continue, failing tests are attributed to their owning unit, design rework is scoped to the named units, and the release-candidate gate moves to a final regression sweep. The crate version is unchanged.

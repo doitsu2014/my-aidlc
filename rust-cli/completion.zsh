@@ -95,7 +95,7 @@ _dtech-aidlc() {
             action) _values 'action' next report park queue revisit ;;
             rest)
               case ${words[1]} in
-                next) _arguments '--intent[Intent text]:intent:' '--scope[Workflow scope]:scope:(solo team enterprise)' '--depth[Depth]:depth:(full standard fast)' '--mode[Orchestration mode]:mode:(human ai)' '--approved-by[Approver]:name:' '--detail[Reason]:detail:' '--force-resume[Override a failing prerequisite check]' ;;
+                next) _arguments '--intent[Intent text]:intent:' '--scope[Workflow scope]:scope:(solo team enterprise)' '--depth[Depth]:depth:(full standard fast)' '--mode[Orchestration mode]:mode:(human ai)' '--approved-by[Approver]:name:' '--detail[Reason]:detail:' '--force-resume[Override a failing prerequisite check]' '--claim[Claim one more ready work unit]' '--unit[Work unit in flight]:unit:' ;;
                 report)
                   _arguments \
                     '--stage[Stage identifier]:stage:' \

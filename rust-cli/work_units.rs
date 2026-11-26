@@ -28,6 +28,9 @@ use std::path::Path;
 pub const LEDGER_KEY: &str = "workUnits";
 pub const LEDGER_SCHEMA_VERSION: u64 = 1;
 pub const DEFAULT_AUTO_PARK_THRESHOLD: u64 = 3;
+/// How many work units may be in flight at once (`unitWorkers`), the current unit
+/// included. `orchestrate next --claim` hands out units up to this number.
+pub const DEFAULT_UNIT_WORKERS: u64 = 3;
 pub const REPEAT_WORK_UNIT: &str = "work-unit";
 const LOAD_ERROR: &str = "Develop cannot select a work unit: ";
 const FINGERPRINT_TAG: &str = "aidlc-unit-fp/1\n";
@@ -380,6 +383,262 @@ pub fn auto_park_threshold(config: &Value) -> u64 {
         .filter(|n| n.is_finite() && n.fract() == 0.0 && *n > 0.0)
         .map(|n| n as u64)
         .unwrap_or(DEFAULT_AUTO_PARK_THRESHOLD)
+}
+
+/// `unitWorkers` from the configuration when it is a positive integer.
+pub fn unit_workers(config: &Value) -> u64 {
+    config
+        .get("unitWorkers")
+        .and_then(Value::as_f64)
+        .filter(|n| n.is_finite() && n.fract() == 0.0 && *n > 0.0)
+        .map(|n| n as u64)
+        .unwrap_or(DEFAULT_UNIT_WORKERS)
+}
+
+// ---------------------------------------------------------------------------
+// Parallel work units: the claim pool
+// ---------------------------------------------------------------------------
+//
+// The current unit (`currentStage`/`currentUnit`) stays the primary unit in flight,
+// exactly as with one worker. `orchestrate next --claim` adds further ready units to
+// `workUnits.claims` (`[{unit, stage, claimedAt}]`, claim order), up to `unitWorkers`
+// units in flight in all. A claimed unit is reported, parked or printed again with
+// `--unit`. A unit reported complete or skipped on a step that is not its last stays in
+// flight on its next step; it leaves the pool when its last repeating step is
+// reported, when it is reported blocked, when it is parked, or when it can no longer
+// run. The key is removed when the pool is empty.
+//
+// `workUnits.parallelSince` marks a parallel run: it is set when a claim is first
+// made and removed once nothing is in flight. While it is set, plain `next` resumes
+// the current unit (or promotes the oldest claim) instead of re-selecting, a unit
+// keeps its worker between its steps, and `lastSatisfiedAt` is stamped. An intent
+// that never claims never gets either key, so its state keeps its exact shape.
+
+fn claim_rows(state: &Value) -> Vec<Value> {
+    ledger(state)
+        .and_then(|ledger| ledger.get("claims"))
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default()
+}
+
+fn set_claim_rows(state: &mut Value, rows: Vec<Value>) {
+    let Some(ledger) = state.get_mut(LEDGER_KEY).and_then(Value::as_object_mut) else {
+        return;
+    };
+    if rows.is_empty() {
+        ledger.remove("claims");
+    } else {
+        ledger.insert("claims".into(), Value::Array(rows));
+    }
+}
+
+/// Whether a parallel run is in progress (`workUnits.parallelSince`).
+pub fn parallel_run(state: &Value) -> bool {
+    ledger(state)
+        .and_then(|ledger| ledger.get("parallelSince"))
+        .is_some_and(Value::is_string)
+}
+
+/// Start the parallel run marker when claims exist, and end it once nothing is in
+/// flight. Called before every write of a command that can change the pool.
+pub fn sync_parallel_run(state: &mut Value, stages: &[Value], now: &str) {
+    if !has_ledger(state) {
+        return;
+    }
+    let start = !claims(state).is_empty() && !parallel_run(state);
+    let end = parallel_run(state) && in_flight(state, stages).is_empty();
+    let Some(ledger) = state.get_mut(LEDGER_KEY).and_then(Value::as_object_mut) else {
+        return;
+    };
+    if start {
+        ledger.insert("parallelSince".into(), json!(now));
+    } else if end {
+        ledger.remove("parallelSince");
+    }
+}
+
+/// Whether the selector's span is reached: the ledger exists, the repeating span is
+/// not empty, no design rework is pending and every stage before the span finished.
+pub fn span_reached(state: &Value, stages: &[Value]) -> bool {
+    let span = span(stages);
+    has_ledger(state)
+        && !span.repeating.is_empty()
+        && !rework_pending(state)
+        && span
+            .before
+            .iter()
+            .all(|stage| stage_finished(row_status(state, stage_id(stage))))
+}
+
+/// The automatic (blocker-done) revisits a claim makes before it looks for a unit, as
+/// `select` does; returns the `unit.revisited` details.
+pub fn claim_revisits(state: &mut Value, stages: &[Value], now: &str) -> Vec<Value> {
+    if span_reached(state, stages) {
+        auto_revisits(state, now)
+    } else {
+        Vec::new()
+    }
+}
+
+/// One drain revisit (as in `select`) when nothing else can be claimed.
+pub fn drain_one(state: &mut Value, stages: &[Value], now: &str) -> Option<Value> {
+    if !span_reached(state, stages) {
+        return None;
+    }
+    let key = drain_candidate(state)?;
+    close_park(state, &key, "drain", None, None, now)
+}
+
+/// The claimed units (the current unit excluded) as `(unit, stage)`, in claim order.
+pub fn claims(state: &Value) -> Vec<(String, String)> {
+    claim_rows(state)
+        .iter()
+        .filter_map(|claim| {
+            Some((
+                str_of(claim, "unit")?.to_owned(),
+                str_of(claim, "stage")?.to_owned(),
+            ))
+        })
+        .collect()
+}
+
+/// Whether unit `key` is claimed (not counting the current unit).
+pub fn is_claimed(state: &Value, key: &str) -> bool {
+    claims(state)
+        .iter()
+        .any(|(unit, _)| normalize_id(unit) == normalize_id(key))
+}
+
+/// Remove the claim of `key`; returns its position and row.
+pub fn take_claim(state: &mut Value, key: &str) -> Option<(usize, Value)> {
+    let mut rows = claim_rows(state);
+    let index = rows.iter().position(|row| {
+        str_of(row, "unit").is_some_and(|unit| normalize_id(unit) == normalize_id(key))
+    })?;
+    let row = rows.remove(index);
+    set_claim_rows(state, rows);
+    Some((index, row))
+}
+
+/// Put a claim row back at `index` (or append it), with its `stage` set to `stage`.
+pub fn put_claim(state: &mut Value, index: Option<usize>, mut row: Value, stage: &str) {
+    row["stage"] = json!(stage);
+    let mut rows = claim_rows(state);
+    let at = index.unwrap_or(rows.len()).min(rows.len());
+    rows.insert(at, row);
+    set_claim_rows(state, rows);
+}
+
+/// Stamp unit `key`'s `selectedAt` (the freshness reference of its step's
+/// `regression.json`) when it moves on to its next step without a new selection.
+pub fn stamp_selected(state: &mut Value, key: &str, now: &str) {
+    if let Some(entry) = unit_mut(state, key) {
+        entry["selectedAt"] = json!(now);
+    }
+}
+
+/// A new claim row for `key` on `stage`.
+pub fn claim_row(key: &str, stage: &str, now: &str) -> Value {
+    json!({"unit": key, "stage": stage, "claimedAt": now})
+}
+
+/// The current unit step `(stage, unit)` when `currentStage`/`currentUnit` name a
+/// work-unit step that can run now.
+pub fn primary_step(state: &Value, stages: &[Value]) -> Option<(String, String)> {
+    let stage = str_of(state, "currentStage").filter(|stage| !stage.is_empty())?;
+    if !span(stages)
+        .repeating
+        .iter()
+        .any(|item| stage_id(item) == stage)
+    {
+        return None;
+    }
+    let named = str_of(state, "currentUnit").filter(|unit| !unit.is_empty())?;
+    let key = resolve_unit(state, named)?;
+    unit_step_problem(state, stages, &key, stage)
+        .is_none()
+        .then(|| (stage.to_owned(), key))
+}
+
+/// Every unit in flight as `(unit, stage)`: the current unit step first, then the
+/// claims in claim order.
+pub fn in_flight(state: &Value, stages: &[Value]) -> Vec<(String, String)> {
+    let mut rows: Vec<(String, String)> = primary_step(state, stages)
+        .map(|(stage, unit)| (unit, stage))
+        .into_iter()
+        .collect();
+    rows.extend(claims(state));
+    rows
+}
+
+/// Drop claims that cannot run their recorded step any more (parked, done, removed,
+/// waiting, a pending design rework, a moved step) or that duplicate the current unit.
+pub fn drop_unrunnable_claims(state: &mut Value, stages: &[Value]) {
+    let rows = claim_rows(state);
+    if rows.is_empty() {
+        return;
+    }
+    let current = str_of(state, "currentUnit").map(normalize_id);
+    let mut seen: Vec<String> = Vec::new();
+    let mut kept: Vec<Value> = Vec::new();
+    for row in rows {
+        let (Some(unit), Some(stage)) = (str_of(&row, "unit"), str_of(&row, "stage")) else {
+            continue;
+        };
+        let Some(key) = resolve_unit(state, unit) else {
+            continue;
+        };
+        if current.as_deref() == Some(normalize_id(&key).as_str())
+            || seen.contains(&key)
+            || unit_step_problem(state, stages, &key, stage).is_some()
+        {
+            continue;
+        }
+        seen.push(key);
+        kept.push(row);
+    }
+    set_claim_rows(state, kept);
+}
+
+/// Clear a current unit step that cannot run any more and drop claims that cannot,
+/// after a command changed the ledger.
+pub fn settle_pool(state: &mut Value, stages: &[Value]) {
+    clear_unrunnable_current(state, stages);
+    drop_unrunnable_claims(state, stages);
+}
+
+/// The in-flight view of unit directives and `orchestrate queue`.
+pub fn parallel_view(state: &Value, stages: &[Value], workers: u64) -> Value {
+    let rows: Vec<Value> = in_flight(state, stages)
+        .into_iter()
+        .map(|(unit, stage)| json!({"unit": unit, "step": stage}))
+        .collect();
+    let free = workers.saturating_sub(rows.len() as u64);
+    json!({
+        "workers": workers,
+        "inFlight": rows,
+        "free": free,
+    })
+}
+
+/// The time a unit's `regression.json` must postdate, and whether that is the last
+/// satisfaction rather than the step's selection: the later of the unit's
+/// `selectedAt` and the ledger's `lastSatisfiedAt` (the last time any unit became
+/// satisfied). With several units in flight this makes each unit's final run cover a
+/// tree that already holds every satisfied unit's code; with one unit in flight the
+/// selection is always the later time, so nothing changes.
+pub fn freshness_reference(state: &Value, key: &str) -> (Option<String>, bool) {
+    let selected = unit(state, key)
+        .and_then(|unit| str_of(unit, "selectedAt"))
+        .map(str::to_owned);
+    let satisfied_at = ledger(state)
+        .and_then(|ledger| str_of(ledger, "lastSatisfiedAt"))
+        .map(str::to_owned);
+    match (selected, satisfied_at) {
+        (Some(selected), Some(at)) if at > selected => (Some(at), true),
+        (selected, _) => (selected, false),
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1049,7 +1308,7 @@ pub fn ensure_ledger(
 ) -> Result<LedgerChange, String> {
     if has_ledger(state) {
         let change = resync(root, graph, state, stages, now)?;
-        clear_unrunnable_current(state, stages);
+        settle_pool(state, stages);
         return Ok(change);
     }
     let span = span(stages);
@@ -1330,12 +1589,16 @@ pub fn record_unit_report(
         unit["updatedAt"] = json!(now);
     }
     if became_satisfied {
+        let parallel = parallel_run(state);
         if let Some(ledger) = state.get_mut(LEDGER_KEY) {
             let seq = ledger
                 .get("progressSeq")
                 .and_then(Value::as_u64)
                 .unwrap_or(0);
             ledger["progressSeq"] = json!(seq + 1);
+            if parallel {
+                ledger["lastSatisfiedAt"] = json!(now);
+            }
         }
     }
 }
@@ -2383,7 +2646,13 @@ pub fn resync(
             }
         }
     }
-    clear_stale_current(state, stages);
+    // During a parallel run the current unit need not be the selector's first pick
+    // (it was promoted or continued); keep it while it can still run.
+    if parallel_run(state) {
+        clear_unrunnable_current(state, stages);
+    } else {
+        clear_stale_current(state, stages);
+    }
     Ok(LedgerChange::Resynced {
         units,
         legacy_rework: legacy_request || design_done_under_legacy,
@@ -2628,9 +2897,23 @@ pub fn park(
     }
     let key = match request.unit.map(str::trim).filter(|id| !id.is_empty()) {
         Some(id) => resolve_unit(state, id).ok_or_else(|| format!("Unknown work unit {id}"))?,
-        None => str_of(state, "currentUnit")
-            .and_then(|id| resolve_unit(state, id))
-            .ok_or("orchestrate park needs --unit ID; there is no current work unit")?,
+        None => {
+            let claimed = claims(state);
+            if !claimed.is_empty() {
+                let mut names: Vec<String> = primary_step(state, stages)
+                    .map(|(_, unit)| unit)
+                    .into_iter()
+                    .collect();
+                names.extend(claimed.into_iter().map(|(unit, _)| unit));
+                return Err(format!(
+                    "Several work units are in flight ({}); name the one you park with --unit",
+                    names.join(", ")
+                ));
+            }
+            str_of(state, "currentUnit")
+                .and_then(|id| resolve_unit(state, id))
+                .ok_or("orchestrate park needs --unit ID; there is no current work unit")?
+        }
     };
     let entry = unit(state, &key).cloned().unwrap_or(Value::Null);
     if removed(&entry) {
@@ -2767,8 +3050,10 @@ pub fn park(
         .or_else(|| span.repeating.last().copied())
         .map(|stage| stage_id(stage).to_owned())
         .unwrap_or_default();
-    let counted = str_of(state, "currentUnit").map(normalize_id) == Some(normalize_id(&key))
-        && str_of(state, "currentStage").is_some_and(|stage| !stage.is_empty());
+    let claimed = is_claimed(state, &key);
+    let counted = claimed
+        || (str_of(state, "currentUnit").map(normalize_id) == Some(normalize_id(&key))
+            && str_of(state, "currentStage").is_some_and(|stage| !stage.is_empty()));
     let signature = blocked_signature(&step, &key, kind, &[], &blocked_by);
     let seq = progress_seq(state);
     let entry = unit_mut(state, &key).ok_or("work-unit ledger is missing")?;
@@ -2807,7 +3092,9 @@ pub fn park(
     });
     entry["status"] = json!("parked");
     entry["updatedAt"] = json!(now);
-    if counted {
+    if claimed {
+        take_claim(state, &key);
+    } else if counted {
         state["currentStage"] = Value::Null;
     }
     append_park_report(
@@ -3014,14 +3301,7 @@ fn drain_candidate(state: &Value) -> Option<String> {
 /// when nothing is ready, then the sweep, a stall or the stages after the span. Returns
 /// the selection and the `unit.revisited` details of every revisit it made.
 pub fn select(state: &mut Value, stages: &[Value], now: &str) -> (Selection, Vec<Value>) {
-    let span = span(stages);
-    let reached = has_ledger(state)
-        && !span.repeating.is_empty()
-        && !rework_pending(state)
-        && span
-            .before
-            .iter()
-            .all(|stage| stage_finished(row_status(state, stage_id(stage))));
+    let reached = span_reached(state, stages);
     let mut revisits = Vec::new();
     if reached {
         revisits.extend(auto_revisits(state, now));

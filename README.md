@@ -277,7 +277,8 @@ dtech-aidlc harness status
 
 When `implementation-design` writes a `work-units.json` with units, Develop runs `red-tests` and `build-and-verify` once per work unit. The CLI picks the first unit in `work-units.json` order whose `dependsOn` units are done, so dependencies decide the order, and each directive names its unit (`currentUnit`, `unit`) and the queue around it.
 
-- **Report** a unit step with `--unit <id>`; only the current unit can be reported.
+- **Report** a unit step with `--unit <id>`; only a unit in flight can be reported.
+- **Parallel units:** up to `unitWorkers` units (default 3) can be in flight at once. `orchestrate next --claim` claims one more ready unit, meaning its dependencies are done and it is not already in flight, and returns its directive. `orchestrate next --unit <id>` prints the directive of a unit in flight again. Plain `orchestrate next` never claims, so units otherwise run one at a time. While any claimed unit is in flight, `--unit` is required on reports and parks. The Claude Code skill builds each claimed unit in its own worktree with `Workflow`, then integrates and verifies the units one at a time in the main tree. A unit's `regression.json` must be newer than the last unit that became satisfied, so each unit is verified on a tree holding every finished unit's code. DeepSeek runs one unit at a time.
 - **Park** a unit that cannot finish for a reason a retry will not fix. The CLI moves on to the next ready unit, and brings `dep-unit` and `foreign-regression` parks back by itself once the units they wait for are done. An environment problem stays `orchestrate report --result blocked --needs <name>`; while its check fails, only that unit waits and the other ready units run.
 - **Auto-park:** after `autoParkThreshold` (default 3) consecutive blocked reports of the same unit and step, the CLI parks the unit for an owner decision instead of selecting it again.
 - **Attributed regression:** completing a unit's `build-and-verify` needs a `regression.json` beside its regression report listing the test run and every failing test. A failure owned by the unit itself, or by a unit that is already done, blocks the report. A failure owned by an unfinished unit is deferred to that unit, and a failure without an owner blocks only the final sweep. Ownership comes from each unit's `tests` in `work-units.json`, `ids.json` traces, the `owner` field, or a `ts<number>_` test-name prefix.
@@ -287,6 +288,8 @@ When `implementation-design` writes a `work-units.json` with units, Develop runs
 
 ```sh
 dtech-aidlc orchestrate queue
+dtech-aidlc orchestrate next --claim
+dtech-aidlc orchestrate next --unit WU-03
 dtech-aidlc orchestrate park --unit WU-06 --kind dep-unit --blocked-by WU-16 --detail "Needs the retention store from WU-16"
 dtech-aidlc orchestrate revisit --unit WU-10 --detail "Keep 30 days of backups" --approved-by "Owner"
 dtech-aidlc intent rework --unit WU-06 --detail "The allocation contract cannot hold"
@@ -331,7 +334,7 @@ Source kinds include `project`, `docs`, `requirements`, `architecture`, `adr`, `
 
 - **Gate pinning:** `dtech-aidlc config gate-mode <gate> human` keeps a single gate with people inside an AI-mode intent. An AI recommendation that leaves an item for written approval cannot pass its gate.
 - **Prerequisites** name what the environment must provide before a stage can run code. For example, `dtech-aidlc config prerequisite set docker --check "docker info" --hint "Start Docker Desktop" --applies-to develop`. `orchestrate next` runs the check before a matching stage, and a stage reported `--result blocked --needs docker` resumes only once the check passes.
-- **Work-unit thresholds** live in `.aidlc/config.json`: `unitSplitThreshold` (default 6) is the number of work units above which the CLI suggests splitting the intent and doctor suggests waves, and `autoParkThreshold` (default 3) is the number of consecutive blocked reports of the same unit and step after which the CLI parks the unit for an owner decision. Both must be positive integers.
+- **Work-unit thresholds** live in `.aidlc/config.json`: `unitSplitThreshold` (default 6) is the number of work units above which the CLI suggests splitting the intent and doctor suggests waves, `autoParkThreshold` (default 3) is the number of consecutive blocked reports of the same unit and step after which the CLI parks the unit for an owner decision, and `unitWorkers` (default 3) is how many work units may be in flight at once with `orchestrate next --claim`. All three must be positive integers.
 - **Identifiers** for functions, interfaces, tests, work units, and configuration keys are minted once in the intent's `ids.json` during `implementation-design`. `dtech-aidlc ids check` lists cited identifiers that are not registered, and `orchestrate report` refuses a Develop or Launch stage that cites one.
 - **Agent model preferences:** each methodology agent recommends a model alias. It is only a preference: it does not switch the assistant's model or guarantee availability. Claude harness projects may configure supported preferences; DeepSeek-only projects do not use Claude model aliases.
 

@@ -962,6 +962,11 @@ fn validate_config(c: &Value, g: &Value) -> Result<(), String> {
             return Err("Invalid autoParkThreshold: expected a positive integer".into());
         }
     }
+    if let Some(n) = c.get("unitWorkers") {
+        if !integer_valued_number(n) || n.as_f64().is_none_or(|x| x < 1.0) {
+            return Err("Invalid unitWorkers: expected a positive integer".into());
+        }
+    }
     if let Some(roles) = c.get("roles") {
         if !roles.is_object() {
             return Err("Invalid roles: expected an object".into());

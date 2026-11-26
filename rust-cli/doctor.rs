@@ -354,6 +354,14 @@ fn validate_model_config(root: &Path, graph: Option<&Value>) -> Result<Value, St
             return Err("Invalid autoParkThreshold: expected a positive integer".into());
         }
     }
+    if let Some(workers) = config.get("unitWorkers") {
+        let integer = workers
+            .as_f64()
+            .is_some_and(|n| n.is_finite() && n.fract() == 0.0 && n >= 1.0);
+        if !integer {
+            return Err("Invalid unitWorkers: expected a positive integer".into());
+        }
+    }
     if let Some(roles) = config.get("roles") {
         let roles = plain_object(Some(roles)).ok_or("Invalid roles: expected an object")?;
         let names = |value: &Value| {

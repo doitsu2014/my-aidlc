@@ -133,7 +133,7 @@
         "status"
       ],
       "code": 0,
-      "stdout": "{\n  \"engineVersion\": \"1.1.0\",\n  \"harnesses\": [],\n  \"legacyMethodology\": null\n}\n",
+      "stdout": "{\n  \"engineVersion\": \"1.2.0\",\n  \"harnesses\": [],\n  \"legacyMethodology\": null\n}\n",
       "stderr": "",
       "files": {}
     },
