@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "<ROOT>",
+  "granted": [
+    "project"
+  ],
+  "warnings": [
+    "PROJECT.md has no content under '## Environment prerequisites', '## Commands', '## Known baseline failures'. Develop runs code: record the commands, the environment it needs and the failures already present, or the agents will rediscover them on every work unit."
+  ],
+  "project": {
+    "id": "project",
+    "path": "PROJECT.md",
+    "kind": "project",
+    "status": "ok",
+    "size": 24,
+    "provenance": "User-provided"
+  },
+  "codebaseMap": null,
+  "knowledge": {
+    "record": null
+  }
+}

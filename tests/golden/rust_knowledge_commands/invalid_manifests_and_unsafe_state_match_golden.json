@@ -1,0 +1,504 @@
+[
+  {
+    "fixture": "malformed"
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: cannot be parsed as JSON\n"
+    },
+    "files": {
+      "changed": {
+        "aidlc.knowledge.json": "{not json"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "init"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: cannot be parsed as JSON\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "add",
+      "x",
+      "docs"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: cannot be parsed as JSON\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "remove",
+      "a"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: cannot be parsed as JSON\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "version"
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: expected schemaVersion 1 and a sources array\n"
+    },
+    "files": {
+      "changed": {
+        "aidlc.knowledge.json": "{\n  \"schemaVersion\": 2,\n  \"sources\": []\n}"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "init"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: expected schemaVersion 1 and a sources array\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "add",
+      "x",
+      "docs"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: expected schemaVersion 1 and a sources array\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "remove",
+      "a"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: expected schemaVersion 1 and a sources array\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "extra"
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: unknown key x\n"
+    },
+    "files": {
+      "changed": {
+        "aidlc.knowledge.json": "{\n  \"schemaVersion\": 1,\n  \"sources\": [],\n  \"x\": 1\n}"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "init"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: unknown key x\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "add",
+      "x",
+      "docs"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: unknown key x\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "remove",
+      "a"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: unknown key x\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "dup"
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: source a: duplicate id\n"
+    },
+    "files": {
+      "changed": {
+        "aidlc.knowledge.json": "{\n  \"schemaVersion\": 1,\n  \"sources\": [\n    {\n      \"id\": \"a\",\n      \"path\": \"a\",\n      \"kind\": \"docs\"\n    },\n    {\n      \"id\": \"a\",\n      \"path\": \"b\",\n      \"kind\": \"docs\"\n    }\n  ]\n}"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "init"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: source a: duplicate id\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "add",
+      "x",
+      "docs"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: source a: duplicate id\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "remove",
+      "a"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: source a: duplicate id\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "numeric-id"
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: source id is invalid: use letters, digits, dot, underscore, or hyphen\n"
+    },
+    "files": {
+      "changed": {
+        "aidlc.knowledge.json": "{\n  \"schemaVersion\": 1,\n  \"sources\": [\n    {\n      \"id\": 5,\n      \"path\": \"a\",\n      \"kind\": \"docs\"\n    }\n  ]\n}"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "init"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: source id is invalid: use letters, digits, dot, underscore, or hyphen\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "add",
+      "x",
+      "docs"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: source id is invalid: use letters, digits, dot, underscore, or hyphen\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "remove",
+      "a"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: source id is invalid: use letters, digits, dot, underscore, or hyphen\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "desc"
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: source a: description must be one line of at most 300 characters\n"
+    },
+    "files": {
+      "changed": {
+        "aidlc.knowledge.json": "{\n  \"schemaVersion\": 1,\n  \"sources\": [\n    {\n      \"id\": \"a\",\n      \"path\": \"a\",\n      \"kind\": \"docs\",\n      \"description\": \"x\\ny\"\n    }\n  ]\n}"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "init"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: source a: description must be one line of at most 300 characters\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "add",
+      "x",
+      "docs"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: source a: description must be one line of at most 300 characters\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "remove",
+      "a"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: source a: description must be one line of at most 300 characters\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "aidlc-file"
+  },
+  {
+    "argv": [
+      "knowledge",
+      "init"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Refusing unsafe .aidlc path\n"
+    },
+    "files": {
+      "changed": {
+        ".aidlc": "not a directory"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "list"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Refusing unsafe .aidlc path\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "index"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Refusing unsafe .aidlc path\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "add",
+      "x",
+      "docs"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Refusing unsafe .aidlc path\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  }
+]

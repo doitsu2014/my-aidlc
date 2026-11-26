@@ -1,4 +1,4 @@
-# Experimental Rust installer prototype. Kept separate from the production installer.
+# Install, upgrade or uninstall a prebuilt Rust dtech-aidlc (target/release binary plus assets/).
 # Supports Windows PowerShell 5.1 and PowerShell 7.
 param(
   [string]$From,

@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "<ROOT>",
+  "granted": [
+    "project",
+    "sources"
+  ],
+  "warnings": [
+    "PROJECT.md has no content under '## Environment prerequisites', '## Commands', '## Known baseline failures'. Develop runs code: record the commands, the environment it needs and the failures already present, or the agents will rediscover them on every work unit.",
+    "1 registered documents changed since the last scan on 2026-01-02 (PROJECT.md). Re-read them before relying on earlier conclusions. Run `dtech-aidlc onboard --rescan` to acknowledge."
+  ],
+  "project": {
+    "id": "project",
+    "path": "PROJECT.md",
+    "kind": "project",
+    "status": "ok",
+    "size": 24,
+    "provenance": "User-provided"
+  },
+  "sources": [],
+  "sourceChanges": {
+    "scanned": true,
+    "scannedAt": "2026-01-02T03:04:05.000Z",
+    "missing": [],
+    "changed": [],
+    "added": [
+      "PROJECT.md"
+    ],
+    "removed": [],
+    "more": {
+      "changed": 0,
+      "added": 0,
+      "removed": 0
+    }
+  },
+  "codebaseMap": null,
+  "knowledge": {
+    "record": null
+  }
+}

@@ -1,0 +1,366 @@
+[
+  {
+    "label": "drift-modified",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 2,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "warn",
+            "message": "Projection claude: .claude/skills/dtech-aidlc/SKILL.md edited locally or of unknown origin; keep them, or for skill files run: dtech-aidlc harness refresh --force; obsolete files must be deleted by hand"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "drift-missing",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "fail",
+            "message": "Projection claude: .claude/skills/dtech-aidlc/onboarding.md is missing; run: dtech-aidlc harness refresh"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "drift-behind",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 2,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "warn",
+            "message": "Projection claude: behind engine <VERSION> (projected by 0.1.0); run: dtech-aidlc harness refresh"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "drift-behind-unstamped",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 2,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "warn",
+            "message": "Projection claude: behind engine <VERSION> (projected by an earlier version without a stamp); run: dtech-aidlc harness refresh"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "drift-ahead",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 2,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "warn",
+            "message": "Projection claude: projected by engine 99.0.0, newer than the installed <VERSION>; upgrade dtech-aidlc"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "drift-obsolete",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 2,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "warn",
+            "message": "Projection claude: .claude/skills/dtech-aidlc/manifest.mjs, .claude/skills/aidlc/SKILL.md edited locally or of unknown origin; keep them, or for skill files run: dtech-aidlc harness refresh --force; obsolete files must be deleted by hand"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "drift-obsolete-pristine",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 2,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "warn",
+            "message": "Projection claude: behind engine <VERSION> (projected by <VERSION>); run: dtech-aidlc harness refresh"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "drift-dir",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 2,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "warn",
+            "message": "Projection claude: .claude/skills/dtech-aidlc/SKILL.md edited locally or of unknown origin; keep them, or for skill files run: dtech-aidlc harness refresh --force; obsolete files must be deleted by hand"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "drift-legacy-methodology",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 2,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "Unused methodology copy at .aidlc/methodology from an earlier version; 0 pristine file(s) can be removed by harness refresh, 2 modified or unknown file(s) will be kept"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  }
+]

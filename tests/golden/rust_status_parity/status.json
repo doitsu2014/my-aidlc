@@ -1,0 +1,66 @@
+{
+  "fresh status": {
+    "initialized": false,
+    "activeIntent": null
+  },
+  "initialized status": {
+    "initialized": true,
+    "activeIntent": null
+  },
+  "active status": {
+    "intent": "parity status",
+    "intentId": "parity-status",
+    "intentDir": "<ROOT>/.aidlc/intents/parity-status",
+    "scope": "solo",
+    "mode": "human",
+    "status": "active",
+    "currentStage": "problem-framing",
+    "stages": {
+      "problem-framing": {
+        "status": "in_progress",
+        "startedAt": "<ts>",
+        "detail": null
+      }
+    }
+  },
+  "active intent list": [
+    {
+      "intentId": "parity-status",
+      "title": "parity status",
+      "scope": "solo",
+      "mode": "human",
+      "status": "active",
+      "current": true,
+      "currentStage": "problem-framing",
+      "assignee": null,
+      "progress": {
+        "done": 0,
+        "total": 9
+      },
+      "createdAt": "<ts>",
+      "updatedAt": "<ts>"
+    }
+  ],
+  "intent list with a stray file": [
+    {
+      "intentId": "parity-status",
+      "title": "parity status",
+      "scope": "solo",
+      "mode": "human",
+      "status": "active",
+      "current": true,
+      "currentStage": "problem-framing",
+      "assignee": null,
+      "progress": {
+        "done": 0,
+        "total": 9
+      },
+      "createdAt": "<ts>",
+      "updatedAt": "<ts>"
+    }
+  ],
+  "status with an unknown current stage": {
+    "code": 1,
+    "stderr": "dtech-aidlc: .aidlc/intents/parity-status/state.json is invalid: currentStage is not a stage of the scope. No changes were made.\n"
+  }
+}

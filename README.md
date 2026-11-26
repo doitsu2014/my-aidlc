@@ -7,7 +7,7 @@
 **Let the AI do the work. Keep the decisions yours.**
 
 [![Version](https://img.shields.io/badge/version-1.0.0-2563eb?style=flat-square)](CHANGELOG.md)
-[![Node.js](https://img.shields.io/badge/node-%E2%89%A5%2020-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Rust](https://img.shields.io/badge/built%20with-Rust-b7410e?style=flat-square&logo=rust&logoColor=white)](https://www.rust-lang.org/)
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-475569?style=flat-square)](#quick-start)
 [![Claude Code](https://img.shields.io/badge/harness-Claude%20Code-d97757?style=flat-square)](#harnesses)
 [![DeepSeek](https://img.shields.io/badge/harness-DeepSeek-4d6bfe?style=flat-square)](#harnesses)
@@ -93,7 +93,7 @@ Ships slash-command skills for **Claude Code** (`/dtech-aidlc`) and **DeepSeek H
 <td valign="top">
 
 ### 🔒 Local-first and auditable
-Everything lives under `.aidlc/` in your repo: intent artifacts, state, and an append-only audit log. The installer needs no network access.
+Everything lives under `.aidlc/` in your repo: intent artifacts, state, and an append-only audit log. The CLI is a single executable with the methodology embedded, and it needs no network access at run time.
 
 </td>
 </tr>
@@ -143,16 +143,12 @@ flowchart TD
 
 ## Quick start
 
-**Requirements:** Node.js 20 or newer, PowerShell (Windows) or a POSIX shell (macOS/Linux), and a supported assistant harness for the slash-command workflow. You can also run the CLI directly.
+**Requirements:** a Rust toolchain with Cargo (to build and install the CLI) and a supported assistant harness for the slash-command workflow. You can also run the CLI directly. Git is used for approver names and dependency repositories when available; nothing else is needed at run time.
 
-**1. Install** from the repository checkout:
-
-```powershell
-pwsh -File scripts/install.ps1   # Windows (PowerShell 7 recommended)
-```
+**1. Install** from the repository checkout (PowerShell or a POSIX shell):
 
 ```sh
-sh scripts/install.sh
+cargo install --path . --locked --bin dtech-aidlc
 ```
 
 **2. Onboard** your project from its root:
@@ -178,72 +174,41 @@ That's it. The assistant asks the CLI for a directive, does the stage work, and 
 
 ## Install options
 
-### Experimental Rust preview (Cargo)
-
-Every command is routed to native Rust code and has been compared with the Node CLI on Windows. Without `DTECH_AIDLC_HOME`, the Rust binary uses its embedded methodology, materialised under `.aidlc/engine/`, and harness files always come from the embedded copies. macOS and Linux have not been verified yet. See the migration plan for the remaining gaps. It installs as `dtech-aidlc` and can shadow or replace the existing Node CLI if its Cargo bin directory takes precedence on `PATH`. Do not replace the Node CLI unless you accept those limitations. The graph and methodology needed by `scope` are embedded in the executable.
-
-From this repository checkout, with Rust and Cargo installed:
+The CLI is a native Rust executable. The graph, methodology, harness projections and project scaffold are embedded in it, so it runs without the repository checkout or any other runtime. Build and install it from the repository checkout with Cargo; the commands work in PowerShell and POSIX shells:
 
 ```sh
 cargo install --path . --locked --bin dtech-aidlc
 ```
 
-To update the preview after updating the checkout, run:
+Cargo installs into its configured binary directory, normally `%USERPROFILE%\.cargo\bin` on Windows or `~/.cargo/bin` on macOS and Linux. Add that directory to `PATH` if necessary, and open a new terminal after changing `PATH`. The test suite runs on Windows; macOS and Linux builds have not been verified yet.
+
+Without `DTECH_AIDLC_HOME`, the CLI writes its embedded methodology to `.aidlc/engine/` in each project (git-ignored and refreshed when the binary changes), and directive paths point there.
+
+For zsh completion, save the output of `dtech-aidlc completion zsh` as `_dtech-aidlc` in a directory on your `fpath`:
+
+```sh
+dtech-aidlc completion zsh > ~/.zfunc/_dtech-aidlc
+```
+
+To run without installing, use `cargo run --locked -- --help` from the repository root.
+
+## Upgrade and uninstall
+
+To upgrade, update the checkout and reinstall over the existing executable:
 
 ```sh
 cargo install --path . --locked --bin dtech-aidlc --force
 ```
 
-The commands work in PowerShell and POSIX shells. Cargo installs into its configured binary directory (normally `%USERPROFILE%\.cargo\bin` on Windows or `~/.cargo/bin` on macOS/Linux); add that directory to `PATH` if necessary. To remove the preview, run `cargo uninstall dtech-aidlc`. This removes the Cargo package's executable, not an independently installed Node CLI. See [the migration plan](plans/rust-cli-migration.md) for remaining work.
-
-### Production CLI
-
-The installer works entirely from the repository checkout and needs no network access.
-
-| | Windows | macOS / Linux |
-| :--- | :--- | :--- |
-| **Default prefix** | `%LOCALAPPDATA%\dtech-aidlc` | `~/.local` |
-| **CLI library** | `lib/dtech-aidlc/` | `lib/dtech-aidlc/` |
-| **Launchers** | `bin/` | `bin/` |
-| **Shell completion** | — | zsh, under `share/zsh/site-functions/` |
-
-Add the install `bin` directory to `PATH` if necessary. On Windows, open a new terminal after changing `PATH` or enabling a Node.js installation managed by nvm. The CLI needs a working `node` executable on `PATH` at run time.
-
-To install from a different source checkout, or into a different prefix:
-
-```powershell
-pwsh -File scripts/install.ps1 -From D:\path\to\my-aidlc -Prefix D:\tools\dtech-aidlc
-```
-
-```sh
-sh scripts/install.sh --prefix "$HOME/.local" --from /path/to/my-aidlc
-```
-
-To run without installing, use `node core/tools/dtech-aidlc.mjs --help` from the repository root.
-
-## Upgrade and uninstall
-
-To upgrade, run the installer from the newer checkout:
-
-```powershell
-pwsh -File scripts/install.ps1 -Upgrade
-```
-
-```sh
-sh scripts/install.sh --upgrade
-```
-
 To uninstall:
 
-```powershell
-pwsh -File scripts/install.ps1 -Uninstall
-```
-
 ```sh
-sh scripts/install.sh --uninstall
+cargo uninstall dtech-aidlc
 ```
 
-The installers only change files they recognize as belonging to dtech-aidlc, and an ordinary install refuses to replace an existing installation. Upgrade replaces the installed engine and repairs a partial installation. The Windows installer copies `core/`, `harness/` and `package.json`; the POSIX installer also manages its launcher and zsh completion. Neither installer changes project workflow data.
+Cargo only replaces or removes the `dtech-aidlc` executable it installed. Neither command changes project workflow data.
+
+**Coming from the Node.js CLI (0.7.x and earlier).** Releases before 1.0.0 were installed with `scripts/install.sh` or `scripts/install.ps1`, which are no longer shipped. Remove that installation so it does not shadow the Cargo executable on `PATH`: delete `lib/dtech-aidlc/` and the `bin/dtech-aidlc` launcher under the old prefix (`~/.local` by default, plus `share/zsh/site-functions/_dtech-aidlc`), or on Windows `lib\dtech-aidlc\`, `bin\dtech-aidlc.cmd` and `bin\dtech-aidlc` under `%LOCALAPPDATA%\dtech-aidlc`. Existing projects keep working: the Rust CLI reads the same `.aidlc/` state and migrates legacy state files.
 
 > [!TIP]
 > After upgrading, run `dtech-aidlc harness refresh` in each onboarded project to update its harness projections. Run `dtech-aidlc onboard` there as needed to update the generated profile and knowledge setup.
@@ -387,27 +352,28 @@ The tool maintains a managed ignore block in `.aidlc/.gitignore` and does not ed
 
 | Variable | Purpose |
 | :--- | :--- |
-| `DTECH_AIDLC_PREFIX`, `DTECH_AIDLC_SOURCE` | Installer defaults for the prefix and source checkout. |
-| `DTECH_AIDLC_HOME` | Points the CLI at another engine tree containing `core/`, `harness/` and `package.json`, including `core/data/phase-graph.json`. Meant for testing a modified engine; use `PROJECT.md` for project-specific rules. |
+| `DTECH_AIDLC_HOME` | Points the CLI at another engine tree: a directory containing `core/` (or the `core` directory itself) with `data/phase-graph.json` and `methodology/`. The graph and methodology are then read from there instead of the embedded copies; harness files always come from the binary. Meant for testing a modified engine; use `PROJECT.md` for project-specific rules. |
 
 ## Development
 
 ```sh
-npm test
-npm run lint
+cargo test
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
 ```
 
-Tests use Node's built-in test runner. Lint checks runtime metadata, CLI syntax, methodology graph references, and consistency between the methodology README and the graph. Run both after changing the engine or its documentation.
+The tests drive the built binary on isolated project fixtures and compare its output, exit codes and written files with golden snapshots under `tests/golden/`. The snapshots were recorded from the last Node.js CLI, so they guard behaviour parity with earlier releases. When a change to the output is intended, set `DTECH_AIDLC_BLESS=1` while running the affected tests to rewrite their snapshots, and review the diff. `tests/repo_content.rs` checks the methodology graph, the methodology README, harness skills, this README and the changelog. Run all three commands after changing the engine or its documentation.
 
 ## Repository layout
 
 ```text
 my-aidlc/
-├── core/         CLI, phase graph, methodology, agent guidance, templates, runtime code
+├── rust-cli/     The dtech-aidlc CLI (Rust library and binary)
+├── core/         Phase graph, methodology, agent guidance and templates, embedded at build time
 ├── harness/      Claude Code and DeepSeek Harness projections and onboarding guidance
 ├── guidelines/   Practical guidance for humans and assistants using the workflow
-├── scripts/      Local installers and lint helpers
-└── tests/        Automated test suite
+├── scripts/      Installer scripts for a prebuilt binary (rust-install/)
+└── tests/        Rust integration tests and golden snapshots
 ```
 
 ## Further reading

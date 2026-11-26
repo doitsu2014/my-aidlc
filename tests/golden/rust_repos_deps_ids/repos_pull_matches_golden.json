@@ -1,0 +1,279 @@
+[
+  {
+    "fixture": "pull"
+  },
+  {
+    "argv": [
+      "repos",
+      "pull"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [
+        {
+          "name": "lib",
+          "ok": true,
+          "commit": "<COMMIT>",
+          "path": "<ROOT>/.aidlc/repos/lib"
+        }
+      ],
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/deps-lock.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"lib\": {\n      \"commit\": \"<COMMIT>\"\n    }\n  }\n}",
+        ".aidlc/deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"lib\": {\n      \"url\": \"<REMOTE>\"\n    }\n  }\n}",
+        ".aidlc/repos/": "",
+        ".aidlc/repos/lib/": "",
+        ".aidlc/repos/lib/tracked.txt": "base\n"
+      }
+    },
+    "audit": {
+      "appended": [
+        {
+          "results": [
+            {
+              "name": "lib",
+              "ok": true,
+              "commit": "<COMMIT>"
+            }
+          ],
+          "event": "repos.pulled"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [
+        {
+          "name": "lib",
+          "url": "<REMOTE>",
+          "path": "<ROOT>/.aidlc/repos/lib",
+          "status": "cloned",
+          "commit": "<COMMIT>"
+        }
+      ],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "pull",
+      "lib"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [
+        {
+          "name": "lib",
+          "ok": true,
+          "commit": "<COMMIT>",
+          "path": "<ROOT>/.aidlc/repos/lib"
+        }
+      ],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": [
+        {
+          "results": [
+            {
+              "name": "lib",
+              "ok": true,
+              "commit": "<COMMIT>"
+            }
+          ],
+          "event": "repos.pulled"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "pull",
+      "unknown"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Unknown dependency: unknown\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "pull",
+      "-bad"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency name: -bad\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "pull"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": [
+        {
+          "name": "lib",
+          "ok": false,
+          "error": "Checkout has dirty or untracked changes; refusing to update"
+        }
+      ],
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/repos/lib/tracked.txt": "local change\n"
+      }
+    },
+    "audit": {
+      "appended": [
+        {
+          "results": [
+            {
+              "name": "lib",
+              "ok": false,
+              "commit": null
+            }
+          ],
+          "event": "repos.pulled"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "remove",
+      "lib"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "name": "lib",
+        "removed": true
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/deps-lock.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {}\n}",
+        ".aidlc/deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {}\n}",
+        "aidlc.deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {}\n}"
+      }
+    },
+    "audit": {
+      "appended": [
+        {
+          "name": "lib",
+          "event": "repos.removed"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "pull-file"
+  },
+  {
+    "argv": [
+      "repos",
+      "pull",
+      "--file",
+      "<DEPS_FILE>"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Refusing unmanaged dependency checkout: lib\n"
+    },
+    "files": {
+      "changed": {
+        ".aidlc/deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"lib\": {\n      \"url\": \"<REMOTE>\"\n    }\n  }\n}"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "pull",
+      "--file",
+      "missing-deps.json"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Dependency file is missing or unsafe: <CWD>/missing-deps.json\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [
+        {
+          "name": "lib",
+          "url": "<REMOTE>",
+          "path": "<ROOT>/.aidlc/repos/lib",
+          "status": "invalid"
+        }
+      ],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  }
+]

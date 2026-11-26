@@ -1,0 +1,736 @@
+{
+  "steps": [
+    {
+      "argv": [
+        "doctor"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"ok\": true,\n  \"warnings\": 1,\n  \"checks\": [\n    {\n      \"status\": \"pass\",\n      \"message\": \"Graph: 6 phases, 13 stages, 12 agents\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Project configuration and agent models\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Projection claude: current (.claude/skills/dtech-aidlc, engine 1.0.0)\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Dependency repositories: 0 registered\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Knowledge sources: 3 registered, 0 missing, 0 changed since last scan\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Audit log contains valid JSON lines\"\n    },\n    {\n      \"status\": \"warn\",\n      \"message\": \"No allowed approver is configured for gate analysis-baseline in the default scope\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "assign",
+        "Alex"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: No active intent\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "rework",
+        "--detail",
+        "too early"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: No active workflow state\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "deps",
+        "add",
+        "a",
+        "b"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Initialize a workflow before managing dependencies\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "orchestrate",
+        "next",
+        "--intent",
+        "Routing lifecycle work"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"intent\": \"Routing lifecycle work\",\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intentDir\": \"<ROOT>/.aidlc/intents/routing-lifecycle-work\",\n  \"scope\": \"solo\",\n  \"depth\": \"full\",\n  \"mode\": \"human\",\n  \"orchestrationMode\": \"human\",\n  \"scopeSource\": \"config\",\n  \"warnings\": [],\n  \"gate\": {\n    \"id\": \"analysis-baseline\",\n    \"phase\": \"analyze\",\n    \"finalStage\": \"context-and-risk\"\n  },\n  \"gateMode\": \"human\",\n  \"approvalRequiredAfter\": \"context-and-risk\",\n  \"contractsFile\": \"<ENGINE>/methodology/contracts.md\",\n  \"suggestedBranch\": \"feature/routing-lifecycle-work\",\n  \"artifacts\": [\n    {\n      \"output\": \"problem-statement\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/problem-statement.md\"\n    },\n    {\n      \"output\": \"success-measures\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/success-measures.md\"\n    },\n    {\n      \"output\": \"stakeholder-map\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/stakeholder-map.md\"\n    },\n    {\n      \"output\": \"acceptance-criteria\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/acceptance-criteria.md\",\n      \"template\": \"<ENGINE>/methodology/templates/acceptance-criteria.md\"\n    },\n    {\n      \"output\": \"user-stories\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/user-stories.md\",\n      \"template\": \"<ENGINE>/methodology/templates/user-stories.md\"\n    }\n  ],\n  \"stage\": {\n    \"id\": \"problem-framing\",\n    \"phase\": \"analyze\",\n    \"order\": 1,\n    \"agent\": \"brief-analyst\",\n    \"inputs\": {\n      \"artifacts\": [],\n      \"context\": [\n        \"request\",\n        \"project\",\n        \"sources\",\n        \"knowledge\",\n        \"profile\",\n        \"repos\"\n      ]\n    },\n    \"produces\": [\n      \"problem-statement\",\n      \"success-measures\",\n      \"stakeholder-map\",\n      \"acceptance-criteria\",\n      \"user-stories\"\n    ],\n    \"phaseGate\": false,\n    \"phaseFile\": \"<ENGINE>/methodology/phases/analyze.md\",\n    \"agentFile\": \"<ENGINE>/methodology/agents/brief-analyst.md\",\n    \"model\": \"sonnet\",\n    \"modelSource\": \"default\"\n  },\n  \"context\": {\n    \"schemaVersion\": 1,\n    \"projectRoot\": \"<ROOT>\",\n    \"granted\": [\n      \"request\",\n      \"project\",\n      \"sources\",\n      \"knowledge\",\n      \"profile\",\n      \"repos\"\n    ],\n    \"warnings\": [\n      \"PROJECT.md is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first.\"\n    ],\n    \"request\": {\n      \"path\": \".aidlc/intents/routing-lifecycle-work/intent.md\",\n      \"provenance\": \"User-provided\"\n    },\n    \"project\": {\n      \"id\": \"project\",\n      \"path\": \"PROJECT.md\",\n      \"kind\": \"project\",\n      \"status\": \"ok\",\n      \"size\": 1455,\n      \"provenance\": \"User-provided\"\n    },\n    \"sources\": [\n      {\n        \"id\": \"README.md\",\n        \"path\": \"README.md\",\n        \"kind\": \"readme\",\n        \"description\": \"Detected readme source.\",\n        \"status\": \"ok\",\n        \"size\": 27,\n        \"provenance\": \"Observed\"\n      },\n      {\n        \"id\": \"docs\",\n        \"path\": \"docs\",\n        \"kind\": \"docs\",\n        \"description\": \"Detected docs source.\",\n        \"status\": \"ok\",\n        \"size\": null,\n        \"provenance\": \"Observed\"\n      }\n    ],\n    \"sourceChanges\": {\n      \"scanned\": true,\n      \"scannedAt\": \"<ts>\",\n      \"missing\": [],\n      \"changed\": [],\n      \"added\": [],\n      \"removed\": [],\n      \"more\": {\n        \"changed\": 0,\n        \"added\": 0,\n        \"removed\": 0\n      }\n    },\n    \"codebaseMap\": {\n      \"path\": \".aidlc/knowledge/_codebase-map.md\",\n      \"template\": \"<ENGINE>/methodology/templates/codebase-map.md\",\n      \"exists\": false,\n      \"required\": true,\n      \"reason\": \"project kind is brownfield\",\n      \"bytes\": 0,\n      \"modifiedAt\": null\n    },\n    \"knowledge\": {\n      \"dir\": \".aidlc/knowledge\",\n      \"records\": [],\n      \"invalid\": []\n    }\n  }\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/.gitignore": "# >>> dtech-aidlc managed block v1\n/state.json\n/state.v1.bak.json\n/audit.jsonl\n/config.json\n/shared/\n/repos/\n*.tmp\n# <<< dtech-aidlc managed block\n",
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n",
+        ".aidlc/intents/": "",
+        ".aidlc/intents/routing-lifecycle-work/": "",
+        ".aidlc/intents/routing-lifecycle-work/intent.md": "# routing-lifecycle-work\n\nRouting lifecycle work\n",
+        ".aidlc/intents/routing-lifecycle-work/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intent\": \"Routing lifecycle work\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"full\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"problem-framing\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<ts>\"\n    }\n  },\n  \"dependencies\": {},\n  \"createdAt\": \"<ts>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<ts>\"\n}\n",
+        ".aidlc/state.json": "{\n  \"version\": 2,\n  \"activeIntentId\": \"routing-lifecycle-work\",\n  \"updatedAt\": \"<ts>\"\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "status"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"intent\": \"Routing lifecycle work\",\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intentDir\": \"<ROOT>/.aidlc/intents/routing-lifecycle-work\",\n  \"scope\": \"solo\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"problem-framing\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": null\n    }\n  }\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "list"
+      ],
+      "code": 0,
+      "stdout": "[\n  {\n    \"intentId\": \"routing-lifecycle-work\",\n    \"title\": \"Routing lifecycle work\",\n    \"scope\": \"solo\",\n    \"mode\": \"human\",\n    \"status\": \"active\",\n    \"current\": true,\n    \"currentStage\": \"problem-framing\",\n    \"assignee\": null,\n    \"progress\": {\n      \"done\": 0,\n      \"total\": 9\n    },\n    \"createdAt\": \"<ts>\",\n    \"updatedAt\": \"<ts>\"\n  }\n]\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "depth",
+        "deep",
+        "--approved-by",
+        "Pat Owner",
+        "--detail",
+        "x"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Unknown depth 'deep'. Known depths: full, standard, fast\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "depth",
+        "fast",
+        "--detail",
+        "smaller"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: intent depth requires --approved-by NAME\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "depth"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Usage: intent depth NAME --approved-by NAME --detail TEXT\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "depth",
+        "fast",
+        "--approved-by",
+        "Pat Owner",
+        "--detail",
+        "Smaller change"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"intentId\": \"routing-lifecycle-work\",\n  \"from\": \"full\",\n  \"to\": \"fast\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n",
+        ".aidlc/intents/routing-lifecycle-work/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intent\": \"Routing lifecycle work\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"fast\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"problem-framing\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": null\n    }\n  },\n  \"dependencies\": {},\n  \"createdAt\": \"<ts>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<ts>\"\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "intent",
+        "assign"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Usage: intent assign NAME\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "assign",
+        "Alex Doe"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"intentId\": \"routing-lifecycle-work\",\n  \"assignee\": \"Alex Doe\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/intents/routing-lifecycle-work/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intent\": \"Routing lifecycle work\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"fast\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"problem-framing\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": null\n    }\n  },\n  \"dependencies\": {},\n  \"createdAt\": \"<ts>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<ts>\",\n  \"assignee\": \"Alex Doe\"\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "intent",
+        "rework"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Usage: intent rework --detail \"<reason>\"\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "rework",
+        "--detail",
+        "nothing blocked yet"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Design rework is only available after a blocked Develop stage\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "orchestrate",
+        "next"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"intent\": \"Routing lifecycle work\",\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intentDir\": \"<ROOT>/.aidlc/intents/routing-lifecycle-work\",\n  \"scope\": \"solo\",\n  \"depth\": \"fast\",\n  \"mode\": \"human\",\n  \"orchestrationMode\": \"human\",\n  \"scopeSource\": \"config\",\n  \"assignee\": \"Alex Doe\",\n  \"warnings\": [],\n  \"gate\": {\n    \"id\": \"analysis-baseline\",\n    \"phase\": \"analyze\",\n    \"finalStage\": \"problem-framing\"\n  },\n  \"gateMode\": \"human\",\n  \"approvalRequiredAfter\": \"problem-framing\",\n  \"contractsFile\": \"<ENGINE>/methodology/contracts.md\",\n  \"suggestedBranch\": \"feature/routing-lifecycle-work\",\n  \"artifacts\": [\n    {\n      \"output\": \"problem-statement\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/problem-statement.md\"\n    },\n    {\n      \"output\": \"acceptance-criteria\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/acceptance-criteria.md\",\n      \"template\": \"<ENGINE>/methodology/templates/acceptance-criteria.md\"\n    }\n  ],\n  \"stage\": {\n    \"id\": \"problem-framing\",\n    \"phase\": \"analyze\",\n    \"order\": 1,\n    \"agent\": \"brief-analyst\",\n    \"inputs\": {\n      \"artifacts\": [],\n      \"context\": [\n        \"request\",\n        \"project\",\n        \"sources\",\n        \"knowledge\",\n        \"profile\",\n        \"repos\"\n      ]\n    },\n    \"produces\": [\n      \"problem-statement\",\n      \"success-measures\",\n      \"stakeholder-map\",\n      \"acceptance-criteria\",\n      \"user-stories\"\n    ],\n    \"phaseGate\": true,\n    \"phaseFile\": \"<ENGINE>/methodology/phases/analyze.md\",\n    \"agentFile\": \"<ENGINE>/methodology/agents/brief-analyst.md\",\n    \"model\": \"sonnet\",\n    \"modelSource\": \"default\"\n  },\n  \"context\": {\n    \"schemaVersion\": 1,\n    \"projectRoot\": \"<ROOT>\",\n    \"granted\": [\n      \"request\",\n      \"project\",\n      \"sources\",\n      \"knowledge\",\n      \"profile\",\n      \"repos\"\n    ],\n    \"warnings\": [\n      \"PROJECT.md is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first.\"\n    ],\n    \"request\": {\n      \"path\": \".aidlc/intents/routing-lifecycle-work/intent.md\",\n      \"provenance\": \"User-provided\"\n    },\n    \"project\": {\n      \"id\": \"project\",\n      \"path\": \"PROJECT.md\",\n      \"kind\": \"project\",\n      \"status\": \"ok\",\n      \"size\": 1455,\n      \"provenance\": \"User-provided\"\n    },\n    \"sources\": [\n      {\n        \"id\": \"README.md\",\n        \"path\": \"README.md\",\n        \"kind\": \"readme\",\n        \"description\": \"Detected readme source.\",\n        \"status\": \"ok\",\n        \"size\": 27,\n        \"provenance\": \"Observed\"\n      },\n      {\n        \"id\": \"docs\",\n        \"path\": \"docs\",\n        \"kind\": \"docs\",\n        \"description\": \"Detected docs source.\",\n        \"status\": \"ok\",\n        \"size\": null,\n        \"provenance\": \"Observed\"\n      }\n    ],\n    \"sourceChanges\": {\n      \"scanned\": true,\n      \"scannedAt\": \"<ts>\",\n      \"missing\": [],\n      \"changed\": [],\n      \"added\": [],\n      \"removed\": [],\n      \"more\": {\n        \"changed\": 0,\n        \"added\": 0,\n        \"removed\": 0\n      }\n    },\n    \"codebaseMap\": {\n      \"path\": \".aidlc/knowledge/_codebase-map.md\",\n      \"template\": \"<ENGINE>/methodology/templates/codebase-map.md\",\n      \"exists\": false,\n      \"required\": true,\n      \"reason\": \"project kind is brownfield\",\n      \"bytes\": 0,\n      \"modifiedAt\": null\n    },\n    \"knowledge\": {\n      \"dir\": \".aidlc/knowledge\",\n      \"records\": [],\n      \"invalid\": []\n    }\n  }\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n"
+      }
+    },
+    {
+      "argv": [
+        "orchestrate",
+        "report",
+        "--result",
+        "done"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: --result must be complete, blocked, or skipped\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "orchestrate",
+        "report",
+        "--result",
+        "complete"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Phase gate analysis-baseline after problem-framing requires explicit --approval approved from the project owner (name them with --approved-by NAME); this also applies when the stage is skipped.\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "orchestrate",
+        "report",
+        "--result",
+        "complete"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Phase gate analysis-baseline after problem-framing requires explicit --approval approved from the project owner (name them with --approved-by NAME); this also applies when the stage is skipped.\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "orchestrate",
+        "report",
+        "--result",
+        "complete",
+        "--approval",
+        "approved",
+        "--approved-by",
+        "Pat Owner",
+        "--approval-note",
+        "Looks right"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"recorded\": true,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"stage\": \"problem-framing\",\n  \"result\": \"complete\",\n  \"phaseGate\": true,\n  \"gate\": \"analysis-baseline\",\n  \"approval\": \"approved\",\n  \"approvedBy\": \"Pat Owner\",\n  \"intentComplete\": false,\n  \"artifacts\": [\n    {\n      \"output\": \"problem-statement\",\n      \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/problem-statement.md\",\n      \"bytes\": 42,\n      \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n    },\n    {\n      \"output\": \"acceptance-criteria\",\n      \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/acceptance-criteria.md\",\n      \"bytes\": 42,\n      \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"phase\":\"analyze\",\"result\":\"complete\",\"detail\":null,\"phaseGate\":true,\"gate\":\"analysis-baseline\",\"gateApproval\":\"approved\",\"approvedBy\":\"Pat Owner\"}\n{\"at\":\"<ts>\",\"event\":\"gate.decided\",\"intentId\":\"routing-lifecycle-work\",\"gate\":\"analysis-baseline\",\"phase\":\"analyze\",\"stage\":\"problem-framing\",\"decision\":\"approved\",\"result\":\"complete\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"mode\":\"human\",\"note\":\"Looks right\",\"detail\":null,\"skippedStages\":[],\"artifacts\":[]}\n",
+        ".aidlc/intents/routing-lifecycle-work/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intent\": \"Routing lifecycle work\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"fast\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": null,\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"complete\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": null,\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"complete\",\n          \"detail\": null,\n          \"approval\": {\n            \"decision\": \"approved\",\n            \"by\": \"Pat Owner\",\n            \"bySource\": \"flag\",\n            \"mode\": \"human\",\n            \"note\": \"Looks right\"\n          }\n        }\n      ],\n      \"units\": {},\n      \"artifacts\": [\n        {\n          \"output\": \"problem-statement\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/problem-statement.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        },\n        {\n          \"output\": \"acceptance-criteria\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/acceptance-criteria.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        }\n      ]\n    }\n  },\n  \"dependencies\": {},\n  \"createdAt\": \"<ts>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<ts>\",\n  \"assignee\": \"Alex Doe\",\n  \"gates\": {\n    \"analysis-baseline\": {\n      \"phase\": \"analyze\",\n      \"stage\": \"problem-framing\",\n      \"decision\": \"approved\",\n      \"result\": \"complete\",\n      \"by\": \"Pat Owner\",\n      \"bySource\": \"flag\",\n      \"mode\": \"human\",\n      \"at\": \"<ts>\",\n      \"note\": \"Looks right\",\n      \"detail\": null,\n      \"skippedStages\": [],\n      \"artifacts\": []\n    }\n  }\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "orchestrate",
+        "next"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"intent\": \"Routing lifecycle work\",\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intentDir\": \"<ROOT>/.aidlc/intents/routing-lifecycle-work\",\n  \"scope\": \"solo\",\n  \"depth\": \"fast\",\n  \"mode\": \"human\",\n  \"orchestrationMode\": \"human\",\n  \"scopeSource\": \"config\",\n  \"assignee\": \"Alex Doe\",\n  \"warnings\": [],\n  \"gate\": {\n    \"id\": \"release-candidate\",\n    \"phase\": \"develop\",\n    \"finalStage\": \"build-and-verify\"\n  },\n  \"gateMode\": \"human\",\n  \"approvalRequiredAfter\": \"build-and-verify\",\n  \"contractsFile\": \"<ENGINE>/methodology/contracts.md\",\n  \"suggestedBranch\": \"feature/routing-lifecycle-work\",\n  \"artifacts\": [\n    {\n      \"output\": \"implementation-plan\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/routing-lifecycle-work/develop/implementation-design/implementation-plan.md\"\n    }\n  ],\n  \"stage\": {\n    \"id\": \"implementation-design\",\n    \"phase\": \"develop\",\n    \"order\": 1,\n    \"agent\": \"implementation-planner\",\n    \"inputs\": {\n      \"artifacts\": [\n        \"recommended-direction\",\n        \"decision-record\",\n        \"scope-boundary\",\n        \"architecture-design\",\n        \"acceptance-criteria\",\n        \"user-stories\",\n        \"constraints-and-assumptions\",\n        \"risk-register\",\n        \"quality-requirements\",\n        \"threat-model\"\n      ],\n      \"context\": [\n        \"request\",\n        \"project\",\n        \"sources\",\n        \"profile\",\n        \"repos\"\n      ]\n    },\n    \"produces\": [\n      \"implementation-plan\",\n      \"interfaces-and-contracts\",\n      \"functional-design\",\n      \"test-strategy\",\n      \"work-units\",\n      \"work-units-json\",\n      \"id-registry\"\n    ],\n    \"phaseGate\": false,\n    \"phaseFile\": \"<ENGINE>/methodology/phases/develop.md\",\n    \"agentFile\": \"<ENGINE>/methodology/agents/implementation-planner.md\",\n    \"model\": \"sonnet\",\n    \"modelSource\": \"default\"\n  },\n  \"context\": {\n    \"schemaVersion\": 1,\n    \"projectRoot\": \"<ROOT>\",\n    \"granted\": [\n      \"request\",\n      \"project\",\n      \"sources\",\n      \"profile\",\n      \"repos\"\n    ],\n    \"warnings\": [\n      \"PROJECT.md is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first.\"\n    ],\n    \"request\": {\n      \"path\": \".aidlc/intents/routing-lifecycle-work/intent.md\",\n      \"provenance\": \"User-provided\"\n    },\n    \"project\": {\n      \"id\": \"project\",\n      \"path\": \"PROJECT.md\",\n      \"kind\": \"project\",\n      \"status\": \"ok\",\n      \"size\": 1455,\n      \"provenance\": \"User-provided\"\n    },\n    \"sources\": [\n      {\n        \"id\": \"README.md\",\n        \"path\": \"README.md\",\n        \"kind\": \"readme\",\n        \"description\": \"Detected readme source.\",\n        \"status\": \"ok\",\n        \"size\": 27,\n        \"provenance\": \"Observed\"\n      },\n      {\n        \"id\": \"docs\",\n        \"path\": \"docs\",\n        \"kind\": \"docs\",\n        \"description\": \"Detected docs source.\",\n        \"status\": \"ok\",\n        \"size\": null,\n        \"provenance\": \"Observed\"\n      }\n    ],\n    \"sourceChanges\": {\n      \"scanned\": true,\n      \"scannedAt\": \"<ts>\",\n      \"missing\": [],\n      \"changed\": [],\n      \"added\": [],\n      \"removed\": [],\n      \"more\": {\n        \"changed\": 0,\n        \"added\": 0,\n        \"removed\": 0\n      }\n    },\n    \"codebaseMap\": {\n      \"path\": \".aidlc/knowledge/_codebase-map.md\",\n      \"template\": \"<ENGINE>/methodology/templates/codebase-map.md\",\n      \"exists\": false,\n      \"required\": true,\n      \"reason\": \"project kind is brownfield\",\n      \"bytes\": 0,\n      \"modifiedAt\": null\n    }\n  }\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"phase\":\"analyze\",\"result\":\"complete\",\"detail\":null,\"phaseGate\":true,\"gate\":\"analysis-baseline\",\"gateApproval\":\"approved\",\"approvedBy\":\"Pat Owner\"}\n{\"at\":\"<ts>\",\"event\":\"gate.decided\",\"intentId\":\"routing-lifecycle-work\",\"gate\":\"analysis-baseline\",\"phase\":\"analyze\",\"stage\":\"problem-framing\",\"decision\":\"approved\",\"result\":\"complete\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"mode\":\"human\",\"note\":\"Looks right\",\"detail\":null,\"skippedStages\":[],\"artifacts\":[]}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":false}\n",
+        ".aidlc/intents/routing-lifecycle-work/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intent\": \"Routing lifecycle work\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"fast\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"implementation-design\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"complete\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": null,\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"complete\",\n          \"detail\": null,\n          \"approval\": {\n            \"decision\": \"approved\",\n            \"by\": \"Pat Owner\",\n            \"bySource\": \"flag\",\n            \"mode\": \"human\",\n            \"note\": \"Looks right\"\n          }\n        }\n      ],\n      \"units\": {},\n      \"artifacts\": [\n        {\n          \"output\": \"problem-statement\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/problem-statement.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        },\n        {\n          \"output\": \"acceptance-criteria\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/acceptance-criteria.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        }\n      ]\n    },\n    \"implementation-design\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<ts>\"\n    }\n  },\n  \"dependencies\": {},\n  \"createdAt\": \"<ts>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<ts>\",\n  \"assignee\": \"Alex Doe\",\n  \"gates\": {\n    \"analysis-baseline\": {\n      \"phase\": \"analyze\",\n      \"stage\": \"problem-framing\",\n      \"decision\": \"approved\",\n      \"result\": \"complete\",\n      \"by\": \"Pat Owner\",\n      \"bySource\": \"flag\",\n      \"mode\": \"human\",\n      \"at\": \"<ts>\",\n      \"note\": \"Looks right\",\n      \"detail\": null,\n      \"skippedStages\": [],\n      \"artifacts\": []\n    }\n  }\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "ids",
+        "check"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"intentId\": \"routing-lifecycle-work\",\n  \"registry\": {\n    \"path\": \".aidlc/intents/routing-lifecycle-work/develop/implementation-design/ids.json\",\n    \"exists\": false,\n    \"counts\": {}\n  },\n  \"applies\": false,\n  \"ok\": true,\n  \"stages\": [\n    {\n      \"stage\": \"implementation-design\",\n      \"checked\": [],\n      \"unregistered\": []\n    },\n    {\n      \"stage\": \"red-tests\",\n      \"checked\": [],\n      \"unregistered\": []\n    },\n    {\n      \"stage\": \"build-and-verify\",\n      \"checked\": [],\n      \"unregistered\": []\n    }\n  ],\n  \"uncoveredFunctions\": []\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "ids",
+        "check",
+        "--stage",
+        "nowhere"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Stage nowhere is not in the active intent's scope\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "ids",
+        "check",
+        "--stage",
+        "implementation-design"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"intentId\": \"routing-lifecycle-work\",\n  \"registry\": {\n    \"path\": \".aidlc/intents/routing-lifecycle-work/develop/implementation-design/ids.json\",\n    \"exists\": false,\n    \"counts\": {}\n  },\n  \"applies\": false,\n  \"ok\": true,\n  \"stages\": [\n    {\n      \"stage\": \"implementation-design\",\n      \"checked\": [],\n      \"unregistered\": []\n    }\n  ],\n  \"uncoveredFunctions\": []\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "orchestrate",
+        "report",
+        "--result",
+        "blocked",
+        "--detail",
+        "The API contract is unclear"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"recorded\": true,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"stage\": \"implementation-design\",\n  \"result\": \"blocked\",\n  \"phaseGate\": false,\n  \"gate\": \"release-candidate\",\n  \"approval\": null,\n  \"approvedBy\": null,\n  \"intentComplete\": false\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"phase\":\"analyze\",\"result\":\"complete\",\"detail\":null,\"phaseGate\":true,\"gate\":\"analysis-baseline\",\"gateApproval\":\"approved\",\"approvedBy\":\"Pat Owner\"}\n{\"at\":\"<ts>\",\"event\":\"gate.decided\",\"intentId\":\"routing-lifecycle-work\",\"gate\":\"analysis-baseline\",\"phase\":\"analyze\",\"stage\":\"problem-framing\",\"decision\":\"approved\",\"result\":\"complete\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"mode\":\"human\",\"note\":\"Looks right\",\"detail\":null,\"skippedStages\":[],\"artifacts\":[]}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"phase\":\"develop\",\"result\":\"blocked\",\"detail\":\"The API contract is unclear\",\"phaseGate\":false,\"gate\":null,\"gateApproval\":null,\"approvedBy\":null}\n",
+        ".aidlc/intents/routing-lifecycle-work/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intent\": \"Routing lifecycle work\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"fast\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": null,\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"complete\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": null,\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"complete\",\n          \"detail\": null,\n          \"approval\": {\n            \"decision\": \"approved\",\n            \"by\": \"Pat Owner\",\n            \"bySource\": \"flag\",\n            \"mode\": \"human\",\n            \"note\": \"Looks right\"\n          }\n        }\n      ],\n      \"units\": {},\n      \"artifacts\": [\n        {\n          \"output\": \"problem-statement\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/problem-statement.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        },\n        {\n          \"output\": \"acceptance-criteria\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/acceptance-criteria.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        }\n      ]\n    },\n    \"implementation-design\": {\n      \"status\": \"blocked\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": \"The API contract is unclear\",\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"blocked\",\n          \"detail\": \"The API contract is unclear\"\n        }\n      ],\n      \"units\": {}\n    }\n  },\n  \"dependencies\": {},\n  \"createdAt\": \"<ts>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<ts>\",\n  \"assignee\": \"Alex Doe\",\n  \"gates\": {\n    \"analysis-baseline\": {\n      \"phase\": \"analyze\",\n      \"stage\": \"problem-framing\",\n      \"decision\": \"approved\",\n      \"result\": \"complete\",\n      \"by\": \"Pat Owner\",\n      \"bySource\": \"flag\",\n      \"mode\": \"human\",\n      \"at\": \"<ts>\",\n      \"note\": \"Looks right\",\n      \"detail\": null,\n      \"skippedStages\": [],\n      \"artifacts\": []\n    }\n  }\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "intent",
+        "rework",
+        "--detail",
+        "Redo the design"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"reworkRequested\": true,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"fromStage\": \"implementation-design\",\n  \"nextStage\": \"implementation-design\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"phase\":\"analyze\",\"result\":\"complete\",\"detail\":null,\"phaseGate\":true,\"gate\":\"analysis-baseline\",\"gateApproval\":\"approved\",\"approvedBy\":\"Pat Owner\"}\n{\"at\":\"<ts>\",\"event\":\"gate.decided\",\"intentId\":\"routing-lifecycle-work\",\"gate\":\"analysis-baseline\",\"phase\":\"analyze\",\"stage\":\"problem-framing\",\"decision\":\"approved\",\"result\":\"complete\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"mode\":\"human\",\"note\":\"Looks right\",\"detail\":null,\"skippedStages\":[],\"artifacts\":[]}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"phase\":\"develop\",\"result\":\"blocked\",\"detail\":\"The API contract is unclear\",\"phaseGate\":false,\"gate\":null,\"gateApproval\":null,\"approvedBy\":null}\n{\"at\":\"<ts>\",\"event\":\"design.rework.requested\",\"intentId\":\"routing-lifecycle-work\",\"fromStage\":\"implementation-design\",\"detail\":\"Redo the design\"}\n",
+        ".aidlc/intents/routing-lifecycle-work/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intent\": \"Routing lifecycle work\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"fast\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": null,\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"complete\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": null,\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"complete\",\n          \"detail\": null,\n          \"approval\": {\n            \"decision\": \"approved\",\n            \"by\": \"Pat Owner\",\n            \"bySource\": \"flag\",\n            \"mode\": \"human\",\n            \"note\": \"Looks right\"\n          }\n        }\n      ],\n      \"units\": {},\n      \"artifacts\": [\n        {\n          \"output\": \"problem-statement\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/problem-statement.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        },\n        {\n          \"output\": \"acceptance-criteria\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/acceptance-criteria.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        }\n      ]\n    },\n    \"implementation-design\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": \"The API contract is unclear\",\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"blocked\",\n          \"detail\": \"The API contract is unclear\"\n        }\n      ],\n      \"units\": {},\n      \"reworkRequestedAt\": \"<ts>\"\n    }\n  },\n  \"dependencies\": {},\n  \"createdAt\": \"<ts>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<ts>\",\n  \"assignee\": \"Alex Doe\",\n  \"gates\": {\n    \"analysis-baseline\": {\n      \"phase\": \"analyze\",\n      \"stage\": \"problem-framing\",\n      \"decision\": \"approved\",\n      \"result\": \"complete\",\n      \"by\": \"Pat Owner\",\n      \"bySource\": \"flag\",\n      \"mode\": \"human\",\n      \"at\": \"<ts>\",\n      \"note\": \"Looks right\",\n      \"detail\": null,\n      \"skippedStages\": [],\n      \"artifacts\": []\n    }\n  },\n  \"designReworkPending\": true,\n  \"designRework\": {\n    \"requestedAt\": \"<ts>\",\n    \"fromStage\": \"implementation-design\",\n    \"detail\": \"Redo the design\"\n  }\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "orchestrate",
+        "next"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"intent\": \"Routing lifecycle work\",\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intentDir\": \"<ROOT>/.aidlc/intents/routing-lifecycle-work\",\n  \"scope\": \"solo\",\n  \"depth\": \"fast\",\n  \"mode\": \"human\",\n  \"orchestrationMode\": \"human\",\n  \"scopeSource\": \"config\",\n  \"assignee\": \"Alex Doe\",\n  \"warnings\": [],\n  \"gate\": {\n    \"id\": \"release-candidate\",\n    \"phase\": \"develop\",\n    \"finalStage\": \"build-and-verify\"\n  },\n  \"gateMode\": \"human\",\n  \"approvalRequiredAfter\": \"build-and-verify\",\n  \"contractsFile\": \"<ENGINE>/methodology/contracts.md\",\n  \"suggestedBranch\": \"feature/routing-lifecycle-work\",\n  \"artifacts\": [\n    {\n      \"output\": \"implementation-plan\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/routing-lifecycle-work/develop/implementation-design/implementation-plan.md\"\n    }\n  ],\n  \"stage\": {\n    \"id\": \"implementation-design\",\n    \"phase\": \"develop\",\n    \"order\": 1,\n    \"agent\": \"implementation-planner\",\n    \"inputs\": {\n      \"artifacts\": [\n        \"recommended-direction\",\n        \"decision-record\",\n        \"scope-boundary\",\n        \"architecture-design\",\n        \"acceptance-criteria\",\n        \"user-stories\",\n        \"constraints-and-assumptions\",\n        \"risk-register\",\n        \"quality-requirements\",\n        \"threat-model\"\n      ],\n      \"context\": [\n        \"request\",\n        \"project\",\n        \"sources\",\n        \"profile\",\n        \"repos\"\n      ]\n    },\n    \"produces\": [\n      \"implementation-plan\",\n      \"interfaces-and-contracts\",\n      \"functional-design\",\n      \"test-strategy\",\n      \"work-units\",\n      \"work-units-json\",\n      \"id-registry\"\n    ],\n    \"phaseGate\": false,\n    \"phaseFile\": \"<ENGINE>/methodology/phases/develop.md\",\n    \"agentFile\": \"<ENGINE>/methodology/agents/implementation-planner.md\",\n    \"model\": \"sonnet\",\n    \"modelSource\": \"default\",\n    \"rework\": {\n      \"blockedAt\": \"<ts>\",\n      \"detail\": \"The API contract is unclear\",\n      \"attempt\": 2\n    }\n  },\n  \"context\": {\n    \"schemaVersion\": 1,\n    \"projectRoot\": \"<ROOT>\",\n    \"granted\": [\n      \"request\",\n      \"project\",\n      \"sources\",\n      \"profile\",\n      \"repos\"\n    ],\n    \"warnings\": [\n      \"PROJECT.md is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first.\"\n    ],\n    \"request\": {\n      \"path\": \".aidlc/intents/routing-lifecycle-work/intent.md\",\n      \"provenance\": \"User-provided\"\n    },\n    \"project\": {\n      \"id\": \"project\",\n      \"path\": \"PROJECT.md\",\n      \"kind\": \"project\",\n      \"status\": \"ok\",\n      \"size\": 1455,\n      \"provenance\": \"User-provided\"\n    },\n    \"sources\": [\n      {\n        \"id\": \"README.md\",\n        \"path\": \"README.md\",\n        \"kind\": \"readme\",\n        \"description\": \"Detected readme source.\",\n        \"status\": \"ok\",\n        \"size\": 27,\n        \"provenance\": \"Observed\"\n      },\n      {\n        \"id\": \"docs\",\n        \"path\": \"docs\",\n        \"kind\": \"docs\",\n        \"description\": \"Detected docs source.\",\n        \"status\": \"ok\",\n        \"size\": null,\n        \"provenance\": \"Observed\"\n      }\n    ],\n    \"sourceChanges\": {\n      \"scanned\": true,\n      \"scannedAt\": \"<ts>\",\n      \"missing\": [],\n      \"changed\": [],\n      \"added\": [],\n      \"removed\": [],\n      \"more\": {\n        \"changed\": 0,\n        \"added\": 0,\n        \"removed\": 0\n      }\n    },\n    \"codebaseMap\": {\n      \"path\": \".aidlc/knowledge/_codebase-map.md\",\n      \"template\": \"<ENGINE>/methodology/templates/codebase-map.md\",\n      \"exists\": false,\n      \"required\": true,\n      \"reason\": \"project kind is brownfield\",\n      \"bytes\": 0,\n      \"modifiedAt\": null\n    }\n  }\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"phase\":\"analyze\",\"result\":\"complete\",\"detail\":null,\"phaseGate\":true,\"gate\":\"analysis-baseline\",\"gateApproval\":\"approved\",\"approvedBy\":\"Pat Owner\"}\n{\"at\":\"<ts>\",\"event\":\"gate.decided\",\"intentId\":\"routing-lifecycle-work\",\"gate\":\"analysis-baseline\",\"phase\":\"analyze\",\"stage\":\"problem-framing\",\"decision\":\"approved\",\"result\":\"complete\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"mode\":\"human\",\"note\":\"Looks right\",\"detail\":null,\"skippedStages\":[],\"artifacts\":[]}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"phase\":\"develop\",\"result\":\"blocked\",\"detail\":\"The API contract is unclear\",\"phaseGate\":false,\"gate\":null,\"gateApproval\":null,\"approvedBy\":null}\n{\"at\":\"<ts>\",\"event\":\"design.rework.requested\",\"intentId\":\"routing-lifecycle-work\",\"fromStage\":\"implementation-design\",\"detail\":\"Redo the design\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":true}\n",
+        ".aidlc/intents/routing-lifecycle-work/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intent\": \"Routing lifecycle work\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"fast\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"implementation-design\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"complete\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": null,\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"complete\",\n          \"detail\": null,\n          \"approval\": {\n            \"decision\": \"approved\",\n            \"by\": \"Pat Owner\",\n            \"bySource\": \"flag\",\n            \"mode\": \"human\",\n            \"note\": \"Looks right\"\n          }\n        }\n      ],\n      \"units\": {},\n      \"artifacts\": [\n        {\n          \"output\": \"problem-statement\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/problem-statement.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        },\n        {\n          \"output\": \"acceptance-criteria\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/acceptance-criteria.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        }\n      ]\n    },\n    \"implementation-design\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": \"The API contract is unclear\",\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"blocked\",\n          \"detail\": \"The API contract is unclear\"\n        }\n      ],\n      \"units\": {},\n      \"reworkRequestedAt\": \"<ts>\",\n      \"resumedAt\": \"<ts>\"\n    }\n  },\n  \"dependencies\": {},\n  \"createdAt\": \"<ts>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<ts>\",\n  \"assignee\": \"Alex Doe\",\n  \"gates\": {\n    \"analysis-baseline\": {\n      \"phase\": \"analyze\",\n      \"stage\": \"problem-framing\",\n      \"decision\": \"approved\",\n      \"result\": \"complete\",\n      \"by\": \"Pat Owner\",\n      \"bySource\": \"flag\",\n      \"mode\": \"human\",\n      \"at\": \"<ts>\",\n      \"note\": \"Looks right\",\n      \"detail\": null,\n      \"skippedStages\": [],\n      \"artifacts\": []\n    }\n  },\n  \"designReworkPending\": true,\n  \"designRework\": {\n    \"requestedAt\": \"<ts>\",\n    \"fromStage\": \"implementation-design\",\n    \"detail\": \"Redo the design\"\n  }\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "deps",
+        "add",
+        "item-a",
+        "item-b"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"id\": \"item-a\",\n  \"dependencies\": [\n    \"item-b\"\n  ]\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"phase\":\"analyze\",\"result\":\"complete\",\"detail\":null,\"phaseGate\":true,\"gate\":\"analysis-baseline\",\"gateApproval\":\"approved\",\"approvedBy\":\"Pat Owner\"}\n{\"at\":\"<ts>\",\"event\":\"gate.decided\",\"intentId\":\"routing-lifecycle-work\",\"gate\":\"analysis-baseline\",\"phase\":\"analyze\",\"stage\":\"problem-framing\",\"decision\":\"approved\",\"result\":\"complete\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"mode\":\"human\",\"note\":\"Looks right\",\"detail\":null,\"skippedStages\":[],\"artifacts\":[]}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"phase\":\"develop\",\"result\":\"blocked\",\"detail\":\"The API contract is unclear\",\"phaseGate\":false,\"gate\":null,\"gateApproval\":null,\"approvedBy\":null}\n{\"at\":\"<ts>\",\"event\":\"design.rework.requested\",\"intentId\":\"routing-lifecycle-work\",\"fromStage\":\"implementation-design\",\"detail\":\"Redo the design\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":true}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n",
+        ".aidlc/intents/routing-lifecycle-work/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intent\": \"Routing lifecycle work\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"fast\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"implementation-design\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"complete\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": null,\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"complete\",\n          \"detail\": null,\n          \"approval\": {\n            \"decision\": \"approved\",\n            \"by\": \"Pat Owner\",\n            \"bySource\": \"flag\",\n            \"mode\": \"human\",\n            \"note\": \"Looks right\"\n          }\n        }\n      ],\n      \"units\": {},\n      \"artifacts\": [\n        {\n          \"output\": \"problem-statement\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/problem-statement.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        },\n        {\n          \"output\": \"acceptance-criteria\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/acceptance-criteria.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        }\n      ]\n    },\n    \"implementation-design\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": \"The API contract is unclear\",\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"blocked\",\n          \"detail\": \"The API contract is unclear\"\n        }\n      ],\n      \"units\": {},\n      \"reworkRequestedAt\": \"<ts>\",\n      \"resumedAt\": \"<ts>\"\n    }\n  },\n  \"dependencies\": {\n    \"item-a\": [\n      \"item-b\"\n    ]\n  },\n  \"createdAt\": \"<ts>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<ts>\",\n  \"assignee\": \"Alex Doe\",\n  \"gates\": {\n    \"analysis-baseline\": {\n      \"phase\": \"analyze\",\n      \"stage\": \"problem-framing\",\n      \"decision\": \"approved\",\n      \"result\": \"complete\",\n      \"by\": \"Pat Owner\",\n      \"bySource\": \"flag\",\n      \"mode\": \"human\",\n      \"at\": \"<ts>\",\n      \"note\": \"Looks right\",\n      \"detail\": null,\n      \"skippedStages\": [],\n      \"artifacts\": []\n    }\n  },\n  \"designReworkPending\": true,\n  \"designRework\": {\n    \"requestedAt\": \"<ts>\",\n    \"fromStage\": \"implementation-design\",\n    \"detail\": \"Redo the design\"\n  }\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "deps",
+        "add",
+        "item-a",
+        "item-b"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"id\": \"item-a\",\n  \"dependencies\": [\n    \"item-b\"\n  ]\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"phase\":\"analyze\",\"result\":\"complete\",\"detail\":null,\"phaseGate\":true,\"gate\":\"analysis-baseline\",\"gateApproval\":\"approved\",\"approvedBy\":\"Pat Owner\"}\n{\"at\":\"<ts>\",\"event\":\"gate.decided\",\"intentId\":\"routing-lifecycle-work\",\"gate\":\"analysis-baseline\",\"phase\":\"analyze\",\"stage\":\"problem-framing\",\"decision\":\"approved\",\"result\":\"complete\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"mode\":\"human\",\"note\":\"Looks right\",\"detail\":null,\"skippedStages\":[],\"artifacts\":[]}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"phase\":\"develop\",\"result\":\"blocked\",\"detail\":\"The API contract is unclear\",\"phaseGate\":false,\"gate\":null,\"gateApproval\":null,\"approvedBy\":null}\n{\"at\":\"<ts>\",\"event\":\"design.rework.requested\",\"intentId\":\"routing-lifecycle-work\",\"fromStage\":\"implementation-design\",\"detail\":\"Redo the design\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":true}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n"
+      }
+    },
+    {
+      "argv": [
+        "deps",
+        "add",
+        "item-a",
+        "item-a"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: An item cannot depend on itself\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "deps",
+        "add",
+        "item-a"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Usage: deps add <id> <dependency-id>\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "deps",
+        "add",
+        "Bad Id",
+        "item-b"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Invalid item id: use letters, digits, dot, underscore, or hyphen\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "deps",
+        "list"
+      ],
+      "code": 0,
+      "stdout": "[\n  {\n    \"id\": \"item-a\",\n    \"dependency\": \"item-b\"\n  }\n]\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "deps",
+        "pull",
+        "item-a"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"id\": \"item-a\",\n  \"dependencies\": [\n    {\n      \"id\": \"item-b\",\n      \"status\": \"unknown\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "deps",
+        "pull",
+        "item-z"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"id\": \"item-z\",\n  \"dependencies\": []\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "deps",
+        "pull"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Invalid item id: use letters, digits, dot, underscore, or hyphen\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "pause",
+        "--detail",
+        "Coffee break"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"paused\": true,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"resumeWith\": \"dtech-aidlc intent resume routing-lifecycle-work\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"phase\":\"analyze\",\"result\":\"complete\",\"detail\":null,\"phaseGate\":true,\"gate\":\"analysis-baseline\",\"gateApproval\":\"approved\",\"approvedBy\":\"Pat Owner\"}\n{\"at\":\"<ts>\",\"event\":\"gate.decided\",\"intentId\":\"routing-lifecycle-work\",\"gate\":\"analysis-baseline\",\"phase\":\"analyze\",\"stage\":\"problem-framing\",\"decision\":\"approved\",\"result\":\"complete\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"mode\":\"human\",\"note\":\"Looks right\",\"detail\":null,\"skippedStages\":[],\"artifacts\":[]}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"phase\":\"develop\",\"result\":\"blocked\",\"detail\":\"The API contract is unclear\",\"phaseGate\":false,\"gate\":null,\"gateApproval\":null,\"approvedBy\":null}\n{\"at\":\"<ts>\",\"event\":\"design.rework.requested\",\"intentId\":\"routing-lifecycle-work\",\"fromStage\":\"implementation-design\",\"detail\":\"Redo the design\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":true}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n{\"at\":\"<ts>\",\"event\":\"intent.paused\",\"intentId\":\"routing-lifecycle-work\",\"detail\":\"Coffee break\"}\n",
+        ".aidlc/state.json": "{\n  \"version\": 2,\n  \"activeIntentId\": null,\n  \"updatedAt\": \"<ts>\"\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "intent",
+        "pause"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: No unfinished active intent to pause\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "status"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"initialized\": true,\n  \"activeIntent\": null,\n  \"pausedIntents\": [\n    \"routing-lifecycle-work\"\n  ]\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "list"
+      ],
+      "code": 0,
+      "stdout": "[\n  {\n    \"intentId\": \"routing-lifecycle-work\",\n    \"title\": \"Routing lifecycle work\",\n    \"scope\": \"solo\",\n    \"mode\": \"human\",\n    \"status\": \"paused\",\n    \"current\": false,\n    \"currentStage\": \"implementation-design\",\n    \"assignee\": \"Alex Doe\",\n    \"progress\": {\n      \"done\": 1,\n      \"total\": 5\n    },\n    \"createdAt\": \"<ts>\",\n    \"updatedAt\": \"<ts>\"\n  }\n]\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "resume"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Usage: intent resume <id>\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "resume",
+        "nope"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Unknown intent 'nope'. Run 'dtech-aidlc intent list'.\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "resume",
+        "routing-lifecycle-work"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"resumed\": true,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"currentStage\": \"implementation-design\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"phase\":\"analyze\",\"result\":\"complete\",\"detail\":null,\"phaseGate\":true,\"gate\":\"analysis-baseline\",\"gateApproval\":\"approved\",\"approvedBy\":\"Pat Owner\"}\n{\"at\":\"<ts>\",\"event\":\"gate.decided\",\"intentId\":\"routing-lifecycle-work\",\"gate\":\"analysis-baseline\",\"phase\":\"analyze\",\"stage\":\"problem-framing\",\"decision\":\"approved\",\"result\":\"complete\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"mode\":\"human\",\"note\":\"Looks right\",\"detail\":null,\"skippedStages\":[],\"artifacts\":[]}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"phase\":\"develop\",\"result\":\"blocked\",\"detail\":\"The API contract is unclear\",\"phaseGate\":false,\"gate\":null,\"gateApproval\":null,\"approvedBy\":null}\n{\"at\":\"<ts>\",\"event\":\"design.rework.requested\",\"intentId\":\"routing-lifecycle-work\",\"fromStage\":\"implementation-design\",\"detail\":\"Redo the design\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":true}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n{\"at\":\"<ts>\",\"event\":\"intent.paused\",\"intentId\":\"routing-lifecycle-work\",\"detail\":\"Coffee break\"}\n{\"at\":\"<ts>\",\"event\":\"intent.resumed\",\"intentId\":\"routing-lifecycle-work\",\"detail\":null}\n",
+        ".aidlc/state.json": "{\n  \"version\": 2,\n  \"activeIntentId\": \"routing-lifecycle-work\",\n  \"updatedAt\": \"<ts>\"\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "status",
+        "--intent",
+        "routing-lifecycle-work"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"intent\": \"Routing lifecycle work\",\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intentDir\": \"<ROOT>/.aidlc/intents/routing-lifecycle-work\",\n  \"scope\": \"solo\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"implementation-design\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"complete\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": null,\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"complete\",\n          \"detail\": null,\n          \"approval\": {\n            \"decision\": \"approved\",\n            \"by\": \"Pat Owner\",\n            \"bySource\": \"flag\",\n            \"mode\": \"human\",\n            \"note\": \"Looks right\"\n          }\n        }\n      ],\n      \"units\": {},\n      \"artifacts\": [\n        {\n          \"output\": \"problem-statement\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/problem-statement.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        },\n        {\n          \"output\": \"acceptance-criteria\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/acceptance-criteria.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        }\n      ]\n    },\n    \"implementation-design\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": \"The API contract is unclear\",\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"blocked\",\n          \"detail\": \"The API contract is unclear\"\n        }\n      ],\n      \"units\": {},\n      \"reworkRequestedAt\": \"<ts>\",\n      \"resumedAt\": \"<ts>\"\n    }\n  }\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "orchestrate",
+        "next",
+        "--intent",
+        "Second piece of work"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Intent 'routing-lifecycle-work' is still in progress (stage implementation-design, 1 of 5 stages finished). Finish it, set it aside with 'dtech-aidlc intent pause', or close it with 'dtech-aidlc intent abandon --detail \"<reason>\"', then start the new intent.\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "pause"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"paused\": true,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"resumeWith\": \"dtech-aidlc intent resume routing-lifecycle-work\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"phase\":\"analyze\",\"result\":\"complete\",\"detail\":null,\"phaseGate\":true,\"gate\":\"analysis-baseline\",\"gateApproval\":\"approved\",\"approvedBy\":\"Pat Owner\"}\n{\"at\":\"<ts>\",\"event\":\"gate.decided\",\"intentId\":\"routing-lifecycle-work\",\"gate\":\"analysis-baseline\",\"phase\":\"analyze\",\"stage\":\"problem-framing\",\"decision\":\"approved\",\"result\":\"complete\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"mode\":\"human\",\"note\":\"Looks right\",\"detail\":null,\"skippedStages\":[],\"artifacts\":[]}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"phase\":\"develop\",\"result\":\"blocked\",\"detail\":\"The API contract is unclear\",\"phaseGate\":false,\"gate\":null,\"gateApproval\":null,\"approvedBy\":null}\n{\"at\":\"<ts>\",\"event\":\"design.rework.requested\",\"intentId\":\"routing-lifecycle-work\",\"fromStage\":\"implementation-design\",\"detail\":\"Redo the design\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":true}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n{\"at\":\"<ts>\",\"event\":\"intent.paused\",\"intentId\":\"routing-lifecycle-work\",\"detail\":\"Coffee break\"}\n{\"at\":\"<ts>\",\"event\":\"intent.resumed\",\"intentId\":\"routing-lifecycle-work\",\"detail\":null}\n{\"at\":\"<ts>\",\"event\":\"intent.paused\",\"intentId\":\"routing-lifecycle-work\",\"detail\":null}\n",
+        ".aidlc/state.json": "{\n  \"version\": 2,\n  \"activeIntentId\": null,\n  \"updatedAt\": \"<ts>\"\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "orchestrate",
+        "next",
+        "--intent",
+        "Second piece of work"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"intent\": \"Second piece of work\",\n  \"intentId\": \"second-piece-of-work\",\n  \"intentDir\": \"<ROOT>/.aidlc/intents/second-piece-of-work\",\n  \"scope\": \"solo\",\n  \"depth\": \"full\",\n  \"mode\": \"human\",\n  \"orchestrationMode\": \"human\",\n  \"scopeSource\": \"config\",\n  \"warnings\": [],\n  \"gate\": {\n    \"id\": \"analysis-baseline\",\n    \"phase\": \"analyze\",\n    \"finalStage\": \"context-and-risk\"\n  },\n  \"gateMode\": \"human\",\n  \"approvalRequiredAfter\": \"context-and-risk\",\n  \"contractsFile\": \"<ENGINE>/methodology/contracts.md\",\n  \"suggestedBranch\": \"feature/second-piece-of-work\",\n  \"artifacts\": [\n    {\n      \"output\": \"problem-statement\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/second-piece-of-work/analyze/problem-framing/problem-statement.md\"\n    },\n    {\n      \"output\": \"success-measures\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/second-piece-of-work/analyze/problem-framing/success-measures.md\"\n    },\n    {\n      \"output\": \"stakeholder-map\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/second-piece-of-work/analyze/problem-framing/stakeholder-map.md\"\n    },\n    {\n      \"output\": \"acceptance-criteria\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/second-piece-of-work/analyze/problem-framing/acceptance-criteria.md\",\n      \"template\": \"<ENGINE>/methodology/templates/acceptance-criteria.md\"\n    },\n    {\n      \"output\": \"user-stories\",\n      \"kind\": \"document\",\n      \"path\": \".aidlc/intents/second-piece-of-work/analyze/problem-framing/user-stories.md\",\n      \"template\": \"<ENGINE>/methodology/templates/user-stories.md\"\n    }\n  ],\n  \"stage\": {\n    \"id\": \"problem-framing\",\n    \"phase\": \"analyze\",\n    \"order\": 1,\n    \"agent\": \"brief-analyst\",\n    \"inputs\": {\n      \"artifacts\": [],\n      \"context\": [\n        \"request\",\n        \"project\",\n        \"sources\",\n        \"knowledge\",\n        \"profile\",\n        \"repos\"\n      ]\n    },\n    \"produces\": [\n      \"problem-statement\",\n      \"success-measures\",\n      \"stakeholder-map\",\n      \"acceptance-criteria\",\n      \"user-stories\"\n    ],\n    \"phaseGate\": false,\n    \"phaseFile\": \"<ENGINE>/methodology/phases/analyze.md\",\n    \"agentFile\": \"<ENGINE>/methodology/agents/brief-analyst.md\",\n    \"model\": \"sonnet\",\n    \"modelSource\": \"default\"\n  },\n  \"context\": {\n    \"schemaVersion\": 1,\n    \"projectRoot\": \"<ROOT>\",\n    \"granted\": [\n      \"request\",\n      \"project\",\n      \"sources\",\n      \"knowledge\",\n      \"profile\",\n      \"repos\"\n    ],\n    \"warnings\": [\n      \"PROJECT.md is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first.\"\n    ],\n    \"request\": {\n      \"path\": \".aidlc/intents/second-piece-of-work/intent.md\",\n      \"provenance\": \"User-provided\"\n    },\n    \"project\": {\n      \"id\": \"project\",\n      \"path\": \"PROJECT.md\",\n      \"kind\": \"project\",\n      \"status\": \"ok\",\n      \"size\": 1455,\n      \"provenance\": \"User-provided\"\n    },\n    \"sources\": [\n      {\n        \"id\": \"README.md\",\n        \"path\": \"README.md\",\n        \"kind\": \"readme\",\n        \"description\": \"Detected readme source.\",\n        \"status\": \"ok\",\n        \"size\": 27,\n        \"provenance\": \"Observed\"\n      },\n      {\n        \"id\": \"docs\",\n        \"path\": \"docs\",\n        \"kind\": \"docs\",\n        \"description\": \"Detected docs source.\",\n        \"status\": \"ok\",\n        \"size\": null,\n        \"provenance\": \"Observed\"\n      }\n    ],\n    \"sourceChanges\": {\n      \"scanned\": true,\n      \"scannedAt\": \"<ts>\",\n      \"missing\": [],\n      \"changed\": [],\n      \"added\": [],\n      \"removed\": [],\n      \"more\": {\n        \"changed\": 0,\n        \"added\": 0,\n        \"removed\": 0\n      }\n    },\n    \"codebaseMap\": {\n      \"path\": \".aidlc/knowledge/_codebase-map.md\",\n      \"template\": \"<ENGINE>/methodology/templates/codebase-map.md\",\n      \"exists\": false,\n      \"required\": true,\n      \"reason\": \"project kind is brownfield\",\n      \"bytes\": 0,\n      \"modifiedAt\": null\n    },\n    \"knowledge\": {\n      \"dir\": \".aidlc/knowledge\",\n      \"records\": [],\n      \"invalid\": []\n    }\n  }\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"phase\":\"analyze\",\"result\":\"complete\",\"detail\":null,\"phaseGate\":true,\"gate\":\"analysis-baseline\",\"gateApproval\":\"approved\",\"approvedBy\":\"Pat Owner\"}\n{\"at\":\"<ts>\",\"event\":\"gate.decided\",\"intentId\":\"routing-lifecycle-work\",\"gate\":\"analysis-baseline\",\"phase\":\"analyze\",\"stage\":\"problem-framing\",\"decision\":\"approved\",\"result\":\"complete\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"mode\":\"human\",\"note\":\"Looks right\",\"detail\":null,\"skippedStages\":[],\"artifacts\":[]}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"phase\":\"develop\",\"result\":\"blocked\",\"detail\":\"The API contract is unclear\",\"phaseGate\":false,\"gate\":null,\"gateApproval\":null,\"approvedBy\":null}\n{\"at\":\"<ts>\",\"event\":\"design.rework.requested\",\"intentId\":\"routing-lifecycle-work\",\"fromStage\":\"implementation-design\",\"detail\":\"Redo the design\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":true}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n{\"at\":\"<ts>\",\"event\":\"intent.paused\",\"intentId\":\"routing-lifecycle-work\",\"detail\":\"Coffee break\"}\n{\"at\":\"<ts>\",\"event\":\"intent.resumed\",\"intentId\":\"routing-lifecycle-work\",\"detail\":null}\n{\"at\":\"<ts>\",\"event\":\"intent.paused\",\"intentId\":\"routing-lifecycle-work\",\"detail\":null}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Second piece of work\",\"intentId\":\"second-piece-of-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Second piece of work\",\"intentId\":\"second-piece-of-work\",\"stage\":\"problem-framing\",\"rework\":false}\n",
+        ".aidlc/intents/second-piece-of-work/": "",
+        ".aidlc/intents/second-piece-of-work/intent.md": "# second-piece-of-work\n\nSecond piece of work\n",
+        ".aidlc/intents/second-piece-of-work/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"second-piece-of-work\",\n  \"intent\": \"Second piece of work\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"full\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"problem-framing\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<ts>\"\n    }\n  },\n  \"dependencies\": {},\n  \"createdAt\": \"<ts>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<ts>\"\n}\n",
+        ".aidlc/state.json": "{\n  \"version\": 2,\n  \"activeIntentId\": \"second-piece-of-work\",\n  \"updatedAt\": \"<ts>\"\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "intent",
+        "resume",
+        "routing-lifecycle-work"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Intent 'second-piece-of-work' is active; pause or finish it first\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "abandon"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: intent abandon requires --detail \"<reason>\"\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "abandon",
+        "routing-lifecycle-work",
+        "--detail",
+        "Superseded"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"abandoned\": true,\n  \"intentId\": \"routing-lifecycle-work\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"phase\":\"analyze\",\"result\":\"complete\",\"detail\":null,\"phaseGate\":true,\"gate\":\"analysis-baseline\",\"gateApproval\":\"approved\",\"approvedBy\":\"Pat Owner\"}\n{\"at\":\"<ts>\",\"event\":\"gate.decided\",\"intentId\":\"routing-lifecycle-work\",\"gate\":\"analysis-baseline\",\"phase\":\"analyze\",\"stage\":\"problem-framing\",\"decision\":\"approved\",\"result\":\"complete\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"mode\":\"human\",\"note\":\"Looks right\",\"detail\":null,\"skippedStages\":[],\"artifacts\":[]}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"phase\":\"develop\",\"result\":\"blocked\",\"detail\":\"The API contract is unclear\",\"phaseGate\":false,\"gate\":null,\"gateApproval\":null,\"approvedBy\":null}\n{\"at\":\"<ts>\",\"event\":\"design.rework.requested\",\"intentId\":\"routing-lifecycle-work\",\"fromStage\":\"implementation-design\",\"detail\":\"Redo the design\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":true}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n{\"at\":\"<ts>\",\"event\":\"intent.paused\",\"intentId\":\"routing-lifecycle-work\",\"detail\":\"Coffee break\"}\n{\"at\":\"<ts>\",\"event\":\"intent.resumed\",\"intentId\":\"routing-lifecycle-work\",\"detail\":null}\n{\"at\":\"<ts>\",\"event\":\"intent.paused\",\"intentId\":\"routing-lifecycle-work\",\"detail\":null}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Second piece of work\",\"intentId\":\"second-piece-of-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Second piece of work\",\"intentId\":\"second-piece-of-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"intent.abandoned\",\"intentId\":\"routing-lifecycle-work\",\"detail\":\"Superseded\"}\n",
+        ".aidlc/intents/routing-lifecycle-work/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"routing-lifecycle-work\",\n  \"intent\": \"Routing lifecycle work\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"fast\",\n  \"mode\": \"human\",\n  \"status\": \"abandoned\",\n  \"currentStage\": null,\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"complete\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": null,\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"complete\",\n          \"detail\": null,\n          \"approval\": {\n            \"decision\": \"approved\",\n            \"by\": \"Pat Owner\",\n            \"bySource\": \"flag\",\n            \"mode\": \"human\",\n            \"note\": \"Looks right\"\n          }\n        }\n      ],\n      \"units\": {},\n      \"artifacts\": [\n        {\n          \"output\": \"problem-statement\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/problem-statement.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        },\n        {\n          \"output\": \"acceptance-criteria\",\n          \"path\": \".aidlc/intents/routing-lifecycle-work/analyze/problem-framing/acceptance-criteria.md\",\n          \"bytes\": 42,\n          \"sha256\": \"a160ad3b8f7158489e6dc9e1646a83744cac90dfa5b49b034ce219f23a145bfe\"\n        }\n      ]\n    },\n    \"implementation-design\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": \"The API contract is unclear\",\n      \"reportedAt\": \"<ts>\",\n      \"reports\": [\n        {\n          \"at\": \"<ts>\",\n          \"result\": \"blocked\",\n          \"detail\": \"The API contract is unclear\"\n        }\n      ],\n      \"units\": {},\n      \"reworkRequestedAt\": \"<ts>\",\n      \"resumedAt\": \"<ts>\"\n    }\n  },\n  \"dependencies\": {\n    \"item-a\": [\n      \"item-b\"\n    ]\n  },\n  \"createdAt\": \"<ts>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<ts>\",\n  \"assignee\": \"Alex Doe\",\n  \"gates\": {\n    \"analysis-baseline\": {\n      \"phase\": \"analyze\",\n      \"stage\": \"problem-framing\",\n      \"decision\": \"approved\",\n      \"result\": \"complete\",\n      \"by\": \"Pat Owner\",\n      \"bySource\": \"flag\",\n      \"mode\": \"human\",\n      \"at\": \"<ts>\",\n      \"note\": \"Looks right\",\n      \"detail\": null,\n      \"skippedStages\": [],\n      \"artifacts\": []\n    }\n  },\n  \"designReworkPending\": true,\n  \"designRework\": {\n    \"requestedAt\": \"<ts>\",\n    \"fromStage\": \"implementation-design\",\n    \"detail\": \"Redo the design\"\n  },\n  \"closed\": {\n    \"kind\": \"abandoned\",\n    \"at\": \"<ts>\",\n    \"detail\": \"Superseded\"\n  }\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "intent",
+        "abandon",
+        "routing-lifecycle-work",
+        "--detail",
+        "again"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Intent 'routing-lifecycle-work' is already abandoned\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "resume",
+        "routing-lifecycle-work"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Intent 'routing-lifecycle-work' was abandoned and cannot be resumed\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "abandon",
+        "--detail",
+        "Not needed"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"abandoned\": true,\n  \"intentId\": \"second-piece-of-work\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"depth.changed\",\"intentId\":\"routing-lifecycle-work\",\"from\":\"full\",\"to\":\"fast\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"detail\":\"Smaller change\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"problem-framing\",\"phase\":\"analyze\",\"result\":\"complete\",\"detail\":null,\"phaseGate\":true,\"gate\":\"analysis-baseline\",\"gateApproval\":\"approved\",\"approvedBy\":\"Pat Owner\"}\n{\"at\":\"<ts>\",\"event\":\"gate.decided\",\"intentId\":\"routing-lifecycle-work\",\"gate\":\"analysis-baseline\",\"phase\":\"analyze\",\"stage\":\"problem-framing\",\"decision\":\"approved\",\"result\":\"complete\",\"by\":\"Pat Owner\",\"bySource\":\"flag\",\"mode\":\"human\",\"note\":\"Looks right\",\"detail\":null,\"skippedStages\":[],\"artifacts\":[]}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"stage.reported\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"phase\":\"develop\",\"result\":\"blocked\",\"detail\":\"The API contract is unclear\",\"phaseGate\":false,\"gate\":null,\"gateApproval\":null,\"approvedBy\":null}\n{\"at\":\"<ts>\",\"event\":\"design.rework.requested\",\"intentId\":\"routing-lifecycle-work\",\"fromStage\":\"implementation-design\",\"detail\":\"Redo the design\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Routing lifecycle work\",\"intentId\":\"routing-lifecycle-work\",\"stage\":\"implementation-design\",\"rework\":true}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n{\"at\":\"<ts>\",\"event\":\"dependency.added\",\"id\":\"item-a\",\"dependency\":\"item-b\"}\n{\"at\":\"<ts>\",\"event\":\"intent.paused\",\"intentId\":\"routing-lifecycle-work\",\"detail\":\"Coffee break\"}\n{\"at\":\"<ts>\",\"event\":\"intent.resumed\",\"intentId\":\"routing-lifecycle-work\",\"detail\":null}\n{\"at\":\"<ts>\",\"event\":\"intent.paused\",\"intentId\":\"routing-lifecycle-work\",\"detail\":null}\n{\"at\":\"<ts>\",\"event\":\"intent.created\",\"intent\":\"Second piece of work\",\"intentId\":\"second-piece-of-work\",\"scope\":\"solo\",\"scopeSource\":\"config\",\"projectScope\":\"solo\",\"mode\":\"human\",\"modeSource\":\"config\"}\n{\"at\":\"<ts>\",\"event\":\"stage.selected\",\"intent\":\"Second piece of work\",\"intentId\":\"second-piece-of-work\",\"stage\":\"problem-framing\",\"rework\":false}\n{\"at\":\"<ts>\",\"event\":\"intent.abandoned\",\"intentId\":\"routing-lifecycle-work\",\"detail\":\"Superseded\"}\n{\"at\":\"<ts>\",\"event\":\"intent.abandoned\",\"intentId\":\"second-piece-of-work\",\"detail\":\"Not needed\"}\n",
+        ".aidlc/intents/second-piece-of-work/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"second-piece-of-work\",\n  \"intent\": \"Second piece of work\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"full\",\n  \"mode\": \"human\",\n  \"status\": \"abandoned\",\n  \"currentStage\": null,\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<ts>\",\n      \"detail\": null\n    }\n  },\n  \"dependencies\": {},\n  \"createdAt\": \"<ts>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<ts>\",\n  \"closed\": {\n    \"kind\": \"abandoned\",\n    \"at\": \"<ts>\",\n    \"detail\": \"Not needed\"\n  }\n}\n",
+        ".aidlc/state.json": "{\n  \"version\": 2,\n  \"activeIntentId\": null,\n  \"updatedAt\": \"<ts>\"\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "intent",
+        "abandon",
+        "--detail",
+        "nothing active"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: No active intent; name the intent to abandon\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "list"
+      ],
+      "code": 0,
+      "stdout": "[\n  {\n    \"intentId\": \"routing-lifecycle-work\",\n    \"title\": \"Routing lifecycle work\",\n    \"scope\": \"solo\",\n    \"mode\": \"human\",\n    \"status\": \"abandoned\",\n    \"current\": false,\n    \"currentStage\": null,\n    \"assignee\": \"Alex Doe\",\n    \"progress\": {\n      \"done\": 1,\n      \"total\": 5\n    },\n    \"createdAt\": \"<ts>\",\n    \"updatedAt\": \"<ts>\"\n  },\n  {\n    \"intentId\": \"second-piece-of-work\",\n    \"title\": \"Second piece of work\",\n    \"scope\": \"solo\",\n    \"mode\": \"human\",\n    \"status\": \"abandoned\",\n    \"current\": false,\n    \"currentStage\": null,\n    \"assignee\": null,\n    \"progress\": {\n      \"done\": 0,\n      \"total\": 9\n    },\n    \"createdAt\": \"<ts>\",\n    \"updatedAt\": \"<ts>\"\n  }\n]\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "status"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"initialized\": true,\n  \"activeIntent\": null\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "knowledge",
+        "index"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"records\": [],\n  \"invalid\": [],\n  \"index\": \".aidlc/knowledge/_index.md\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/knowledge/_index.md": "# Knowledge index\n\nRecords: 0. Invalid: 0.\n\n"
+      }
+    },
+    {
+      "argv": [
+        "knowledge",
+        "check"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"ok\": true,\n  \"problems\": [],\n  \"records\": 0\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "doctor"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"ok\": true,\n  \"warnings\": 1,\n  \"checks\": [\n    {\n      \"status\": \"pass\",\n      \"message\": \"Graph: 6 phases, 13 stages, 12 agents\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Project configuration and agent models\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Projection claude: current (.claude/skills/dtech-aidlc, engine 1.0.0)\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Dependency repositories: 0 registered\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Knowledge sources: 3 registered, 0 missing, 0 changed since last scan\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Workflow state\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Audit log contains valid JSON lines\"\n    },\n    {\n      \"status\": \"warn\",\n      \"message\": \"No allowed approver is configured for gate analysis-baseline in the default scope\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "doctor"
+      ],
+      "code": 1,
+      "stdout": "{\n  \"ok\": false,\n  \"warnings\": 1,\n  \"checks\": [\n    {\n      \"status\": \"pass\",\n      \"message\": \"Graph: 6 phases, 13 stages, 12 agents\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Project configuration and agent models\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Projection claude: current (.claude/skills/dtech-aidlc, engine 1.0.0)\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Dependency repositories: 0 registered\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Knowledge sources: 3 registered, 0 missing, 0 changed since last scan\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Workflow state\"\n    },\n    {\n      \"status\": \"fail\",\n      \"message\": \"Audit log contains valid JSON lines\"\n    },\n    {\n      \"status\": \"warn\",\n      \"message\": \"No allowed approver is configured for gate analysis-baseline in the default scope\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "files": {}
+    }
+  ]
+}

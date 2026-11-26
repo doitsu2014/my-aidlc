@@ -28,7 +28,7 @@ An approver name recorded by the CLI is self-asserted and is not identity authen
 
 ## 2. One-time project setup
 
-From the project root, install Node.js 20 or newer and dtech-aidlc, then onboard the project with the intended harness and scope:
+Install dtech-aidlc once with Cargo (`cargo install --path . --locked --bin dtech-aidlc` from the dtech-aidlc checkout; see the [README](../README.md#install-options)). Then, from the project root, onboard the project with the intended harness and scope:
 
 ```sh
 dtech-aidlc onboard --harness claude --scope solo

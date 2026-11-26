@@ -1,0 +1,554 @@
+[
+  {
+    "label": "state-corrupt",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "fail",
+            "message": "State pointer: .aidlc/state.json cannot be parsed"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "state-unknown",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "fail",
+            "message": "State pointer: .aidlc/state.json is not a recognised state file"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "state-ghost",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "fail",
+            "message": "State pointer: active intent 'ghost' has no state file"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "state-legacy",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 2,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "warn",
+            "message": "State: version 1 format; it is migrated automatically by the next orchestrate or intent command"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "state-paused",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Workflow state"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "state-no-config",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "warn",
+            "message": "Project has workflow state but no .aidlc/config.json; run dtech-aidlc onboard --harness <claude|deepseek> --scope <scope>"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "state-unparseable",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "fail",
+            "message": "Intent demo: cannot be parsed"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "state-null",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "fail",
+            "message": "Cannot read properties of null (reading 'dependencies')"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "state-invalid",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "fail",
+            "message": "Intent demo: intent is not a non-empty string"
+          },
+          {
+            "status": "fail",
+            "message": "Intent demo: scope is not a key of graph.scopes"
+          },
+          {
+            "status": "fail",
+            "message": "Intent demo: mode is not ai or human"
+          },
+          {
+            "status": "fail",
+            "message": "Intent demo: stage x has an invalid status"
+          },
+          {
+            "status": "fail",
+            "message": "Intent demo: intentId does not match folder"
+          },
+          {
+            "status": "fail",
+            "message": "Intent demo: currentStage is not a stage of the scope"
+          },
+          {
+            "status": "fail",
+            "message": "Intent demo: dependencies is not an object of string arrays"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "state-order",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 2,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "warn",
+            "message": "Intent demo: stage retired-stage is not in the current graph"
+          },
+          {
+            "status": "fail",
+            "message": "Intent demo: stage context-and-risk is recorded complete although the earlier stage is not finished"
+          },
+          {
+            "status": "fail",
+            "message": "Intent demo: currentStage option-generation is not the first unfinished stage"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "state-gate",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "fail",
+            "message": "Intent demo: gate analysis-baseline was passed without a recorded approval"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "state-gate-approved",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Workflow state"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  }
+]

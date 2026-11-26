@@ -120,6 +120,13 @@ pub fn harness_manifest(name: &str) -> Result<Value, String> {
     let bytes = crate::scope::embedded_asset(&format!("harness/{name}/manifest.json"))
         .ok_or_else(|| invalid("cannot read JSON"))?;
     let manifest: Value = serde_json::from_slice(bytes).map_err(|_| invalid("cannot read JSON"))?;
+    validate_harness_manifest(name, manifest)
+}
+
+/// The checks of [`harness_manifest`] on the parsed manifest of the bundled harness
+/// `name` (file sources are looked up among the embedded harness files).
+fn validate_harness_manifest(name: &str, manifest: Value) -> Result<Value, String> {
+    let invalid = |reason: &str| format!("Invalid harness manifest for {name}: {reason}");
     if manifest.get("schemaVersion").and_then(Value::as_f64) != Some(1.0) {
         return Err(invalid("schemaVersion must be 1"));
     }
@@ -1220,6 +1227,43 @@ mod tests {
             fs::read_to_string(t.0.join(".claude/skills/dtech-aidlc/SKILL.md.local-backup"))
                 .unwrap(),
             "local edit\n"
+        );
+    }
+
+    /// Former Node test (harness-manifest.test.mjs): a manifest with an unknown or
+    /// missing model alias is rejected.
+    #[test]
+    fn manifest_with_unknown_or_missing_model_alias_is_rejected() {
+        let shipped = harness_manifest("claude").unwrap();
+        assert_eq!(
+            shipped["modelAliases"],
+            serde_json::json!(["opus", "sonnet", "haiku", "fable"])
+        );
+        assert_eq!(
+            harness_manifest("deepseek").unwrap()["modelAliases"],
+            serde_json::json!([])
+        );
+        assert_eq!(
+            validate_harness_manifest("claude", shipped.clone()).unwrap(),
+            shipped
+        );
+        let error = "Invalid harness manifest for claude: \
+                     modelAliases must be an array of known model aliases";
+        let with = |aliases: Value| {
+            let mut manifest = shipped.clone();
+            manifest["modelAliases"] = aliases;
+            validate_harness_manifest("claude", manifest)
+        };
+        assert_eq!(with(serde_json::json!(["opus", "gpt"])), Err(error.into()));
+        assert_eq!(with(serde_json::json!(["opus", 1])), Err(error.into()));
+        assert_eq!(with(serde_json::json!("opus")), Err(error.into()));
+        assert_eq!(with(Value::Null), Err(error.into()));
+        assert!(with(serde_json::json!([])).is_ok());
+        let mut without = shipped.clone();
+        without.as_object_mut().unwrap().remove("modelAliases");
+        assert_eq!(
+            validate_harness_manifest("claude", without),
+            Err(error.into())
         );
     }
 }

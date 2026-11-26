@@ -412,7 +412,7 @@ fn init_alias_initializes_a_project() {
 
 /// The commands that used to be refused ("not yet implemented") are routed to their
 /// native handlers: read-only and refused commands leave a new project untouched, and
-/// `knowledge init` writes only what Node writes.
+/// `knowledge init` writes PROJECT.md and `.aidlc/knowledge/` but no project config.
 #[test]
 fn formerly_unrouted_commands_run_natively_without_unexpected_writes() {
     static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);

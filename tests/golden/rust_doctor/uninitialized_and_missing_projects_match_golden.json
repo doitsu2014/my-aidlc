@@ -1,0 +1,66 @@
+[
+  {
+    "label": "empty",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; run dtech-aidlc onboard --harness <claude|deepseek>"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "missing",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; run dtech-aidlc onboard --harness <claude|deepseek>"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 0
+    }
+  }
+]

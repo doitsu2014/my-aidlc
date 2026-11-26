@@ -1,0 +1,200 @@
+[
+  {
+    "label": "depth-ok",
+    "argv": [
+      "intent",
+      "depth",
+      "standard",
+      "--approved-by",
+      " Owner ",
+      "--detail",
+      "pilot"
+    ],
+    "outcome": {
+      "ok": {
+        "intentId": "alpha",
+        "from": "full",
+        "to": "standard"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        },
+        {
+          "event": "depth.changed",
+          "intentId": "alpha",
+          "from": "full",
+          "to": "standard",
+          "by": "Owner",
+          "bySource": "flag",
+          "detail": "pilot"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "depth": "standard"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "depth-twice",
+    "argv": [
+      "intent",
+      "depth",
+      "fast",
+      "--approved-by",
+      "Owner",
+      "--detail",
+      "a"
+    ],
+    "outcome": {
+      "ok": {
+        "intentId": "alpha",
+        "from": "full",
+        "to": "fast"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "intent.created",
+            "intentId": "alpha"
+          },
+          {
+            "event": "depth.changed",
+            "intentId": "alpha",
+            "from": "full",
+            "to": "fast",
+            "by": "Owner",
+            "bySource": "flag",
+            "detail": "a"
+          }
+        ],
+        "intents/alpha/state.json": {
+          "json": {
+            "version": 2,
+            "intentId": "alpha",
+            "intent": "Do alpha",
+            "scope": "solo",
+            "mode": "human",
+            "status": "active",
+            "currentStage": "context-and-risk",
+            "stages": {
+              "problem-framing": {
+                "status": "complete",
+                "detail": null
+              }
+            },
+            "dependencies": {},
+            "createdAt": "<ts>",
+            "updatedAt": "<ts>",
+            "depth": "fast"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "depth-twice",
+    "argv": [
+      "intent",
+      "depth",
+      "full",
+      "--approved-by",
+      "Owner",
+      "--detail",
+      "b"
+    ],
+    "outcome": {
+      "ok": {
+        "intentId": "alpha",
+        "from": "fast",
+        "to": "full"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "intent.created",
+            "intentId": "alpha"
+          },
+          {
+            "event": "depth.changed",
+            "intentId": "alpha",
+            "from": "full",
+            "to": "fast",
+            "by": "Owner",
+            "bySource": "flag",
+            "detail": "a"
+          },
+          {
+            "event": "depth.changed",
+            "intentId": "alpha",
+            "from": "fast",
+            "to": "full",
+            "by": "Owner",
+            "bySource": "flag",
+            "detail": "b"
+          }
+        ],
+        "intents/alpha/state.json": {
+          "json": {
+            "version": 2,
+            "intentId": "alpha",
+            "intent": "Do alpha",
+            "scope": "solo",
+            "mode": "human",
+            "status": "active",
+            "currentStage": "context-and-risk",
+            "stages": {
+              "problem-framing": {
+                "status": "complete",
+                "detail": null
+              }
+            },
+            "dependencies": {},
+            "createdAt": "<ts>",
+            "updatedAt": "<ts>",
+            "depth": "full"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  }
+]

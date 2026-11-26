@@ -1,0 +1,320 @@
+[
+  {
+    "label": "resume-corrupt",
+    "argv": [
+      "intent",
+      "resume",
+      "beta"
+    ],
+    "outcome": {
+      "ok": {
+        "resumed": true,
+        "intentId": "beta",
+        "currentStage": "context-and-risk"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        },
+        {
+          "event": "intent.resumed",
+          "intentId": "beta",
+          "detail": null
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/beta/": null,
+      "intents/beta/intent.md": "# beta\n\nDo beta\n",
+      "intents/beta/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "beta",
+          "intent": "Do beta",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/done/": null,
+      "intents/done/intent.md": "# done\n\nDo done\n",
+      "intents/done/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "done",
+          "intent": "Do done",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "complete",
+              "detail": null
+            },
+            "red-tests": {
+              "status": "complete",
+              "detail": null
+            },
+            "build-and-verify": {
+              "status": "complete",
+              "detail": null
+            },
+            "intent-record": {
+              "status": "complete",
+              "detail": null
+            },
+            "knowledge-writeback": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/gone/": null,
+      "intents/gone/intent.md": "# gone\n\nDo gone\n",
+      "intents/gone/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "gone",
+          "intent": "Do gone",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "closed": {
+            "kind": "abandoned",
+            "at": "<ts>",
+            "detail": "old"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "beta",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json.corrupt-<stamp>": "{broken"
+    }
+  },
+  {
+    "label": "resume-corrupt-unknown",
+    "argv": [
+      "intent",
+      "resume",
+      "nope"
+    ],
+    "outcome": {
+      "error": "Unknown intent 'nope'. Run 'dtech-aidlc intent list'.",
+      "code": 1
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/beta/": null,
+      "intents/beta/intent.md": "# beta\n\nDo beta\n",
+      "intents/beta/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "beta",
+          "intent": "Do beta",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/done/": null,
+      "intents/done/intent.md": "# done\n\nDo done\n",
+      "intents/done/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "done",
+          "intent": "Do done",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "complete",
+              "detail": null
+            },
+            "red-tests": {
+              "status": "complete",
+              "detail": null
+            },
+            "build-and-verify": {
+              "status": "complete",
+              "detail": null
+            },
+            "intent-record": {
+              "status": "complete",
+              "detail": null
+            },
+            "knowledge-writeback": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/gone/": null,
+      "intents/gone/intent.md": "# gone\n\nDo gone\n",
+      "intents/gone/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "gone",
+          "intent": "Do gone",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "closed": {
+            "kind": "abandoned",
+            "at": "<ts>",
+            "detail": "old"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json.corrupt-<stamp>": "{broken"
+    }
+  }
+]

@@ -1,0 +1,166 @@
+[
+  {
+    "fixture": "lock-live"
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "lib",
+      "https://example.invalid/lib.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Dependency manager is locked by process <LIVE_PID> since <TS>. If no dtech-aidlc command is running, delete .aidlc/deps.lock.\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "lock-noat"
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "lib",
+      "https://example.invalid/lib.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Dependency manager is locked by process <LIVE_PID> since undefined. If no dtech-aidlc command is running, delete .aidlc/deps.lock.\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "lock-garbage"
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "lib",
+      "https://example.invalid/lib.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Dependency manager is locked by another process\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "lock-dead"
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "lib",
+      "https://example.invalid/lib.git"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "name": "lib",
+        "url": "https://example.invalid/lib.git",
+        "path": "<ROOT>/.aidlc/repos/lib"
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"lib\": {\n      \"url\": \"https://example.invalid/lib.git\"\n    }\n  }\n}"
+      },
+      "removed": [
+        ".aidlc/deps.lock"
+      ]
+    },
+    "audit": {
+      "appended": [
+        {
+          "ref": null,
+          "event": "repos.added",
+          "name": "lib"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [
+        {
+          "name": "lib",
+          "url": "https://example.invalid/lib.git",
+          "path": "<ROOT>/.aidlc/repos/lib",
+          "status": "not-cloned"
+        }
+      ],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  }
+]

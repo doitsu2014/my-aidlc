@@ -1,0 +1,12 @@
+{
+  "contractsFile": "<REPO>/core/methodology/contracts.md",
+  "phaseFile": "<REPO>/core/methodology/phases/analyze.md",
+  "agentFile": "<REPO>/core/methodology/agents/brief-analyst.md",
+  "templates": [
+    null,
+    null,
+    null,
+    "<REPO>/core/methodology/templates/acceptance-criteria.md",
+    "<REPO>/core/methodology/templates/user-stories.md"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "<ROOT>",
+  "granted": [
+    "knowledge"
+  ],
+  "warnings": [
+    "knowledge could not be listed: Invalid record id: use letters, digits, dot, underscore, or hyphen"
+  ],
+  "knowledge": {
+    "record": null
+  },
+  "codebaseMap": null
+}

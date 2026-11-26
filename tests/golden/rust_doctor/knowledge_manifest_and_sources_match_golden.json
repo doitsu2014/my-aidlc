@@ -1,0 +1,282 @@
+[
+  {
+    "label": "knowledge-json",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "fail",
+            "message": "Knowledge: Invalid knowledge manifest: cannot be parsed as JSON"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "knowledge-schema",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "fail",
+            "message": "Knowledge: Invalid knowledge manifest: expected schemaVersion 1 and a sources array"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "knowledge-kind",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "fail",
+            "message": "Knowledge: Invalid knowledge manifest: source a: kind must be one of project, docs, requirements, architecture, adr, api-spec, runbook, conventions, readme"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "knowledge-missing",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 2,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "warn",
+            "message": "Knowledge sources: 2 registered, 1 missing, 0 changed since last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "knowledge-unscanned",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: 2 registered, 0 missing; not scanned on this machine"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "knowledge-docs-clean",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: 2 registered, 0 missing, 0 changed since last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "knowledge-docs-changed",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: 2 registered, 0 missing, 3 changed since last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 0
+    }
+  }
+]

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "<ROOT>",
+  "granted": [
+    "request",
+    "project",
+    "sources",
+    "knowledge",
+    "profile",
+    "repos"
+  ],
+  "warnings": [
+    "This project has not been scanned on this machine by this version of dtech-aidlc, so the project profile and the document change check are unavailable. Run `dtech-aidlc onboard --rescan`."
+  ],
+  "project": {
+    "id": "project",
+    "path": "PROJECT.md",
+    "kind": "project",
+    "status": "ok",
+    "size": 148,
+    "provenance": "User-provided"
+  },
+  "sources": [],
+  "sourceChanges": {
+    "scanned": false,
+    "scannedAt": "2026-01-02T03:04:05.000Z",
+    "missing": [],
+    "changed": [],
+    "added": [],
+    "removed": [],
+    "more": {
+      "changed": 0,
+      "added": 0,
+      "removed": 0
+    }
+  },
+  "codebaseMap": {
+    "path": ".aidlc/knowledge/_codebase-map.md",
+    "modifiedAt": null,
+    "exists": false,
+    "required": null,
+    "reason": "project not scanned",
+    "bytes": 0
+  },
+  "knowledge": {
+    "dir": ".aidlc/knowledge",
+    "records": [],
+    "invalid": [],
+    "record": null
+  }
+}

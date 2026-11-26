@@ -88,36 +88,26 @@ fn rust_onboard_projects_assets_and_initializes_knowledge_and_audit() {
     fs::remove_dir_all(root).unwrap();
 }
 
+/// Fields of `onboard` output that the reference implementation recorded in the golden file.
+fn subset(output: &Value, keys: &[&str]) -> Value {
+    Value::Object(
+        keys.iter()
+            .map(|key| ((*key).to_owned(), output[*key].clone()))
+            .collect(),
+    )
+}
+
 #[test]
-fn rust_onboard_output_and_side_effects_compare_with_node_for_greenfield() {
-    let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let node = repo.join("core/tools/dtech-aidlc.mjs");
+fn rust_onboard_output_and_side_effects_match_golden_for_greenfield() {
     let rust = PathBuf::from(env!("CARGO_BIN_EXE_dtech-aidlc"));
-    let roots = [temp("node"), temp("rust")];
-    for root in &roots {
-        fs::create_dir_all(root).unwrap();
-    }
-    let node_out = parse_output(
-        &Command::new("node")
-            .arg(&node)
-            .args([
-                "onboard",
-                "--harness",
-                "deepseek",
-                "--scope",
-                "team",
-                "--project",
-                roots[0].to_str().unwrap(),
-            ])
-            .output()
-            .unwrap(),
-    );
+    let root = temp("rust");
+    fs::create_dir_all(&root).unwrap();
     let rust_out = parse_output(&run(
         &rust,
         &["onboard", "--harness", "deepseek", "--scope", "team"],
-        &roots[1],
+        &root,
     ));
-    for key in [
+    let keys = [
         "initialized",
         "harness",
         "harnesses",
@@ -125,171 +115,113 @@ fn rust_onboard_output_and_side_effects_compare_with_node_for_greenfield() {
         "kind",
         "languages",
         "architecture",
-    ] {
-        assert_eq!(rust_out[key], node_out[key], "field {key}");
-    }
-    for root in &roots {
-        assert!(root.join(".dsh/skills/aidlc/SKILL.md").is_file());
-        assert!(root.join(".aidlc/shared/project-profile.json").is_file());
-        assert!(root.join(".aidlc/shared/sources-snapshot.json").is_file());
-    }
-    for root in roots {
-        fs::remove_dir_all(root).unwrap();
-    }
+    ];
+    assert_golden("greenfield-deepseek-team", &subset(&rust_out, &keys));
+    assert!(root.join(".dsh/skills/aidlc/SKILL.md").is_file());
+    assert!(root.join(".aidlc/shared/project-profile.json").is_file());
+    assert!(root.join(".aidlc/shared/sources-snapshot.json").is_file());
+    fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
-fn onboard_reruns_match_node_idempotent_registration_behavior() {
-    let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let cli = repo.join("core/tools/dtech-aidlc.mjs");
+fn onboard_reruns_match_golden_idempotent_registration_behavior() {
     let rust = PathBuf::from(env!("CARGO_BIN_EXE_dtech-aidlc"));
-    let roots = [temp("node-rerun"), temp("rust-rerun")];
-    for root in &roots {
-        fs::create_dir_all(root.join("docs")).unwrap();
-        fs::write(root.join("docs/guide.md"), "guide\n").unwrap();
-    }
-    for root in &roots {
-        parse_output(
-            &Command::new("node")
-                .arg(&cli)
-                .args([
-                    "onboard",
-                    "--harness",
-                    "claude",
-                    "--scope",
-                    "solo",
-                    "--project",
-                    root.to_str().unwrap(),
-                ])
-                .output()
-                .unwrap(),
-        );
-    }
-    let node_rerun = parse_output(
-        &Command::new("node")
-            .arg(&cli)
-            .args([
-                "onboard",
-                "--harness",
-                "claude",
-                "--scope",
-                "solo",
-                "--project",
-                roots[0].to_str().unwrap(),
-            ])
-            .output()
-            .unwrap(),
-    );
-    let rust_rerun = parse_output(&run(
+    let root = temp("rust-rerun");
+    fs::create_dir_all(root.join("docs")).unwrap();
+    fs::write(root.join("docs/guide.md"), "guide\n").unwrap();
+    let args = ["onboard", "--harness", "claude", "--scope", "solo"];
+    parse_output(&run(&rust, &args, &root));
+    let rust_rerun = parse_output(&run(&rust, &args, &root));
+    let mut recorded = subset(&rust_rerun, &["initialized", "harness", "scope", "kind"]);
+    recorded["knowledge"] = subset(&rust_rerun["knowledge"], &["manifestStatus", "added"]);
+    assert_golden("rerun-claude-solo", &recorded);
+    assert_eq!(rust_rerun["knowledge"]["manifestStatus"], "unchanged");
+    assert_eq!(rust_rerun["knowledge"]["added"], serde_json::json!([]));
+    let audit = fs::read_to_string(root.join(".aidlc/audit.jsonl")).unwrap();
+    let rows = audit
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).unwrap())
+        .collect::<Vec<_>>();
+    let count = |event: &str| rows.iter().filter(|r| r["event"] == event).count();
+    assert_eq!(count("project.initialized"), 1);
+    assert_eq!(count("knowledge.sources.registered"), 1);
+    assert_eq!(count("project.onboarded"), 2);
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn rescan_preserves_configuration_and_matches_golden_document_registration_rules() {
+    let rust = PathBuf::from(env!("CARGO_BIN_EXE_dtech-aidlc"));
+    let root = temp("rust-rescan");
+    fs::create_dir_all(root.join("docs")).unwrap();
+    fs::write(root.join("src.rs"), "fn main() {}\n").unwrap();
+    fs::write(root.join("docs/guide.md"), "guide\n").unwrap();
+    parse_output(&run(
         &rust,
         &["onboard", "--harness", "claude", "--scope", "solo"],
-        &roots[1],
+        &root,
     ));
-    for key in ["initialized", "harness", "scope", "kind"] {
-        assert_eq!(rust_rerun[key], node_rerun[key], "field {key}");
-    }
-    assert_eq!(rust_rerun["knowledge"]["manifestStatus"], "unchanged");
-    assert_eq!(node_rerun["knowledge"]["manifestStatus"], "unchanged");
-    assert_eq!(rust_rerun["knowledge"]["added"], serde_json::json!([]));
-    assert_eq!(node_rerun["knowledge"]["added"], serde_json::json!([]));
-    for root in &roots {
-        let audit = fs::read_to_string(root.join(".aidlc/audit.jsonl")).unwrap();
-        let rows = audit
-            .lines()
-            .map(|line| serde_json::from_str::<Value>(line).unwrap())
-            .collect::<Vec<_>>();
-        assert_eq!(
-            rows.iter()
-                .filter(|r| r["event"] == "project.initialized")
-                .count(),
-            1
-        );
-        assert_eq!(
-            rows.iter()
-                .filter(|r| r["event"] == "knowledge.sources.registered")
-                .count(),
-            1
-        );
-        assert_eq!(
-            rows.iter()
-                .filter(|r| r["event"] == "project.onboarded")
-                .count(),
-            2
-        );
-    }
-    for root in roots {
-        fs::remove_dir_all(root).unwrap();
-    }
+    let config_before = fs::read(root.join(".aidlc/config.json")).unwrap();
+    fs::write(root.join("docs/new.md"), "new\n").unwrap();
+    let native = parse_output(&run(&rust, &["onboard", "--rescan"], &root));
+    assert_golden("rescan-new-document", &rescan_summary(&native));
+    assert_eq!(
+        fs::read(root.join(".aidlc/config.json")).unwrap(),
+        config_before
+    );
+    fs::remove_dir_all(root).unwrap();
 }
 
-#[test]
-fn rescan_preserves_configuration_and_matches_node_document_registration_rules() {
-    let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let cli = repo.join("core/tools/dtech-aidlc.mjs");
-    let rust = PathBuf::from(env!("CARGO_BIN_EXE_dtech-aidlc"));
-    let roots = [temp("node-rescan"), temp("rust-rescan")];
-    for root in &roots {
-        fs::create_dir_all(root.join("docs")).unwrap();
-        fs::write(root.join("src.rs"), "fn main() {}\n").unwrap();
-        fs::write(root.join("docs/guide.md"), "guide\n").unwrap();
-    }
-    for root in &roots {
-        parse_output(
-            &Command::new("node")
-                .arg(&cli)
-                .args([
-                    "onboard",
-                    "--harness",
-                    "claude",
-                    "--scope",
-                    "solo",
-                    "--project",
-                    root.to_str().unwrap(),
-                ])
-                .output()
-                .unwrap(),
-        );
-    }
-    let config_before = fs::read(roots[1].join(".aidlc/config.json")).unwrap();
-    fs::write(roots[0].join("docs/new.md"), "new\n").unwrap();
-    fs::write(roots[1].join("docs/new.md"), "new\n").unwrap();
-    let node = parse_output(
-        &Command::new("node")
-            .arg(&cli)
-            .args([
-                "onboard",
-                "--rescan",
-                "--project",
-                roots[0].to_str().unwrap(),
-            ])
-            .output()
-            .unwrap(),
-    );
-    let native = parse_output(&run(&rust, &["onboard", "--rescan"], &roots[1]));
-    assert_eq!(native["rescanned"], node["rescanned"]);
-    assert_eq!(
-        native["knowledge"]["manifestStatus"],
-        node["knowledge"]["manifestStatus"]
-    );
-    assert_eq!(
-        native["knowledge"]["wouldAdd"]
+/// The parts of `onboard --rescan` output the golden file records.
+fn rescan_summary(output: &Value) -> Value {
+    serde_json::json!({
+        "rescanned": output["rescanned"],
+        "manifestStatus": output["knowledge"]["manifestStatus"],
+        "wouldAdd": output["knowledge"]["wouldAdd"]
             .as_array()
             .unwrap()
             .iter()
             .map(|x| x["path"].clone())
             .collect::<Vec<_>>(),
-        node["knowledge"]["wouldAdd"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|x| x["path"].clone())
-            .collect::<Vec<_>>()
-    );
-    assert_eq!(
-        fs::read(roots[1].join(".aidlc/config.json")).unwrap(),
-        config_before
-    );
-    for root in roots {
-        fs::remove_dir_all(root).unwrap();
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Golden files: tests/golden/rust_onboard_parity/<case>.json. The expectations were
+// recorded from the reference implementation; set DTECH_AIDLC_BLESS=1 to rewrite them
+// from the native CLI after an intentional change.
+// ---------------------------------------------------------------------------
+
+fn golden_path(case: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/golden/rust_onboard_parity")
+        .join(format!("{case}.json"))
+}
+
+fn blessing() -> bool {
+    std::env::var_os("DTECH_AIDLC_BLESS").is_some_and(|value| value == "1")
+}
+
+fn write_golden(case: &str, value: &Value) {
+    let path = golden_path(case);
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let mut text = serde_json::to_string_pretty(value).unwrap();
+    text.push('\n');
+    fs::write(path, text).unwrap();
+}
+
+fn assert_golden(case: &str, actual: &Value) {
+    if blessing() {
+        write_golden(case, actual);
+        return;
     }
+    let path = golden_path(case);
+    let text = fs::read_to_string(&path).unwrap_or_else(|error| {
+        panic!(
+            "cannot read golden {} ({error}); record it with DTECH_AIDLC_BLESS=1",
+            path.display()
+        )
+    });
+    let expected: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(actual, &expected, "golden {}", path.display());
 }

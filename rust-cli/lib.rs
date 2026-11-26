@@ -1,7 +1,5 @@
-//! Native Rust port of the dtech-aidlc CLI (migration preview). Every command of the
-//! Node CLI is routed to a module here; all but onboarding have binary-level Node parity
-//! tests. The Node CLI stays authoritative until the cutover criteria in
-//! `plans/rust-cli-migration.md` are met.
+//! The dtech-aidlc CLI library: every command of the `dtech-aidlc` binary is routed to a
+//! module here.
 
 pub mod args;
 pub mod artifacts;

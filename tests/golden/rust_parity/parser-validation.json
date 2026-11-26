@@ -1,0 +1,52 @@
+{
+  "scope --bogus": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "dtech-aidlc: Unknown option --bogus for 'scope'. Allowed options: --depth, --project.\n"
+  },
+  "scope a b": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "dtech-aidlc: Unexpected argument 'b' for 'scope'.\n"
+  },
+  "status --intent": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "dtech-aidlc: Option --intent requires a non-empty value\n"
+  },
+  "status --intent --project": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "dtech-aidlc: Option --intent requires a non-empty value\n"
+  },
+  "scope --depth=": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "dtech-aidlc: Option --depth requires a non-empty value\n"
+  },
+  "scope --depth invalid": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "dtech-aidlc: Unknown depth 'invalid'. Known depths: full, standard, fast\n"
+  },
+  "status --intent alpha --intent beta": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "dtech-aidlc: Option --intent was given more than once\n"
+  },
+  "onboard --no-detect=true": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "dtech-aidlc: Option --no-detect does not take a value\n"
+  },
+  "orchestrate next --intent-file --force-resume": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "dtech-aidlc: Option --intent-file requires a non-empty value\n"
+  },
+  "config prerequisite set build --check": {
+    "code": 1,
+    "stdout": "",
+    "stderr": "dtech-aidlc: Option --check requires a non-empty value\n"
+  }
+}

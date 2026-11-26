@@ -1,0 +1,731 @@
+[
+  {
+    "label": "abandon-active",
+    "argv": [
+      "intent",
+      "abandon",
+      "--detail",
+      "dropped"
+    ],
+    "outcome": {
+      "ok": {
+        "abandoned": true,
+        "intentId": "alpha"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        },
+        {
+          "event": "intent.abandoned",
+          "intentId": "alpha",
+          "detail": "dropped"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "abandoned",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "closed": {
+            "kind": "abandoned",
+            "at": "<ts>",
+            "detail": "dropped"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/beta/": null,
+      "intents/beta/intent.md": "# beta\n\nDo beta\n",
+      "intents/beta/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "beta",
+          "intent": "Do beta",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/done/": null,
+      "intents/done/intent.md": "# done\n\nDo done\n",
+      "intents/done/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "done",
+          "intent": "Do done",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "complete",
+              "detail": null
+            },
+            "red-tests": {
+              "status": "complete",
+              "detail": null
+            },
+            "build-and-verify": {
+              "status": "complete",
+              "detail": null
+            },
+            "intent-record": {
+              "status": "complete",
+              "detail": null
+            },
+            "knowledge-writeback": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/gone/": null,
+      "intents/gone/intent.md": "# gone\n\nDo gone\n",
+      "intents/gone/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "gone",
+          "intent": "Do gone",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "closed": {
+            "kind": "abandoned",
+            "at": "<ts>",
+            "detail": "old"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": null,
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "abandon-named-active",
+    "argv": [
+      "intent",
+      "abandon",
+      "alpha",
+      "--detail",
+      "dropped"
+    ],
+    "outcome": {
+      "ok": {
+        "abandoned": true,
+        "intentId": "alpha"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        },
+        {
+          "event": "intent.abandoned",
+          "intentId": "alpha",
+          "detail": "dropped"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "abandoned",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "closed": {
+            "kind": "abandoned",
+            "at": "<ts>",
+            "detail": "dropped"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/beta/": null,
+      "intents/beta/intent.md": "# beta\n\nDo beta\n",
+      "intents/beta/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "beta",
+          "intent": "Do beta",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/done/": null,
+      "intents/done/intent.md": "# done\n\nDo done\n",
+      "intents/done/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "done",
+          "intent": "Do done",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "complete",
+              "detail": null
+            },
+            "red-tests": {
+              "status": "complete",
+              "detail": null
+            },
+            "build-and-verify": {
+              "status": "complete",
+              "detail": null
+            },
+            "intent-record": {
+              "status": "complete",
+              "detail": null
+            },
+            "knowledge-writeback": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/gone/": null,
+      "intents/gone/intent.md": "# gone\n\nDo gone\n",
+      "intents/gone/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "gone",
+          "intent": "Do gone",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "closed": {
+            "kind": "abandoned",
+            "at": "<ts>",
+            "detail": "old"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": null,
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "abandon-named-other",
+    "argv": [
+      "intent",
+      "abandon",
+      "beta",
+      "--detail",
+      "dropped"
+    ],
+    "outcome": {
+      "ok": {
+        "abandoned": true,
+        "intentId": "beta"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        },
+        {
+          "event": "intent.abandoned",
+          "intentId": "beta",
+          "detail": "dropped"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/beta/": null,
+      "intents/beta/intent.md": "# beta\n\nDo beta\n",
+      "intents/beta/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "beta",
+          "intent": "Do beta",
+          "scope": "solo",
+          "mode": "human",
+          "status": "abandoned",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "closed": {
+            "kind": "abandoned",
+            "at": "<ts>",
+            "detail": "dropped"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/done/": null,
+      "intents/done/intent.md": "# done\n\nDo done\n",
+      "intents/done/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "done",
+          "intent": "Do done",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "complete",
+              "detail": null
+            },
+            "red-tests": {
+              "status": "complete",
+              "detail": null
+            },
+            "build-and-verify": {
+              "status": "complete",
+              "detail": null
+            },
+            "intent-record": {
+              "status": "complete",
+              "detail": null
+            },
+            "knowledge-writeback": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/gone/": null,
+      "intents/gone/intent.md": "# gone\n\nDo gone\n",
+      "intents/gone/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "gone",
+          "intent": "Do gone",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "closed": {
+            "kind": "abandoned",
+            "at": "<ts>",
+            "detail": "old"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "abandon-then",
+    "argv": [
+      "intent",
+      "abandon",
+      "--detail",
+      "dropped"
+    ],
+    "outcome": {
+      "ok": {
+        "abandoned": true,
+        "intentId": "alpha"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "intent.created",
+            "intentId": "alpha"
+          },
+          {
+            "event": "intent.abandoned",
+            "intentId": "alpha",
+            "detail": "dropped"
+          }
+        ],
+        "intents/alpha/state.json": {
+          "json": {
+            "version": 2,
+            "intentId": "alpha",
+            "intent": "Do alpha",
+            "scope": "solo",
+            "mode": "human",
+            "status": "abandoned",
+            "currentStage": null,
+            "stages": {
+              "problem-framing": {
+                "status": "complete",
+                "detail": null
+              }
+            },
+            "dependencies": {},
+            "createdAt": "<ts>",
+            "updatedAt": "<ts>",
+            "closed": {
+              "kind": "abandoned",
+              "at": "<ts>",
+              "detail": "dropped"
+            }
+          },
+          "raw-trailing-newline": true
+        },
+        "state.json": {
+          "json": {
+            "version": 2,
+            "activeIntentId": null,
+            "updatedAt": "<ts>"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "abandon-then",
+    "argv": [
+      "intent",
+      "abandon",
+      "--detail",
+      "again"
+    ],
+    "outcome": {
+      "error": "No active intent; name the intent to abandon",
+      "code": 1
+    },
+    "aidlc": {}
+  },
+  {
+    "label": "abandon-then",
+    "argv": [
+      "intent",
+      "resume",
+      "alpha"
+    ],
+    "outcome": {
+      "error": "Intent 'alpha' was abandoned and cannot be resumed",
+      "code": 1
+    },
+    "aidlc": {}
+  },
+  {
+    "label": "abandon-then",
+    "argv": [
+      "intent",
+      "resume",
+      "beta"
+    ],
+    "outcome": {
+      "ok": {
+        "resumed": true,
+        "intentId": "beta",
+        "currentStage": "context-and-risk"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "intent.created",
+            "intentId": "alpha"
+          },
+          {
+            "event": "intent.abandoned",
+            "intentId": "alpha",
+            "detail": "dropped"
+          },
+          {
+            "event": "intent.resumed",
+            "intentId": "beta",
+            "detail": null
+          }
+        ],
+        "state.json": {
+          "json": {
+            "version": 2,
+            "activeIntentId": "beta",
+            "updatedAt": "<ts>"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "abandon-legacy",
+    "argv": [
+      "intent",
+      "abandon",
+      "--detail",
+      "old"
+    ],
+    "outcome": {
+      "ok": {
+        "abandoned": true,
+        "intentId": "legacy-export-work"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "state.migrated",
+          "from": 1,
+          "intentId": "legacy-export-work"
+        },
+        {
+          "event": "intent.abandoned",
+          "intentId": "legacy-export-work",
+          "detail": "old"
+        }
+      ],
+      "intents/": null,
+      "intents/legacy-export-work/": null,
+      "intents/legacy-export-work/intent.md": "# legacy-export-work\n\nLegacy export work\n",
+      "intents/legacy-export-work/state.json": {
+        "json": {
+          "intent": "Legacy export work",
+          "scope": "solo",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "createdAt": "<ts>",
+          "version": 2,
+          "dependencies": {},
+          "intentId": "legacy-export-work",
+          "updatedAt": "<ts>",
+          "status": "abandoned",
+          "closed": {
+            "kind": "abandoned",
+            "at": "<ts>",
+            "detail": "old"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": null,
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.v1.bak.json": {
+        "json": {
+          "intent": "Legacy export work",
+          "scope": "solo",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete"
+            }
+          },
+          "createdAt": "<ts>",
+          "project": "legacy"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  }
+]

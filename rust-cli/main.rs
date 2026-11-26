@@ -89,9 +89,7 @@ fn run() -> Result<u8, String> {
         if parsed.positional.len() != 2 || parsed.positional[1] != "zsh" {
             return Err("Usage: dtech-aidlc completion zsh".into());
         }
-        print_output(&Value::String(
-            include_str!("../core/tools/completion.zsh").to_owned(),
-        ))?;
+        print_output(&Value::String(include_str!("completion.zsh").to_owned()))?;
         return Ok(0);
     }
     // Node: `resolve(flags.project || process.cwd())`, then `assertSafeStateDir(root)`.

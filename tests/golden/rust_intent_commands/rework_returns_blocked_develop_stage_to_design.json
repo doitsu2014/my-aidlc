@@ -1,0 +1,475 @@
+[
+  {
+    "label": "rework-blocked-status",
+    "argv": [
+      "intent",
+      "rework",
+      "--detail",
+      "  Owner authorized splitting WU-06 "
+    ],
+    "outcome": {
+      "ok": {
+        "reworkRequested": true,
+        "intentId": "alpha",
+        "fromStage": "red-tests",
+        "nextStage": "implementation-design"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "design.rework.requested",
+          "intentId": "alpha",
+          "fromStage": "red-tests",
+          "detail": "Owner authorized splitting WU-06"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "in_progress",
+              "detail": null,
+              "reworkRequestedAt": "<ts>"
+            },
+            "red-tests": {
+              "status": "in_progress",
+              "detail": "split needs revision",
+              "reports": [
+                {
+                  "result": "complete",
+                  "at": "<ts>"
+                },
+                {
+                  "result": "blocked",
+                  "at": "<ts>",
+                  "detail": "split needs revision"
+                }
+              ],
+              "units": {
+                "U-01": {
+                  "status": "pending"
+                },
+                "U-02": {
+                  "status": "pending",
+                  "detail": "x"
+                }
+              },
+              "reworkResetAt": "<ts>"
+            },
+            "build-and-verify": {
+              "status": "in_progress",
+              "detail": null,
+              "units": {
+                "U-01": {
+                  "status": "pending"
+                }
+              },
+              "reworkResetAt": "<ts>"
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "designReworkPending": true,
+          "designRework": {
+            "requestedAt": "<ts>",
+            "fromStage": "red-tests",
+            "detail": "Owner authorized splitting WU-06"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "rework-blocked-report",
+    "argv": [
+      "intent",
+      "rework",
+      "--detail",
+      "again"
+    ],
+    "outcome": {
+      "ok": {
+        "reworkRequested": true,
+        "intentId": "alpha",
+        "fromStage": "red-tests",
+        "nextStage": "implementation-design"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "design.rework.requested",
+          "intentId": "alpha",
+          "fromStage": "red-tests",
+          "detail": "again"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "in_progress",
+              "detail": null,
+              "reworkRequestedAt": "<ts>"
+            },
+            "red-tests": {
+              "status": "in_progress",
+              "detail": "split needs revision",
+              "reports": [
+                {
+                  "result": "complete",
+                  "at": "<ts>"
+                },
+                {
+                  "result": "blocked",
+                  "at": "<ts>",
+                  "detail": "split needs revision"
+                }
+              ],
+              "units": {
+                "U-01": {
+                  "status": "pending"
+                },
+                "U-02": {
+                  "status": "pending",
+                  "detail": "x"
+                }
+              },
+              "reworkResetAt": "<ts>"
+            },
+            "build-and-verify": {
+              "status": "in_progress",
+              "detail": null,
+              "units": {
+                "U-01": {
+                  "status": "pending"
+                }
+              },
+              "reworkResetAt": "<ts>"
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "designReworkPending": true,
+          "designRework": {
+            "requestedAt": "<ts>",
+            "fromStage": "red-tests",
+            "detail": "again"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "rework-report-after-reset",
+    "argv": [
+      "intent",
+      "rework",
+      "--detail",
+      "again"
+    ],
+    "outcome": {
+      "ok": {
+        "reworkRequested": true,
+        "intentId": "alpha",
+        "fromStage": "red-tests",
+        "nextStage": "implementation-design"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "design.rework.requested",
+          "intentId": "alpha",
+          "fromStage": "red-tests",
+          "detail": "again"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "in_progress",
+              "detail": null,
+              "reworkRequestedAt": "<ts>"
+            },
+            "red-tests": {
+              "status": "in_progress",
+              "detail": "split needs revision",
+              "reports": [
+                {
+                  "result": "complete",
+                  "at": "<ts>"
+                },
+                {
+                  "result": "blocked",
+                  "at": "<ts>",
+                  "detail": "split needs revision"
+                }
+              ],
+              "units": {
+                "U-01": {
+                  "status": "pending"
+                },
+                "U-02": {
+                  "status": "pending",
+                  "detail": "x"
+                }
+              },
+              "reworkResetAt": "<ts>"
+            },
+            "build-and-verify": {
+              "status": "in_progress",
+              "detail": null,
+              "units": {
+                "U-01": {
+                  "status": "pending"
+                }
+              },
+              "reworkResetAt": "<ts>"
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "designReworkPending": true,
+          "designRework": {
+            "requestedAt": "<ts>",
+            "fromStage": "red-tests",
+            "detail": "again"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "rework-twice",
+    "argv": [
+      "intent",
+      "rework",
+      "--detail",
+      "first"
+    ],
+    "outcome": {
+      "ok": {
+        "reworkRequested": true,
+        "intentId": "alpha",
+        "fromStage": "red-tests",
+        "nextStage": "implementation-design"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "design.rework.requested",
+            "intentId": "alpha",
+            "fromStage": "red-tests",
+            "detail": "first"
+          }
+        ],
+        "intents/alpha/state.json": {
+          "json": {
+            "version": 2,
+            "intentId": "alpha",
+            "intent": "Do alpha",
+            "scope": "solo",
+            "mode": "human",
+            "status": "active",
+            "currentStage": null,
+            "stages": {
+              "problem-framing": {
+                "status": "complete",
+                "detail": null
+              },
+              "context-and-risk": {
+                "status": "complete",
+                "detail": null
+              },
+              "option-generation": {
+                "status": "complete",
+                "detail": null
+              },
+              "direction-selection": {
+                "status": "complete",
+                "detail": null
+              },
+              "implementation-design": {
+                "status": "in_progress",
+                "detail": null,
+                "reworkRequestedAt": "<ts>"
+              },
+              "red-tests": {
+                "status": "in_progress",
+                "detail": "split needs revision",
+                "reports": [
+                  {
+                    "result": "complete",
+                    "at": "<ts>"
+                  },
+                  {
+                    "result": "blocked",
+                    "at": "<ts>",
+                    "detail": "split needs revision"
+                  }
+                ],
+                "units": {
+                  "U-01": {
+                    "status": "pending"
+                  },
+                  "U-02": {
+                    "status": "pending",
+                    "detail": "x"
+                  }
+                },
+                "reworkResetAt": "<ts>"
+              },
+              "build-and-verify": {
+                "status": "in_progress",
+                "detail": null,
+                "units": {
+                  "U-01": {
+                    "status": "pending"
+                  }
+                },
+                "reworkResetAt": "<ts>"
+              }
+            },
+            "dependencies": {},
+            "createdAt": "<ts>",
+            "updatedAt": "<ts>",
+            "designReworkPending": true,
+            "designRework": {
+              "requestedAt": "<ts>",
+              "fromStage": "red-tests",
+              "detail": "first"
+            }
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "rework-twice",
+    "argv": [
+      "intent",
+      "rework",
+      "--detail",
+      "second"
+    ],
+    "outcome": {
+      "error": "Design rework is only available after a blocked Develop stage",
+      "code": 1
+    },
+    "aidlc": {}
+  }
+]

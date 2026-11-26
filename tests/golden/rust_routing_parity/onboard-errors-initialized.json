@@ -1,0 +1,119 @@
+{
+  "steps": [
+    {
+      "argv": [
+        "onboard",
+        "--scope",
+        "team"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Project default scope is solo. To change the default for new intents run: dtech-aidlc config scope team\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "init",
+        "--harness",
+        "deepseek"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Project already uses harness claude. To add another harness run: dtech-aidlc harness add deepseek\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--harness",
+        "deepseek",
+        "--scope",
+        "solo"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Project already uses harness claude. To add another harness run: dtech-aidlc harness add deepseek\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--rescan",
+        "--harness",
+        "claude"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: --rescan re-scans an initialized project and does not take --harness, --scope or --no-detect\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--rescan",
+        "--docs",
+        "missing.md"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: --docs path does not exist: missing.md\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--rescan",
+        "--docs",
+        "../outside"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: --docs path does not exist: ../outside\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--rescan"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: cannot be parsed as JSON\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--rescan",
+        "--docs",
+        "docs/guide.md",
+        "--docs",
+        "my notes"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: aidlc.knowledge.json does not exist; run `dtech-aidlc onboard --harness claude --scope solo --docs docs/guide.md --docs \"my notes\"` instead\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Invalid .aidlc/config.json: harness or scope is missing or unknown; correct the file\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--harness",
+        "claude"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Invalid .aidlc/config.json: harness or scope is missing or unknown; correct the file\n",
+      "files": {}
+    }
+  ]
+}

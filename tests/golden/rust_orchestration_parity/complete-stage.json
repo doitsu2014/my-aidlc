@@ -1,0 +1,685 @@
+[
+  {
+    "label": "next --intent",
+    "exit": 0,
+    "stdout": {
+      "intent": "Build a sample feature",
+      "intentId": "build-a-sample-feature",
+      "intentDir": "<ROOT>/.aidlc/intents/build-a-sample-feature",
+      "scope": "solo",
+      "depth": "full",
+      "mode": "human",
+      "orchestrationMode": "human",
+      "scopeSource": "config",
+      "warnings": [],
+      "gate": {
+        "id": "analysis-baseline",
+        "phase": "analyze",
+        "finalStage": "context-and-risk"
+      },
+      "gateMode": "human",
+      "approvalRequiredAfter": "context-and-risk",
+      "contractsFile": "<ENGINE>/methodology/contracts.md",
+      "suggestedBranch": "feature/build-a-sample-feature",
+      "artifacts": [
+        {
+          "output": "problem-statement",
+          "kind": "document",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/problem-statement.md"
+        },
+        {
+          "output": "success-measures",
+          "kind": "document",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/success-measures.md"
+        },
+        {
+          "output": "stakeholder-map",
+          "kind": "document",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/stakeholder-map.md"
+        },
+        {
+          "output": "acceptance-criteria",
+          "kind": "document",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/acceptance-criteria.md",
+          "template": "<ENGINE>/methodology/templates/acceptance-criteria.md"
+        },
+        {
+          "output": "user-stories",
+          "kind": "document",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/user-stories.md",
+          "template": "<ENGINE>/methodology/templates/user-stories.md"
+        }
+      ],
+      "stage": {
+        "id": "problem-framing",
+        "phase": "analyze",
+        "order": 1,
+        "agent": "brief-analyst",
+        "inputs": {
+          "artifacts": [],
+          "context": [
+            "request",
+            "project",
+            "sources",
+            "knowledge",
+            "profile",
+            "repos"
+          ]
+        },
+        "produces": [
+          "problem-statement",
+          "success-measures",
+          "stakeholder-map",
+          "acceptance-criteria",
+          "user-stories"
+        ],
+        "phaseGate": false,
+        "phaseFile": "<ENGINE>/methodology/phases/analyze.md",
+        "agentFile": "<ENGINE>/methodology/agents/brief-analyst.md",
+        "model": "sonnet",
+        "modelSource": "default"
+      },
+      "context": {
+        "schemaVersion": 1,
+        "projectRoot": "<ROOT>",
+        "granted": [
+          "request",
+          "project",
+          "sources",
+          "knowledge",
+          "profile",
+          "repos"
+        ],
+        "warnings": [
+          "PROJECT.md is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first."
+        ],
+        "request": {
+          "path": ".aidlc/intents/build-a-sample-feature/intent.md",
+          "provenance": "User-provided"
+        },
+        "project": {
+          "id": "project",
+          "path": "PROJECT.md",
+          "kind": "project",
+          "status": "ok",
+          "size": 1455,
+          "provenance": "User-provided"
+        },
+        "sources": [],
+        "sourceChanges": {
+          "scanned": true,
+          "scannedAt": "<TS>",
+          "missing": [],
+          "changed": [],
+          "added": [],
+          "removed": [],
+          "more": {
+            "changed": 0,
+            "added": 0,
+            "removed": 0
+          }
+        },
+        "codebaseMap": {
+          "path": ".aidlc/knowledge/_codebase-map.md",
+          "template": "<ENGINE>/methodology/templates/codebase-map.md",
+          "exists": false,
+          "required": false,
+          "reason": "project kind is greenfield",
+          "bytes": 0,
+          "modifiedAt": null
+        },
+        "knowledge": {
+          "dir": ".aidlc/knowledge",
+          "records": [],
+          "invalid": []
+        }
+      }
+    },
+    "stderr": "",
+    "pointer": {
+      "version": 2,
+      "activeIntentId": "build-a-sample-feature",
+      "updatedAt": "<TS>"
+    },
+    "intents": {
+      "build-a-sample-feature": {
+        "version": 2,
+        "intentId": "build-a-sample-feature",
+        "intent": "Build a sample feature",
+        "scope": "solo",
+        "scopeSource": "config",
+        "projectScope": "solo",
+        "depth": "full",
+        "mode": "human",
+        "status": "active",
+        "currentStage": "problem-framing",
+        "stages": {
+          "problem-framing": {
+            "status": "in_progress",
+            "startedAt": "<TS>"
+          }
+        },
+        "dependencies": {},
+        "createdAt": "<TS>",
+        "modeSource": "config",
+        "updatedAt": "<TS>"
+      }
+    },
+    "intentFiles": {
+      "build-a-sample-feature": [
+        "intent.md",
+        "state.json"
+      ]
+    },
+    "audit": [
+      {
+        "at": "<TS>",
+        "event": "intent.created",
+        "intent": "Build a sample feature",
+        "intentId": "build-a-sample-feature",
+        "scope": "solo",
+        "scopeSource": "config",
+        "projectScope": "solo",
+        "mode": "human",
+        "modeSource": "config"
+      },
+      {
+        "at": "<TS>",
+        "event": "stage.selected",
+        "intent": "Build a sample feature",
+        "intentId": "build-a-sample-feature",
+        "stage": "problem-framing",
+        "rework": false
+      }
+    ]
+  },
+  {
+    "label": "report complete without artifacts",
+    "exit": 1,
+    "stdout": null,
+    "stderr": "dtech-aidlc: Stage problem-framing cannot be completed: problem-statement is missing (.aidlc/intents/build-a-sample-feature/analyze/problem-framing/problem-statement.md)",
+    "pointer": {
+      "version": 2,
+      "activeIntentId": "build-a-sample-feature",
+      "updatedAt": "<TS>"
+    },
+    "intents": {
+      "build-a-sample-feature": {
+        "version": 2,
+        "intentId": "build-a-sample-feature",
+        "intent": "Build a sample feature",
+        "scope": "solo",
+        "scopeSource": "config",
+        "projectScope": "solo",
+        "depth": "full",
+        "mode": "human",
+        "status": "active",
+        "currentStage": "problem-framing",
+        "stages": {
+          "problem-framing": {
+            "status": "in_progress",
+            "startedAt": "<TS>"
+          }
+        },
+        "dependencies": {},
+        "createdAt": "<TS>",
+        "modeSource": "config",
+        "updatedAt": "<TS>"
+      }
+    },
+    "intentFiles": {
+      "build-a-sample-feature": [
+        "intent.md",
+        "state.json"
+      ]
+    },
+    "audit": [
+      {
+        "at": "<TS>",
+        "event": "intent.created",
+        "intent": "Build a sample feature",
+        "intentId": "build-a-sample-feature",
+        "scope": "solo",
+        "scopeSource": "config",
+        "projectScope": "solo",
+        "mode": "human",
+        "modeSource": "config"
+      },
+      {
+        "at": "<TS>",
+        "event": "stage.selected",
+        "intent": "Build a sample feature",
+        "intentId": "build-a-sample-feature",
+        "stage": "problem-framing",
+        "rework": false
+      }
+    ]
+  },
+  {
+    "label": "report complete",
+    "exit": 0,
+    "stdout": {
+      "recorded": true,
+      "intentId": "build-a-sample-feature",
+      "stage": "problem-framing",
+      "result": "complete",
+      "phaseGate": false,
+      "gate": "analysis-baseline",
+      "approval": null,
+      "approvedBy": null,
+      "intentComplete": false,
+      "artifacts": [
+        {
+          "output": "problem-statement",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/problem-statement.md",
+          "bytes": 90,
+          "sha256": "ceff1e5160a154b4df615ad6027617401ed9241e52c0fadb75f99a28df21e6ed"
+        },
+        {
+          "output": "success-measures",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/success-measures.md",
+          "bytes": 88,
+          "sha256": "518d55d7c2b604766c3a69dc3f4c8aa099a446e70202a801e4a0213e21c973d1"
+        },
+        {
+          "output": "stakeholder-map",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/stakeholder-map.md",
+          "bytes": 86,
+          "sha256": "8e1437d28eedd4c35e72c436bc11705f9a63edee04b249e49396d5acb01f8988"
+        },
+        {
+          "output": "acceptance-criteria",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/acceptance-criteria.md",
+          "bytes": 94,
+          "sha256": "362dc3a450998178b8a6b7c8cc7b3944eefaa1aa421733b3f05d05bb7767e4a0"
+        },
+        {
+          "output": "user-stories",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/user-stories.md",
+          "bytes": 80,
+          "sha256": "caef3b2e0e40f58b216fd558e9e53d8f64f347e961343fa90046c6749e7ac02e"
+        }
+      ]
+    },
+    "stderr": "",
+    "pointer": {
+      "version": 2,
+      "activeIntentId": "build-a-sample-feature",
+      "updatedAt": "<TS>"
+    },
+    "intents": {
+      "build-a-sample-feature": {
+        "version": 2,
+        "intentId": "build-a-sample-feature",
+        "intent": "Build a sample feature",
+        "scope": "solo",
+        "scopeSource": "config",
+        "projectScope": "solo",
+        "depth": "full",
+        "mode": "human",
+        "status": "active",
+        "currentStage": null,
+        "stages": {
+          "problem-framing": {
+            "status": "complete",
+            "startedAt": "<TS>",
+            "detail": null,
+            "reportedAt": "<TS>",
+            "reports": [
+              {
+                "at": "<TS>",
+                "result": "complete",
+                "detail": null
+              }
+            ],
+            "units": {},
+            "artifacts": [
+              {
+                "output": "problem-statement",
+                "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/problem-statement.md",
+                "bytes": 90,
+                "sha256": "ceff1e5160a154b4df615ad6027617401ed9241e52c0fadb75f99a28df21e6ed"
+              },
+              {
+                "output": "success-measures",
+                "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/success-measures.md",
+                "bytes": 88,
+                "sha256": "518d55d7c2b604766c3a69dc3f4c8aa099a446e70202a801e4a0213e21c973d1"
+              },
+              {
+                "output": "stakeholder-map",
+                "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/stakeholder-map.md",
+                "bytes": 86,
+                "sha256": "8e1437d28eedd4c35e72c436bc11705f9a63edee04b249e49396d5acb01f8988"
+              },
+              {
+                "output": "acceptance-criteria",
+                "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/acceptance-criteria.md",
+                "bytes": 94,
+                "sha256": "362dc3a450998178b8a6b7c8cc7b3944eefaa1aa421733b3f05d05bb7767e4a0"
+              },
+              {
+                "output": "user-stories",
+                "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/user-stories.md",
+                "bytes": 80,
+                "sha256": "caef3b2e0e40f58b216fd558e9e53d8f64f347e961343fa90046c6749e7ac02e"
+              }
+            ]
+          }
+        },
+        "dependencies": {},
+        "createdAt": "<TS>",
+        "modeSource": "config",
+        "updatedAt": "<TS>"
+      }
+    },
+    "intentFiles": {
+      "build-a-sample-feature": [
+        "intent.md",
+        "state.json"
+      ]
+    },
+    "audit": [
+      {
+        "at": "<TS>",
+        "event": "intent.created",
+        "intent": "Build a sample feature",
+        "intentId": "build-a-sample-feature",
+        "scope": "solo",
+        "scopeSource": "config",
+        "projectScope": "solo",
+        "mode": "human",
+        "modeSource": "config"
+      },
+      {
+        "at": "<TS>",
+        "event": "stage.selected",
+        "intent": "Build a sample feature",
+        "intentId": "build-a-sample-feature",
+        "stage": "problem-framing",
+        "rework": false
+      },
+      {
+        "at": "<TS>",
+        "event": "stage.reported",
+        "intent": "Build a sample feature",
+        "intentId": "build-a-sample-feature",
+        "stage": "problem-framing",
+        "phase": "analyze",
+        "result": "complete",
+        "detail": null,
+        "phaseGate": false,
+        "gate": null,
+        "gateApproval": null,
+        "approvedBy": null
+      }
+    ]
+  },
+  {
+    "label": "next after complete",
+    "exit": 0,
+    "stdout": {
+      "intent": "Build a sample feature",
+      "intentId": "build-a-sample-feature",
+      "intentDir": "<ROOT>/.aidlc/intents/build-a-sample-feature",
+      "scope": "solo",
+      "depth": "full",
+      "mode": "human",
+      "orchestrationMode": "human",
+      "scopeSource": "config",
+      "warnings": [],
+      "gate": {
+        "id": "analysis-baseline",
+        "phase": "analyze",
+        "finalStage": "context-and-risk"
+      },
+      "gateMode": "human",
+      "approvalRequiredAfter": "context-and-risk",
+      "contractsFile": "<ENGINE>/methodology/contracts.md",
+      "suggestedBranch": "feature/build-a-sample-feature",
+      "artifacts": [
+        {
+          "output": "constraints-and-assumptions",
+          "kind": "document",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/context-and-risk/constraints-and-assumptions.md"
+        },
+        {
+          "output": "evidence-log",
+          "kind": "document",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/context-and-risk/evidence-log.md"
+        },
+        {
+          "output": "risk-register",
+          "kind": "document",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/context-and-risk/risk-register.md"
+        },
+        {
+          "output": "open-questions",
+          "kind": "document",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/context-and-risk/open-questions.md"
+        },
+        {
+          "output": "quality-requirements",
+          "kind": "document",
+          "path": ".aidlc/intents/build-a-sample-feature/analyze/context-and-risk/quality-requirements.md",
+          "template": "<ENGINE>/methodology/templates/quality-requirements.md"
+        }
+      ],
+      "stage": {
+        "id": "context-and-risk",
+        "phase": "analyze",
+        "order": 2,
+        "agent": "context-risk-analyst",
+        "inputs": {
+          "artifacts": [
+            "problem-statement",
+            "success-measures",
+            "stakeholder-map",
+            "acceptance-criteria",
+            "user-stories"
+          ],
+          "context": [
+            "request",
+            "project",
+            "sources",
+            "knowledge",
+            "profile",
+            "repos"
+          ]
+        },
+        "produces": [
+          "constraints-and-assumptions",
+          "evidence-log",
+          "risk-register",
+          "open-questions",
+          "quality-requirements"
+        ],
+        "phaseGate": true,
+        "phaseFile": "<ENGINE>/methodology/phases/analyze.md",
+        "agentFile": "<ENGINE>/methodology/agents/context-risk-analyst.md",
+        "model": "sonnet",
+        "modelSource": "default"
+      },
+      "context": {
+        "schemaVersion": 1,
+        "projectRoot": "<ROOT>",
+        "granted": [
+          "request",
+          "project",
+          "sources",
+          "knowledge",
+          "profile",
+          "repos"
+        ],
+        "warnings": [
+          "PROJECT.md is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first."
+        ],
+        "request": {
+          "path": ".aidlc/intents/build-a-sample-feature/intent.md",
+          "provenance": "User-provided"
+        },
+        "project": {
+          "id": "project",
+          "path": "PROJECT.md",
+          "kind": "project",
+          "status": "ok",
+          "size": 1455,
+          "provenance": "User-provided"
+        },
+        "sources": [],
+        "sourceChanges": {
+          "scanned": true,
+          "scannedAt": "<TS>",
+          "missing": [],
+          "changed": [],
+          "added": [],
+          "removed": [],
+          "more": {
+            "changed": 0,
+            "added": 0,
+            "removed": 0
+          }
+        },
+        "codebaseMap": {
+          "path": ".aidlc/knowledge/_codebase-map.md",
+          "template": "<ENGINE>/methodology/templates/codebase-map.md",
+          "exists": false,
+          "required": false,
+          "reason": "project kind is greenfield",
+          "bytes": 0,
+          "modifiedAt": null
+        },
+        "knowledge": {
+          "dir": ".aidlc/knowledge",
+          "records": [],
+          "invalid": []
+        }
+      }
+    },
+    "stderr": "",
+    "pointer": {
+      "version": 2,
+      "activeIntentId": "build-a-sample-feature",
+      "updatedAt": "<TS>"
+    },
+    "intents": {
+      "build-a-sample-feature": {
+        "version": 2,
+        "intentId": "build-a-sample-feature",
+        "intent": "Build a sample feature",
+        "scope": "solo",
+        "scopeSource": "config",
+        "projectScope": "solo",
+        "depth": "full",
+        "mode": "human",
+        "status": "active",
+        "currentStage": "context-and-risk",
+        "stages": {
+          "problem-framing": {
+            "status": "complete",
+            "startedAt": "<TS>",
+            "detail": null,
+            "reportedAt": "<TS>",
+            "reports": [
+              {
+                "at": "<TS>",
+                "result": "complete",
+                "detail": null
+              }
+            ],
+            "units": {},
+            "artifacts": [
+              {
+                "output": "problem-statement",
+                "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/problem-statement.md",
+                "bytes": 90,
+                "sha256": "ceff1e5160a154b4df615ad6027617401ed9241e52c0fadb75f99a28df21e6ed"
+              },
+              {
+                "output": "success-measures",
+                "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/success-measures.md",
+                "bytes": 88,
+                "sha256": "518d55d7c2b604766c3a69dc3f4c8aa099a446e70202a801e4a0213e21c973d1"
+              },
+              {
+                "output": "stakeholder-map",
+                "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/stakeholder-map.md",
+                "bytes": 86,
+                "sha256": "8e1437d28eedd4c35e72c436bc11705f9a63edee04b249e49396d5acb01f8988"
+              },
+              {
+                "output": "acceptance-criteria",
+                "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/acceptance-criteria.md",
+                "bytes": 94,
+                "sha256": "362dc3a450998178b8a6b7c8cc7b3944eefaa1aa421733b3f05d05bb7767e4a0"
+              },
+              {
+                "output": "user-stories",
+                "path": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/user-stories.md",
+                "bytes": 80,
+                "sha256": "caef3b2e0e40f58b216fd558e9e53d8f64f347e961343fa90046c6749e7ac02e"
+              }
+            ]
+          },
+          "context-and-risk": {
+            "status": "in_progress",
+            "startedAt": "<TS>"
+          }
+        },
+        "dependencies": {},
+        "createdAt": "<TS>",
+        "modeSource": "config",
+        "updatedAt": "<TS>"
+      }
+    },
+    "intentFiles": {
+      "build-a-sample-feature": [
+        "intent.md",
+        "state.json"
+      ]
+    },
+    "audit": [
+      {
+        "at": "<TS>",
+        "event": "intent.created",
+        "intent": "Build a sample feature",
+        "intentId": "build-a-sample-feature",
+        "scope": "solo",
+        "scopeSource": "config",
+        "projectScope": "solo",
+        "mode": "human",
+        "modeSource": "config"
+      },
+      {
+        "at": "<TS>",
+        "event": "stage.selected",
+        "intent": "Build a sample feature",
+        "intentId": "build-a-sample-feature",
+        "stage": "problem-framing",
+        "rework": false
+      },
+      {
+        "at": "<TS>",
+        "event": "stage.reported",
+        "intent": "Build a sample feature",
+        "intentId": "build-a-sample-feature",
+        "stage": "problem-framing",
+        "phase": "analyze",
+        "result": "complete",
+        "detail": null,
+        "phaseGate": false,
+        "gate": null,
+        "gateApproval": null,
+        "approvedBy": null
+      },
+      {
+        "at": "<TS>",
+        "event": "stage.selected",
+        "intent": "Build a sample feature",
+        "intentId": "build-a-sample-feature",
+        "stage": "context-and-risk",
+        "rework": false
+      }
+    ]
+  }
+]

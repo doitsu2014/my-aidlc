@@ -1,0 +1,316 @@
+[
+  {
+    "label": "pause-none",
+    "argv": [
+      "intent",
+      "pause"
+    ],
+    "outcome": {
+      "error": "No unfinished active intent to pause",
+      "code": 1
+    },
+    "aidlc": {}
+  },
+  {
+    "label": "pause-paused",
+    "argv": [
+      "intent",
+      "pause"
+    ],
+    "outcome": {
+      "error": "No unfinished active intent to pause",
+      "code": 1
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": null,
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "pause-abandoned",
+    "argv": [
+      "intent",
+      "pause"
+    ],
+    "outcome": {
+      "error": "No unfinished active intent to pause",
+      "code": 1
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/beta/": null,
+      "intents/beta/intent.md": "# beta\n\nDo beta\n",
+      "intents/beta/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "beta",
+          "intent": "Do beta",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/done/": null,
+      "intents/done/intent.md": "# done\n\nDo done\n",
+      "intents/done/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "done",
+          "intent": "Do done",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "complete",
+              "detail": null
+            },
+            "red-tests": {
+              "status": "complete",
+              "detail": null
+            },
+            "build-and-verify": {
+              "status": "complete",
+              "detail": null
+            },
+            "intent-record": {
+              "status": "complete",
+              "detail": null
+            },
+            "knowledge-writeback": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/gone/": null,
+      "intents/gone/intent.md": "# gone\n\nDo gone\n",
+      "intents/gone/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "gone",
+          "intent": "Do gone",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "closed": {
+            "kind": "abandoned",
+            "at": "<ts>",
+            "detail": "old"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "gone",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "pause-corrupt",
+    "argv": [
+      "intent",
+      "pause"
+    ],
+    "outcome": {
+      "error": ".aidlc/state.json is not a recognised state file. No changes were made. Intents on disk: alpha. Run 'dtech-aidlc doctor' for details. To point the project at one of them run 'dtech-aidlc intent resume <id>'.",
+      "code": 1
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": [
+          1
+        ],
+        "raw-trailing-newline": false
+      }
+    }
+  },
+  {
+    "label": "pause-invalid-intent",
+    "argv": [
+      "intent",
+      "pause"
+    ],
+    "outcome": {
+      "error": ".aidlc/intents/alpha/state.json is invalid: scope is not a key of graph.scopes. No changes were made.",
+      "code": 1
+    },
+    "aidlc": {
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "galaxy",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  }
+]

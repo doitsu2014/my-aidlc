@@ -1,0 +1,20 @@
+[
+  {
+    "argv": [
+      "orchestrate",
+      "next",
+      "--intent",
+      "x"
+    ],
+    "code": 1,
+    "stderr": "dtech-aidlc: Project is not initialized at <ROOT>. Run 'dtech-aidlc onboard --harness <claude|deepseek> --scope <solo|team|enterprise>' there first.\n"
+  },
+  {
+    "argv": [
+      "orchestrate",
+      "next"
+    ],
+    "code": 1,
+    "stderr": "dtech-aidlc: No active intent. Start one with: dtech-aidlc orchestrate next --intent \"...\"\n"
+  }
+]

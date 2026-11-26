@@ -1,0 +1,10 @@
+{
+  "initialized": true,
+  "harness": "claude",
+  "scope": "solo",
+  "kind": "greenfield",
+  "knowledge": {
+    "manifestStatus": "unchanged",
+    "added": []
+  }
+}

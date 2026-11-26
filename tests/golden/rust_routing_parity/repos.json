@@ -1,0 +1,146 @@
+{
+  "steps": [
+    {
+      "argv": [
+        "repos",
+        "list"
+      ],
+      "code": 0,
+      "stdout": "[]\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "repos",
+        "add",
+        "lib",
+        "https://example.invalid/org/lib.git",
+        "--ref",
+        "main"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"name\": \"lib\",\n  \"url\": \"https://example.invalid/org/lib.git\",\n  \"ref\": \"main\",\n  \"path\": \"<ROOT>/.aidlc/repos/lib\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"repos.added\",\"name\":\"lib\",\"ref\":\"main\"}\n",
+        ".aidlc/deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"lib\": {\n      \"url\": \"https://example.invalid/org/lib.git\",\n      \"ref\": \"main\"\n    }\n  }\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "repos",
+        "add",
+        "lib",
+        "https://example.invalid/org/lib.git"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Dependency lib already exists with a different configuration\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "repos",
+        "add",
+        "bad name",
+        "https://example.invalid/x.git"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Invalid dependency name: bad name\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "repos",
+        "add",
+        "lib"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Usage: repos add <name> <url> [--ref REF]\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "repos",
+        "add",
+        "rel",
+        "relative/path"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Invalid repository URL: use https://, ssh://, git@host:path, or an absolute local path without embedded passwords or tokens\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "repos",
+        "list"
+      ],
+      "code": 0,
+      "stdout": "[\n  {\n    \"name\": \"lib\",\n    \"url\": \"https://example.invalid/org/lib.git\",\n    \"ref\": \"main\",\n    \"path\": \"<ROOT>/.aidlc/repos/lib\",\n    \"status\": \"not-cloned\"\n  }\n]\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "repos",
+        "remove",
+        "lib"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"name\": \"lib\",\n  \"removed\": true\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"repos.added\",\"name\":\"lib\",\"ref\":\"main\"}\n{\"at\":\"<ts>\",\"event\":\"repos.removed\",\"name\":\"lib\"}\n",
+        ".aidlc/deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {}\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "repos",
+        "remove",
+        "lib"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Unknown dependency: lib\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "repos",
+        "remove"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Use repos add <name> <url> [--ref REF], repos list, repos pull [name], or repos remove <name>\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "repos",
+        "pull"
+      ],
+      "code": 0,
+      "stdout": "[]\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"repos.added\",\"name\":\"lib\",\"ref\":\"main\"}\n{\"at\":\"<ts>\",\"event\":\"repos.removed\",\"name\":\"lib\"}\n{\"at\":\"<ts>\",\"event\":\"repos.pulled\",\"results\":[]}\n"
+      }
+    },
+    {
+      "argv": [
+        "repos",
+        "pull",
+        "nope"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Unknown dependency: nope\n",
+      "files": {}
+    }
+  ]
+}

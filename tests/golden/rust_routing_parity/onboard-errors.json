@@ -1,0 +1,146 @@
+{
+  "steps": [
+    {
+      "argv": [
+        "onboard"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: --harness is required for a new project: choose claude or deepseek\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--scope",
+        "solo"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: --harness is required for a new project: choose claude or deepseek\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--harness",
+        "vim"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: harness must be claude or deepseek\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--harness",
+        "claude",
+        "--scope",
+        "galaxy"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: scope must be solo, team, or enterprise\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--scope",
+        "galaxy",
+        "--harness",
+        "vim"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: scope must be solo, team, or enterprise\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--docs",
+        "missing.md",
+        "--harness",
+        "claude"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: --docs path does not exist: missing.md\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--docs",
+        "../outside",
+        "--harness",
+        "claude"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: --docs path does not exist: ../outside\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--docs",
+        ".",
+        "--harness",
+        "claude"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: --docs path must be inside the project: .\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "init",
+        "--docs",
+        "missing.md",
+        "--harness",
+        "vim"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: --docs path does not exist: missing.md\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--rescan"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Project is not initialized; run dtech-aidlc onboard --harness <claude|deepseek> first\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--rescan",
+        "--docs",
+        "docs"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Project is not initialized; run dtech-aidlc onboard --harness <claude|deepseek> first\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "onboard",
+        "--rescan",
+        "--no-detect"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: --rescan re-scans an initialized project and does not take --harness, --scope or --no-detect\n",
+      "files": {}
+    }
+  ]
+}

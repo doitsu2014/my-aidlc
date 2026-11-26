@@ -1,0 +1,243 @@
+[
+  {
+    "label": "assign-ok",
+    "argv": [
+      "intent",
+      "assign",
+      "  Dana  "
+    ],
+    "outcome": {
+      "ok": {
+        "intentId": "alpha",
+        "assignee": "Dana"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "assignee": "Dana"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "assign-legacy",
+    "argv": [
+      "intent",
+      "assign",
+      "Dana"
+    ],
+    "outcome": {
+      "ok": {
+        "intentId": "legacy-export-work",
+        "assignee": "Dana"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "state.migrated",
+          "from": 1,
+          "intentId": "legacy-export-work"
+        }
+      ],
+      "intents/": null,
+      "intents/legacy-export-work/": null,
+      "intents/legacy-export-work/intent.md": "# legacy-export-work\n\nLegacy export work\n",
+      "intents/legacy-export-work/state.json": {
+        "json": {
+          "intent": "Legacy export work",
+          "scope": "solo",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "createdAt": "<ts>",
+          "version": 2,
+          "dependencies": {},
+          "intentId": "legacy-export-work",
+          "updatedAt": "<ts>",
+          "assignee": "Dana",
+          "status": "active"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "legacy-export-work",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.v1.bak.json": {
+        "json": {
+          "intent": "Legacy export work",
+          "scope": "solo",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete"
+            }
+          },
+          "createdAt": "<ts>",
+          "project": "legacy"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "assign-usage",
+    "argv": [
+      "intent",
+      "assign"
+    ],
+    "outcome": {
+      "error": "Usage: intent assign NAME",
+      "code": 1
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "assign-blank",
+    "argv": [
+      "intent",
+      "assign",
+      "   "
+    ],
+    "outcome": {
+      "error": "intent assign requires a name",
+      "code": 1
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "assign-none",
+    "argv": [
+      "intent",
+      "assign",
+      "Dana"
+    ],
+    "outcome": {
+      "error": "No active intent",
+      "code": 1
+    },
+    "aidlc": {}
+  }
+]

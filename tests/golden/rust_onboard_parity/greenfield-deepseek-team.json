@@ -1,0 +1,11 @@
+{
+  "initialized": true,
+  "harness": "deepseek",
+  "harnesses": [
+    "deepseek"
+  ],
+  "scope": "team",
+  "kind": "greenfield",
+  "languages": [],
+  "architecture": []
+}

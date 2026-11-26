@@ -1,0 +1,52 @@
+{
+  "steps": [
+    {
+      "argv": [
+        "status"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"initialized\": true,\n  \"activeIntent\": null\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "intent",
+        "list"
+      ],
+      "code": 0,
+      "stdout": "[]\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "scope"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Invalid project configuration JSON\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "scope"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"scope\": \"solo\",\n  \"configured\": false\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "agents"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Invalid project configuration JSON\n",
+      "files": {}
+    }
+  ]
+}

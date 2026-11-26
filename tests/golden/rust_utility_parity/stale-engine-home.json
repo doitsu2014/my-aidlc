@@ -1,0 +1,136 @@
+{
+  "scope solo": {
+    "code": 0,
+    "stdout": {
+      "scope": "solo",
+      "depth": "full",
+      "stages": [
+        {
+          "id": "problem-framing",
+          "phase": "analyze",
+          "agent": "brief-analyst",
+          "defaultModel": "sonnet",
+          "model": "sonnet",
+          "source": "default",
+          "produces": [
+            "problem-statement",
+            "success-measures",
+            "stakeholder-map",
+            "acceptance-criteria",
+            "user-stories"
+          ]
+        },
+        {
+          "id": "context-and-risk",
+          "phase": "analyze",
+          "agent": "context-risk-analyst",
+          "defaultModel": "sonnet",
+          "model": "sonnet",
+          "source": "default",
+          "produces": [
+            "constraints-and-assumptions",
+            "evidence-log",
+            "risk-register",
+            "open-questions",
+            "quality-requirements"
+          ]
+        },
+        {
+          "id": "option-generation",
+          "phase": "ideate",
+          "agent": "solution-explorer",
+          "defaultModel": "opus",
+          "model": "opus",
+          "source": "default",
+          "produces": [
+            "solution-options",
+            "trade-off-matrix"
+          ]
+        },
+        {
+          "id": "direction-selection",
+          "phase": "ideate",
+          "agent": "decision-facilitator",
+          "defaultModel": "opus",
+          "model": "opus",
+          "source": "default",
+          "produces": [
+            "recommended-direction",
+            "decision-record",
+            "scope-boundary",
+            "architecture-design",
+            "threat-model"
+          ]
+        },
+        {
+          "id": "implementation-design",
+          "phase": "develop",
+          "agent": "implementation-planner",
+          "defaultModel": "sonnet",
+          "model": "sonnet",
+          "source": "default",
+          "produces": [
+            "implementation-plan",
+            "interfaces-and-contracts",
+            "functional-design",
+            "test-strategy",
+            "work-units",
+            "work-units-json",
+            "id-registry"
+          ]
+        },
+        {
+          "id": "red-tests",
+          "phase": "develop",
+          "agent": "builder-verifier",
+          "defaultModel": "sonnet",
+          "model": "sonnet",
+          "source": "default",
+          "produces": [
+            "failing-tests",
+            "red-evidence"
+          ]
+        },
+        {
+          "id": "build-and-verify",
+          "phase": "develop",
+          "agent": "builder-verifier",
+          "defaultModel": "sonnet",
+          "model": "sonnet",
+          "source": "default",
+          "produces": [
+            "implementation",
+            "green-verification-report",
+            "regression-report",
+            "known-limitations"
+          ]
+        },
+        {
+          "id": "intent-record",
+          "phase": "archived",
+          "agent": "record-keeper",
+          "defaultModel": "haiku",
+          "model": "haiku",
+          "source": "default",
+          "produces": [
+            "intent-summary",
+            "completed-scope",
+            "artifact-index"
+          ]
+        },
+        {
+          "id": "knowledge-writeback",
+          "phase": "archived",
+          "agent": "knowledge-archivist",
+          "defaultModel": "sonnet",
+          "model": "sonnet",
+          "source": "default",
+          "produces": [
+            "knowledge-record",
+            "next-intent-notes"
+          ]
+        }
+      ]
+    }
+  }
+}

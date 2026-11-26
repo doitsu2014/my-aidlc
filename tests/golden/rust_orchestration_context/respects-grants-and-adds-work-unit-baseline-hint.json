@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "<ROOT>",
+  "granted": [
+    "knowledge"
+  ],
+  "warnings": [],
+  "baseline": {
+    "path": ".aidlc/intents/i/analyze/baseline.md",
+    "exists": true
+  },
+  "knowledge": {
+    "dir": ".aidlc/knowledge",
+    "records": [],
+    "invalid": [],
+    "record": null
+  },
+  "codebaseMap": null
+}

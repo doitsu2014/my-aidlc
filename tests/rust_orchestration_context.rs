@@ -1,12 +1,15 @@
+#[path = "common/golden.rs"]
+mod golden;
+
+use dtech_aidlc::onboarding::list_files;
 use dtech_aidlc::orchestration_context::{
     build, build_with_engine, extra_required_artifacts, extra_required_artifacts_with_engine,
     project_file_warnings, ContextInput,
 };
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -48,45 +51,6 @@ fn scaffold() -> String {
 
 const OWNED_PROJECT: &str = "# Project\n\nBilling service for internal teams.\n\n## Commands\n\ncargo test\n\n## Environment prerequisites\n\nRust 1.80\n\n## Known baseline failures\n\nNone.\n";
 
-/// Run a Node reference function from `core/tools` on the same fixture.
-fn node(module: &str, mode: &str, input: &Value) -> Value {
-    let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let script = r#"
-const { pathToFileURL } = await import('node:url');
-const mod = await import(pathToFileURL(process.env.AIDLC_MODULE).href);
-const input = JSON.parse(process.env.AIDLC_INPUT);
-let out = null;
-if (process.env.AIDLC_MODE === 'context') out = mod.buildDirectiveContext(input);
-if (process.env.AIDLC_MODE === 'snapshot') out = mod.writeSourcesSnapshot(input.root, input.sources);
-if (process.env.AIDLC_MODE === 'projectFileWarnings') out = mod.projectFileWarnings(input.root, input.path, { developing: input.developing });
-if (process.env.AIDLC_MODE === 'extraRequiredArtifacts') out = mod.extraRequiredArtifacts({ root: input.root, stage: input.stage });
-process.stdout.write(JSON.stringify(out));
-"#;
-    let output = Command::new("node")
-        .args(["--input-type=module", "-e", script])
-        .env_remove("DTECH_AIDLC_HOME")
-        .env("AIDLC_MODULE", repo.join("core/tools").join(module))
-        .env("AIDLC_MODE", mode)
-        .env("AIDLC_INPUT", input.to_string())
-        .current_dir(&repo)
-        .output()
-        .expect("Node must be available for context parity tests");
-    assert!(
-        output.status.success(),
-        "node failed: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    serde_json::from_slice(&output.stdout).unwrap()
-}
-
-fn node_context(root: &Path, state: &Value, stage: &Value, graph: &Value) -> Value {
-    node(
-        "context.mjs",
-        "context",
-        &json!({"root":root,"state":state,"stage":stage,"graph":graph}),
-    )
-}
-
 fn rust_context(root: &Path, state: &Value, stage: &Value, graph: &Value) -> Value {
     build(ContextInput {
         root,
@@ -97,8 +61,8 @@ fn rust_context(root: &Path, state: &Value, stage: &Value, graph: &Value) -> Val
     .unwrap()
 }
 
-/// Template paths intentionally differ: Node points into its install, Rust into
-/// the materialized engine under `.aidlc/engine`.
+/// Template paths depend on where the engine lives (the materialized engine under
+/// `.aidlc/engine`, or an external engine); the golden files leave them out.
 fn without_templates(mut context: Value) -> Value {
     if let Some(map) = context["codebaseMap"].as_object_mut() {
         map.remove("template");
@@ -109,11 +73,21 @@ fn without_templates(mut context: Value) -> Value {
     context
 }
 
-fn assert_node_parity(root: &Path, state: &Value, stage: &Value) -> Value {
+/// Builds the context natively and compares it, normalized and without template paths,
+/// with the golden file `case`. `placeholders` replace volatile values (scan times).
+fn assert_golden_context(
+    case: &str,
+    root: &Path,
+    state: &Value,
+    stage: &Value,
+    placeholders: &[(String, String)],
+) -> Value {
     let graph = json!({});
     let rust = rust_context(root, state, stage, &graph);
-    let node = node_context(root, state, stage, &graph);
-    assert_eq!(without_templates(rust.clone()), without_templates(node));
+    assert_golden(
+        case,
+        &normalize(&without_templates(rust.clone()), root, placeholders),
+    );
     rust
 }
 
@@ -125,14 +99,61 @@ fn write_profile(root: &Path, schema: u64, kind: &str) {
     );
 }
 
-fn node_snapshot(root: &Path) {
+/// Writes `.aidlc/shared/sources-snapshot.json` for the registered sources the way
+/// onboarding does: sources sorted longest path first, each file listed once (first
+/// source wins), files in UTF-16 order, hashed with SHA-256.
+fn write_sources_snapshot(root: &Path) {
     let manifest: Value =
         serde_json::from_slice(&fs::read(root.join("aidlc.knowledge.json")).unwrap()).unwrap();
-    node(
-        "onboard.mjs",
-        "snapshot",
-        &json!({"root":root,"sources":manifest["sources"]}),
+    let mut sources: Vec<&Value> = manifest["sources"].as_array().unwrap().iter().collect();
+    let length = |source: &Value| source["path"].as_str().unwrap_or("").encode_utf16().count();
+    sources.sort_by_key(|source| std::cmp::Reverse(length(source)));
+    let mut files: Vec<(dtech_aidlc::onboarding::FileEntry, Value)> = Vec::new();
+    for source in sources {
+        let Some(path) = source["path"].as_str() else {
+            continue;
+        };
+        for file in list_files(root, path) {
+            if !files.iter().any(|(known, _)| known.path == file.path) {
+                files.push((file, source["id"].clone()));
+            }
+        }
+    }
+    files.sort_by(|a, b| a.0.path.encode_utf16().cmp(b.0.path.encode_utf16()));
+    let rows: Vec<Value> = files
+        .into_iter()
+        .map(|(file, source)| {
+            let bytes = fs::read(root.join(&file.path)).unwrap();
+            json!({
+                "source": source,
+                "path": file.path,
+                "bytes": file.bytes,
+                "mtimeMs": file.mtime_ms,
+                "sha256": format!("{:x}", Sha256::digest(&bytes)),
+            })
+        })
+        .collect();
+    let scanned_at = dtech_aidlc::audit::now_iso();
+    let snapshot = json!({"schemaVersion":1,"generated":true,"scannedAt":scanned_at,"truncated":false,"files":rows});
+    write(
+        root,
+        ".aidlc/shared/sources-snapshot.json",
+        &format!("{}\n", serde_json::to_string_pretty(&snapshot).unwrap()),
     );
+}
+
+/// Placeholders for the scan time of the snapshot written by the test (and its day).
+fn scan_placeholders(root: &Path) -> Vec<(String, String)> {
+    let snapshot: Value = serde_json::from_slice(
+        &fs::read(root.join(".aidlc/shared/sources-snapshot.json")).unwrap(),
+    )
+    .unwrap();
+    let scanned_at = snapshot["scannedAt"].as_str().unwrap().to_owned();
+    let day = scanned_at[..10].to_owned();
+    vec![
+        (scanned_at, "<SCANNED_AT>".to_owned()),
+        (day, "<SCANNED_DAY>".to_owned()),
+    ]
 }
 
 fn expected_template(root: &Path, name: &str) -> String {
@@ -196,7 +217,13 @@ fn builds_default_envelope_request_sources_and_knowledge() {
     assert_eq!(context["sourceChanges"]["scanned"], true);
     assert_eq!(context["sourceChanges"]["changed"], json!([]));
     assert_eq!(context["codebaseMap"]["required"], false);
-    assert_node_parity(&root, &state, &stage(None));
+    assert_golden_context(
+        "builds-default-envelope-request-sources-and-knowledge",
+        &root,
+        &state,
+        &stage(None),
+        &[],
+    );
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -229,7 +256,13 @@ fn respects_grants_and_adds_work_unit_baseline_hint() {
         json!({"path":".aidlc/intents/i/analyze/baseline.md","exists":true})
     );
     assert_eq!(context["knowledge"]["dir"], ".aidlc/knowledge");
-    assert_node_parity(&root, &state, &stage);
+    assert_golden_context(
+        "respects-grants-and-adds-work-unit-baseline-hint",
+        &root,
+        &state,
+        &stage,
+        &[],
+    );
     fs::remove_dir_all(root).unwrap();
 }
 
@@ -285,12 +318,18 @@ fn missing_manifest_warns_and_omits_unavailable_sources() {
             "Source project path PROJECT.md does not exist"
         ])
     );
-    assert_node_parity(&root, &state, &stage(Some(json!(["project", "sources"]))));
+    assert_golden_context(
+        "missing-manifest-warns-and-omits-unavailable-sources",
+        &root,
+        &state,
+        &stage(Some(json!(["project", "sources"]))),
+        &[],
+    );
     fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
-fn source_changes_match_node_after_edits_additions_and_removals() {
+fn source_changes_after_edits_additions_and_removals() {
     let root = temp();
     write(&root, "PROJECT.md", OWNED_PROJECT);
     write(&root, "GUIDE.md", "# Guide\n");
@@ -310,7 +349,7 @@ fn source_changes_match_node_after_edits_additions_and_removals() {
         r#"{"harness":"claude","scope":"solo"}"#,
     );
     write_profile(&root, 2, "brownfield");
-    node_snapshot(&root);
+    write_sources_snapshot(&root);
     let snapshot: Value = serde_json::from_slice(
         &fs::read(root.join(".aidlc/shared/sources-snapshot.json")).unwrap(),
     )
@@ -325,7 +364,14 @@ fn source_changes_match_node_after_edits_additions_and_removals() {
 
     let state = json!({"intentId":"intent-1"});
     let develop = json!({"id":"build","phase":"develop"});
-    let context = assert_node_parity(&root, &state, &develop);
+    let placeholders = scan_placeholders(&root);
+    let context = assert_golden_context(
+        "source-changes-after-edits-additions-and-removals",
+        &root,
+        &state,
+        &develop,
+        &placeholders,
+    );
     let changes = &context["sourceChanges"];
     assert_eq!(changes["scanned"], true);
     assert_eq!(changes["scannedAt"], snapshot["scannedAt"]);
@@ -360,7 +406,7 @@ fn source_changes_match_node_after_edits_additions_and_removals() {
 }
 
 #[test]
-fn unchanged_snapshot_without_hashes_compares_node_mtimes_exactly() {
+fn unchanged_snapshot_without_hashes_compares_mtimes_exactly() {
     let root = temp();
     write(&root, "PROJECT.md", OWNED_PROJECT);
     write(&root, "docs/a.md", "alpha\n");
@@ -371,7 +417,7 @@ fn unchanged_snapshot_without_hashes_compares_node_mtimes_exactly() {
         r#"{"schemaVersion":1,"sources":[{"id":"project","path":"PROJECT.md","kind":"project"},{"id":"docs","path":"docs","kind":"docs"}]}"#,
     );
     write_profile(&root, 2, "greenfield");
-    node_snapshot(&root);
+    write_sources_snapshot(&root);
     // Drop the hashes textually (re-serializing would round mtimeMs), so only
     // the size and mtimeMs comparison decides whether a file changed.
     let path = root.join(".aidlc/shared/sources-snapshot.json");
@@ -387,8 +433,15 @@ fn unchanged_snapshot_without_hashes_compares_node_mtimes_exactly() {
     out.push_str(rest);
     assert!(out.contains("\"sha256\": null"));
     fs::write(&path, out).unwrap();
+    let placeholders = scan_placeholders(&root);
 
-    let context = assert_node_parity(&root, &json!({}), &stage(None));
+    let context = assert_golden_context(
+        "unchanged-snapshot-without-hashes-compares-mtimes-exactly",
+        &root,
+        &json!({}),
+        &stage(None),
+        &placeholders,
+    );
     assert_eq!(context["sourceChanges"]["changed"], json!([]));
     assert_eq!(context["sourceChanges"]["added"], json!([]));
     assert_eq!(context["sourceChanges"]["removed"], json!([]));
@@ -397,7 +450,7 @@ fn unchanged_snapshot_without_hashes_compares_node_mtimes_exactly() {
 }
 
 #[test]
-fn unregistered_scaffold_project_matches_node_warnings() {
+fn unregistered_scaffold_project_warnings() {
     let root = temp();
     write(&root, "PROJECT.md", &scaffold());
     write(
@@ -405,7 +458,13 @@ fn unregistered_scaffold_project_matches_node_warnings() {
         ".aidlc/config.json",
         r#"{"harness":"claude","scope":"team"}"#,
     );
-    let context = assert_node_parity(&root, &json!({}), &stage(None));
+    let context = assert_golden_context(
+        "unregistered-scaffold-project-warnings",
+        &root,
+        &json!({}),
+        &stage(None),
+        &[],
+    );
     assert_eq!(
         context["warnings"],
         json!([
@@ -432,7 +491,13 @@ fn scanned_unregistered_project_without_detected_docs_has_no_manifest_warning() 
         ".aidlc/shared/sources-snapshot.json",
         r#"{"schemaVersion":1,"scannedAt":"2026-01-02T03:04:05.000Z","truncated":false,"files":[]}"#,
     );
-    let context = assert_node_parity(&root, &json!({}), &stage(None));
+    let context = assert_golden_context(
+        "scanned-unregistered-project-without-detected-docs-has-no-manifest-warning-1",
+        &root,
+        &json!({}),
+        &stage(None),
+        &[],
+    );
     assert!(context["warnings"].as_array().unwrap().is_empty());
     assert_eq!(context["sourceChanges"]["scanned"], true);
     assert_eq!(
@@ -446,7 +511,13 @@ fn scanned_unregistered_project_without_detected_docs_has_no_manifest_warning() 
         ".aidlc/shared/project-profile.json",
         r#"{"schemaVersion":2,"kind":"greenfield","documentation":{"detected":[{"path":"docs"}]}}"#,
     );
-    let context = assert_node_parity(&root, &json!({}), &stage(None));
+    let context = assert_golden_context(
+        "scanned-unregistered-project-without-detected-docs-has-no-manifest-warning-2",
+        &root,
+        &json!({}),
+        &stage(None),
+        &[],
+    );
     assert_eq!(
         context["warnings"],
         json!(["No aidlc.knowledge.json was found, so no project documentation is registered for agents. Run `dtech-aidlc onboard --harness <claude|deepseek>`."])
@@ -474,7 +545,13 @@ fn outdated_profile_is_not_scanned_and_suggests_rescan() {
         ".aidlc/shared/sources-snapshot.json",
         r#"{"schemaVersion":1,"scannedAt":"2026-01-02T03:04:05.000Z","truncated":false,"files":[]}"#,
     );
-    let context = assert_node_parity(&root, &json!({}), &stage(None));
+    let context = assert_golden_context(
+        "outdated-profile-is-not-scanned-and-suggests-rescan-1",
+        &root,
+        &json!({}),
+        &stage(None),
+        &[],
+    );
     assert_eq!(
         context["warnings"],
         json!(["This project has not been scanned on this machine by this version of dtech-aidlc, so the project profile and the document change check are unavailable. Run `dtech-aidlc onboard --rescan`."])
@@ -486,20 +563,26 @@ fn outdated_profile_is_not_scanned_and_suggests_rescan() {
     );
     assert_eq!(context["codebaseMap"]["required"], Value::Null);
 
-    // A malformed languages list makes Node treat the profile as absent.
+    // A malformed languages list makes the profile count as absent.
     write(
         &root,
         ".aidlc/shared/project-profile.json",
         r#"{"schemaVersion":2,"kind":"brownfield","languages":{"rust":true}}"#,
     );
-    let context = assert_node_parity(&root, &json!({}), &stage(None));
+    let context = assert_golden_context(
+        "outdated-profile-is-not-scanned-and-suggests-rescan-2",
+        &root,
+        &json!({}),
+        &stage(None),
+        &[],
+    );
     assert_eq!(context["sourceChanges"]["scanned"], false);
     assert_eq!(context["codebaseMap"]["reason"], "project not scanned");
     fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
-fn malformed_and_truncated_snapshots_match_node() {
+fn malformed_and_truncated_snapshots() {
     let root = temp();
     write(&root, "PROJECT.md", OWNED_PROJECT);
     write(&root, "docs/a.md", "alpha\n");
@@ -516,40 +599,53 @@ fn malformed_and_truncated_snapshots_match_node() {
         ".aidlc/shared/sources-snapshot.json",
         r#"{"schemaVersion":1,"scannedAt":"2026-03-04T00:00:00.000Z","truncated":true,"files":[{"path":"docs/a.md","bytes":1,"mtimeMs":5,"sha256":"00"},{"path":"docs/old.md","bytes":1,"mtimeMs":5,"sha256":null}]}"#,
     );
-    let context = assert_node_parity(&root, &json!({}), &stage(None));
+    let context = assert_golden_context(
+        "malformed-and-truncated-snapshots-1",
+        &root,
+        &json!({}),
+        &stage(None),
+        &[],
+    );
     assert_eq!(context["sourceChanges"]["changed"], json!(["docs/a.md"]));
     assert_eq!(context["sourceChanges"]["added"], json!([]));
     assert_eq!(context["sourceChanges"]["removed"], json!([]));
 
-    // Rows without a string path are carried through as Node does.
+    // Rows without a string path are carried through unchanged.
     write(
         &root,
         ".aidlc/shared/sources-snapshot.json",
         r#"{"schemaVersion":1,"scannedAt":7,"truncated":0,"files":[{"path":5},{"bytes":1},{"bytes":2},{"path":"docs/zz.md"}]}"#,
     );
-    let context = assert_node_parity(&root, &json!({}), &stage(None));
+    let context = assert_golden_context(
+        "malformed-and-truncated-snapshots-2",
+        &root,
+        &json!({}),
+        &stage(None),
+        &[],
+    );
     assert_eq!(
         context["sourceChanges"]["removed"],
         json!([5, "docs/zz.md", null])
     );
 
-    // A null row makes Node's sourceStatus throw; the section degrades.
+    // A null row makes the source status fail; the section degrades to a warning.
     write(
         &root,
         ".aidlc/shared/sources-snapshot.json",
         r#"{"schemaVersion":1,"scannedAt":"x","truncated":false,"files":[null]}"#,
     );
     let rust = rust_context(&root, &json!({}), &stage(None), &json!({}));
-    let node = node_context(&root, &json!({}), &stage(None), &json!({}));
     assert!(rust.get("sourceChanges").is_none());
-    assert!(node.get("sourceChanges").is_none());
     assert_eq!(
         rust["warnings"],
         json!([
             "source changes could not be listed: Cannot read properties of null (reading 'path')"
         ])
     );
-    assert_eq!(rust["warnings"], node["warnings"]);
+    assert_golden(
+        "malformed-snapshot-null-row",
+        &json!({"sourceChanges": rust.get("sourceChanges"), "warnings": rust["warnings"]}),
+    );
 
     // Wrong schema version: the snapshot is ignored entirely.
     write(
@@ -557,14 +653,20 @@ fn malformed_and_truncated_snapshots_match_node() {
         ".aidlc/shared/sources-snapshot.json",
         r#"{"schemaVersion":2,"scannedAt":"x","files":[]}"#,
     );
-    let context = assert_node_parity(&root, &json!({}), &stage(None));
+    let context = assert_golden_context(
+        "malformed-and-truncated-snapshots-3",
+        &root,
+        &json!({}),
+        &stage(None),
+        &[],
+    );
     assert_eq!(context["sourceChanges"]["scanned"], false);
     assert_eq!(context["sourceChanges"]["scannedAt"], Value::Null);
     fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
-fn codebase_map_status_matches_node_for_an_existing_map() {
+fn codebase_map_status_for_an_existing_map() {
     let root = temp();
     write(&root, "PROJECT.md", OWNED_PROJECT);
     write_profile(&root, 2, "unknown");
@@ -574,7 +676,13 @@ fn codebase_map_status_matches_node_for_an_existing_map() {
         "# Codebase map\n\nmodules\n",
     );
     let grants = stage(Some(json!(["profile"])));
-    let context = assert_node_parity(&root, &json!({}), &grants);
+    let context = assert_golden_context(
+        "codebase-map-status-for-an-existing-map-1",
+        &root,
+        &json!({}),
+        &grants,
+        &[],
+    );
     let map = &context["codebaseMap"];
     assert_eq!(map["path"], ".aidlc/knowledge/_codebase-map.md");
     assert_eq!(map["exists"], true);
@@ -586,7 +694,13 @@ fn codebase_map_status_matches_node_for_an_existing_map() {
 
     // An empty map does not count as present.
     write(&root, ".aidlc/knowledge/_codebase-map.md", "");
-    let context = assert_node_parity(&root, &json!({}), &grants);
+    let context = assert_golden_context(
+        "codebase-map-status-for-an-existing-map-2",
+        &root,
+        &json!({}),
+        &grants,
+        &[],
+    );
     assert_eq!(context["codebaseMap"]["exists"], false);
     assert_eq!(context["codebaseMap"]["bytes"], 0);
     assert_eq!(context["codebaseMap"]["modifiedAt"], Value::Null);
@@ -610,15 +724,10 @@ fn extra_required_artifacts_requires_codebase_map_for_existing_projects() {
             expected_template(&root, "codebase-map.md")
         )
     );
-    let node_rows = node(
-        "context.mjs",
-        "extraRequiredArtifacts",
-        &json!({"root":root,"stage":stage_row}),
+    assert_golden(
+        "extra-required-artifacts-brownfield",
+        &engine_neutral(&normalize(&json!(rows), &root, &[])),
     );
-    assert_eq!(node_rows[0]["path"], rows[0]["path"]);
-    assert!(node_rows[0]["reason"].as_str().unwrap().starts_with(
-        "the codebase map is required for an existing project (kind brownfield); write it from "
-    ));
     assert!(extra_required_artifacts(&root, &json!({"id":"other"})).is_empty());
     write(&root, ".aidlc/knowledge/_codebase-map.md", "map\n");
     assert!(extra_required_artifacts(&root, &stage_row).is_empty());
@@ -626,7 +735,7 @@ fn extra_required_artifacts_requires_codebase_map_for_existing_projects() {
 }
 
 #[test]
-fn project_file_warnings_follow_node_rules() {
+fn project_file_warnings_follow_reference_rules() {
     let root = temp();
     let scaffold = scaffold();
     let partial = "# Project\n\nOur service.\n\n## Commands\n\ncargo test\n\n## Environment prerequisites\n\nWhat must be installed or running before code can be built or tested (for example Docker Desktop, a database, a language toolchain), and how to check it. Register a check with `dtech-aidlc config prerequisite set NAME --check \"COMMAND\"`.\n\n## Deeper docs\n";
@@ -638,18 +747,15 @@ fn project_file_warnings_follow_node_rules() {
         ("partial.md", partial),
         ("headings.md", "## commands\n#\tnot a heading\nreal\n# Next\n## Environment prerequisites\n### sub\nyes\n## Known baseline failures\n##x\n"),
     ];
+    let mut warnings = Map::new();
     for (name, text) in cases {
         write(&root, name, text);
         for developing in [false, true] {
             let rust = project_file_warnings(&root, name, developing);
-            let node = node(
-                "context.mjs",
-                "projectFileWarnings",
-                &json!({"root":root,"path":name,"developing":developing}),
-            );
-            assert_eq!(json!(rust), node, "{name} developing={developing}");
+            warnings.insert(format!("{name} developing={developing}"), json!(rust));
         }
     }
+    assert_golden("project-file-warnings", &Value::Object(warnings));
     assert_eq!(
         project_file_warnings(&root, "partial.md", true),
         vec!["partial.md has no content under '## Environment prerequisites', '## Known baseline failures'. Develop runs code: record the commands, the environment it needs and the failures already present, or the agents will rediscover them on every work unit.".to_owned()]
@@ -678,7 +784,13 @@ fn develop_stage_reports_missing_project_sections_in_context() {
     );
     let develop =
         json!({"id":"build","phase":"develop","inputs":{"context":["project","sources"]}});
-    let context = assert_node_parity(&root, &json!({}), &develop);
+    let context = assert_golden_context(
+        "develop-stage-reports-missing-project-sections-in-context-1",
+        &root,
+        &json!({}),
+        &develop,
+        &[],
+    );
     assert_eq!(
         context["warnings"],
         json!([
@@ -689,18 +801,30 @@ fn develop_stage_reports_missing_project_sections_in_context() {
     assert_eq!(context["sourceChanges"]["added"], json!(["PROJECT.md"]));
     // Only the project grant: no source change status.
     let project_only = json!({"id":"build","phase":"develop","inputs":{"context":["project"]}});
-    let context = assert_node_parity(&root, &json!({}), &project_only);
+    let context = assert_golden_context(
+        "develop-stage-reports-missing-project-sections-in-context-2",
+        &root,
+        &json!({}),
+        &project_only,
+        &[],
+    );
     assert!(context.get("sourceChanges").is_none());
     assert_eq!(context["warnings"].as_array().unwrap().len(), 1);
     fs::remove_dir_all(root).unwrap();
 }
 
 #[test]
-fn invalid_writeback_record_id_degrades_to_warning_like_node() {
+fn invalid_writeback_record_id_degrades_to_warning() {
     let root = temp();
     let state = json!({"intentId":"bad id"});
     let stage = json!({"id":"knowledge-writeback","inputs":{"context":["knowledge"]}});
-    let context = assert_node_parity(&root, &state, &stage);
+    let context = assert_golden_context(
+        "invalid-writeback-record-id-degrades-to-warning",
+        &root,
+        &state,
+        &stage,
+        &[],
+    );
     assert_eq!(context["knowledge"], Value::Null);
     assert_eq!(
         context["warnings"],
@@ -713,7 +837,13 @@ fn invalid_writeback_record_id_degrades_to_warning_like_node() {
 fn invalid_manifest_degrades_to_sources_warning() {
     let root = temp();
     write(&root, "aidlc.knowledge.json", "{not json");
-    let context = assert_node_parity(&root, &json!({}), &stage(None));
+    let context = assert_golden_context(
+        "invalid-manifest-degrades-to-sources-warning",
+        &root,
+        &json!({}),
+        &stage(None),
+        &[],
+    );
     assert!(context.get("project").is_none());
     assert!(context.get("sourceChanges").is_none());
     assert_eq!(
@@ -764,12 +894,12 @@ fn symlinked_project_files_are_not_read() {
 }
 
 /// Regression: with an external engine (`DTECH_AIDLC_HOME`) the codebase-map and
-/// knowledge-record templates must point into that engine, as Node's `engineRoot()`
-/// does, not into a `<project>/.aidlc/engine` that was never written. Node's test run
-/// uses the repository engine `core/`, so with that root the whole context, templates
-/// included, must equal Node's.
+/// knowledge-record templates must point into that engine, not into a
+/// `<project>/.aidlc/engine` that was never written. The golden files were recorded with
+/// the repository engine `core/`, so with that root the whole context, templates
+/// included, must equal them.
 #[test]
-fn external_engine_templates_point_into_the_engine_like_node() {
+fn external_engine_templates_point_into_the_engine() {
     let engine = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("core");
     let root = temp();
     write(&root, "PROJECT.md", OWNED_PROJECT);
@@ -803,8 +933,8 @@ fn external_engine_templates_point_into_the_engine_like_node() {
             &engine,
         )
         .unwrap();
-        let node = node_context(&root, &state, &stage, &graph);
-        assert_eq!(without_closed(rust), without_closed(node), "{stage}");
+        let case = format!("external-engine-{}", stage["id"].as_str().unwrap());
+        assert_golden(&case, &normalize(&without_closed(rust), &root, &[]));
     }
     let stage = json!({"id":"knowledge-writeback","phase":"operate"});
     let rust = build_with_engine(
@@ -841,4 +971,136 @@ fn external_engine_templates_point_into_the_engine_like_node() {
         "{reason}"
     );
     fs::remove_dir_all(root).unwrap();
+}
+
+// ---------------------------------------------------------------------------
+// Golden files: tests/golden/rust_orchestration_context/<case>.json. The expectations
+// were recorded from the reference implementation on the same fixtures; set
+// DTECH_AIDLC_BLESS=1 to rewrite them from the native implementation after an
+// intentional change.
+// ---------------------------------------------------------------------------
+
+fn repo() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+}
+
+/// Spellings of `path` to replace: as given, with forward slashes, longest first.
+fn spellings(path: &Path) -> Vec<String> {
+    let native = path.to_string_lossy().into_owned();
+    let posix = native.replace('\\', "/");
+    let mut out = vec![native, posix];
+    out.sort_by_key(|text| std::cmp::Reverse(text.len()));
+    out.dedup();
+    out
+}
+
+/// Replaces the fixture root with `<ROOT>`, this repository with `<REPO>` (forward
+/// slashes after either), `placeholders` everywhere, and file modification times with
+/// `<TS>`, so golden files are machine-independent.
+fn normalize(value: &Value, root: &Path, placeholders: &[(String, String)]) -> Value {
+    fn walk(
+        key: Option<&str>,
+        value: &Value,
+        paths: &[(String, &str)],
+        placeholders: &[(String, String)],
+    ) -> Value {
+        match value {
+            Value::Object(map) => Value::Object(
+                map.iter()
+                    .map(|(name, item)| (name.clone(), walk(Some(name), item, paths, placeholders)))
+                    .collect(),
+            ),
+            Value::Array(items) => Value::Array(
+                items
+                    .iter()
+                    .map(|item| walk(None, item, paths, placeholders))
+                    .collect(),
+            ),
+            Value::String(_) if key == Some("modifiedAt") => json!("<TS>"),
+            Value::String(text) => {
+                let mut text = text.clone();
+                for (from, to) in placeholders {
+                    text = text.replace(from.as_str(), to);
+                }
+                let mut rebased = false;
+                for (from, to) in paths {
+                    if text.contains(from.as_str()) {
+                        text = text.replace(from.as_str(), to);
+                        rebased = true;
+                    }
+                }
+                if rebased {
+                    text = text.replace('\\', "/");
+                }
+                Value::String(text)
+            }
+            other => other.clone(),
+        }
+    }
+    let mut paths: Vec<(String, &str)> = spellings(root)
+        .into_iter()
+        .map(|spelling| (spelling, "<ROOT>"))
+        .chain(
+            spellings(&repo())
+                .into_iter()
+                .map(|spelling| (spelling, "<REPO>")),
+        )
+        .collect();
+    paths.sort_by_key(|(spelling, _)| std::cmp::Reverse(spelling.len()));
+    walk(None, value, &paths, placeholders)
+}
+
+/// Engine template locations as `<ENGINE>/methodology/...`, whether the engine is this
+/// repository's `core/` or the project's materialized `.aidlc/engine`.
+fn engine_neutral(value: &Value) -> Value {
+    match value {
+        Value::String(text) => Value::String(
+            text.replace("<REPO>/core/methodology/", "<ENGINE>/methodology/")
+                .replace("<ROOT>/.aidlc/engine/methodology/", "<ENGINE>/methodology/"),
+        ),
+        Value::Array(items) => Value::Array(items.iter().map(engine_neutral).collect()),
+        Value::Object(map) => Value::Object(
+            map.iter()
+                .map(|(key, item)| (key.clone(), engine_neutral(item)))
+                .collect(),
+        ),
+        other => other.clone(),
+    }
+}
+
+fn golden_path(case: &str) -> PathBuf {
+    repo()
+        .join("tests/golden/rust_orchestration_context")
+        .join(format!("{case}.json"))
+}
+
+fn blessing() -> bool {
+    std::env::var_os("DTECH_AIDLC_BLESS").is_some_and(|value| value == "1")
+}
+
+fn write_golden(case: &str, value: &Value) {
+    let path = golden_path(case);
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let mut text = serde_json::to_string_pretty(value).unwrap();
+    text.push('\n');
+    fs::write(path, text).unwrap();
+}
+
+fn assert_golden(case: &str, actual: &Value) {
+    // Repository files copied into projects (the scaffold) have the checkout's line
+    // endings; the golden files hold the LF form.
+    let actual = &golden::checkout_value(actual);
+    if blessing() {
+        write_golden(case, actual);
+        return;
+    }
+    let path = golden_path(case);
+    let text = fs::read_to_string(&path).unwrap_or_else(|error| {
+        panic!(
+            "cannot read golden {} ({error}); record it with DTECH_AIDLC_BLESS=1",
+            path.display()
+        )
+    });
+    let expected: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(actual, &expected, "golden {}", path.display());
 }

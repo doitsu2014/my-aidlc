@@ -1,0 +1,728 @@
+[
+  {
+    "fixture": "ids-idle"
+  },
+  {
+    "argv": [
+      "ids",
+      "check"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: No active intent\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "ids",
+      "bogus"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Use ids check\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "ids-empty"
+  },
+  {
+    "argv": [
+      "ids",
+      "check"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "intentId": "build-a-sample-feature",
+        "registry": {
+          "path": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/ids.json",
+          "exists": false,
+          "counts": {}
+        },
+        "applies": false,
+        "ok": true,
+        "stages": [
+          {
+            "stage": "implementation-design",
+            "checked": [],
+            "unregistered": []
+          },
+          {
+            "stage": "red-tests",
+            "checked": [],
+            "unregistered": []
+          },
+          {
+            "stage": "build-and-verify",
+            "checked": [],
+            "unregistered": []
+          }
+        ],
+        "uncoveredFunctions": []
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "ids",
+      "check",
+      "--stage",
+      "problem-framing"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "intentId": "build-a-sample-feature",
+        "registry": {
+          "path": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/ids.json",
+          "exists": false,
+          "counts": {}
+        },
+        "applies": false,
+        "ok": true,
+        "stages": [
+          {
+            "stage": "problem-framing",
+            "checked": [],
+            "unregistered": []
+          }
+        ],
+        "uncoveredFunctions": []
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "ids",
+      "check",
+      "--stage",
+      "release-readiness"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Stage release-readiness is not in the active intent's scope\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "ids",
+      "check",
+      "--stage",
+      "no-such-stage"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Stage no-such-stage is not in the active intent's scope\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "ids",
+      "bogus"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Use ids check\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "ids-cited"
+  },
+  {
+    "argv": [
+      "ids",
+      "check"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": {
+        "intentId": "build-a-sample-feature",
+        "registry": {
+          "path": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/ids.json",
+          "exists": true,
+          "counts": {
+            "7": 1,
+            "FN": 3,
+            "IF": 1,
+            "WU": 1
+          }
+        },
+        "applies": true,
+        "ok": false,
+        "stages": [
+          {
+            "stage": "implementation-design",
+            "checked": [
+              ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md"
+            ],
+            "unregistered": [
+              {
+                "id": "FN-03",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "ids.json"
+              },
+              {
+                "id": "AC-9",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "acceptance-criteria"
+              },
+              {
+                "id": "US-2",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "user-stories"
+              },
+              {
+                "id": "TS-4",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "ids.json"
+              }
+            ]
+          },
+          {
+            "stage": "red-tests",
+            "checked": [
+              ".aidlc/intents/build-a-sample-feature/develop/red-tests/a-first.md",
+              ".aidlc/intents/build-a-sample-feature/develop/red-tests/sub/notes.md"
+            ],
+            "unregistered": [
+              {
+                "id": "FN-77",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/red-tests/sub/notes.md",
+                "source": "ids.json"
+              }
+            ]
+          },
+          {
+            "stage": "build-and-verify",
+            "checked": [
+              ".aidlc/intents/build-a-sample-feature/develop/build-and-verify/green-verification-report.md"
+            ],
+            "unregistered": []
+          }
+        ],
+        "uncoveredFunctions": [
+          "FN-02"
+        ]
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "ids",
+      "check",
+      "--stage",
+      "build-and-verify"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "intentId": "build-a-sample-feature",
+        "registry": {
+          "path": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/ids.json",
+          "exists": true,
+          "counts": {
+            "7": 1,
+            "FN": 3,
+            "IF": 1,
+            "WU": 1
+          }
+        },
+        "applies": true,
+        "ok": true,
+        "stages": [
+          {
+            "stage": "build-and-verify",
+            "checked": [
+              ".aidlc/intents/build-a-sample-feature/develop/build-and-verify/green-verification-report.md"
+            ],
+            "unregistered": []
+          }
+        ],
+        "uncoveredFunctions": [
+          "FN-02"
+        ]
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "ids",
+      "check",
+      "--stage",
+      "red-tests"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": {
+        "intentId": "build-a-sample-feature",
+        "registry": {
+          "path": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/ids.json",
+          "exists": true,
+          "counts": {
+            "7": 1,
+            "FN": 3,
+            "IF": 1,
+            "WU": 1
+          }
+        },
+        "applies": true,
+        "ok": false,
+        "stages": [
+          {
+            "stage": "red-tests",
+            "checked": [
+              ".aidlc/intents/build-a-sample-feature/develop/red-tests/a-first.md",
+              ".aidlc/intents/build-a-sample-feature/develop/red-tests/sub/notes.md"
+            ],
+            "unregistered": [
+              {
+                "id": "FN-77",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/red-tests/sub/notes.md",
+                "source": "ids.json"
+              }
+            ]
+          }
+        ],
+        "uncoveredFunctions": [
+          "FN-02"
+        ]
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "ids",
+      "check",
+      "--stage",
+      "problem-framing"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": {
+        "intentId": "build-a-sample-feature",
+        "registry": {
+          "path": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/ids.json",
+          "exists": true,
+          "counts": {
+            "7": 1,
+            "FN": 3,
+            "IF": 1,
+            "WU": 1
+          }
+        },
+        "applies": true,
+        "ok": false,
+        "stages": [
+          {
+            "stage": "problem-framing",
+            "checked": [
+              ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/acceptance-criteria.md",
+              ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/problem-statement.md",
+              ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/user-stories.md"
+            ],
+            "unregistered": [
+              {
+                "id": "FN-404",
+                "file": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/problem-statement.md",
+                "source": "ids.json"
+              },
+              {
+                "id": "AC-77",
+                "file": ".aidlc/intents/build-a-sample-feature/analyze/problem-framing/problem-statement.md",
+                "source": "acceptance-criteria"
+              }
+            ]
+          }
+        ],
+        "uncoveredFunctions": [
+          "FN-02"
+        ]
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "ids-malformed"
+  },
+  {
+    "argv": [
+      "ids",
+      "check"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": {
+        "intentId": "build-a-sample-feature",
+        "registry": {
+          "path": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/ids.json",
+          "exists": true,
+          "error": "ids.json is not valid JSON",
+          "counts": {}
+        },
+        "applies": false,
+        "ok": false,
+        "stages": [
+          {
+            "stage": "implementation-design",
+            "checked": [],
+            "unregistered": []
+          },
+          {
+            "stage": "red-tests",
+            "checked": [],
+            "unregistered": []
+          },
+          {
+            "stage": "build-and-verify",
+            "checked": [],
+            "unregistered": []
+          }
+        ],
+        "uncoveredFunctions": []
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "ids",
+      "check",
+      "--stage",
+      "implementation-design"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": {
+        "intentId": "build-a-sample-feature",
+        "registry": {
+          "path": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/ids.json",
+          "exists": true,
+          "error": "ids.json is not valid JSON",
+          "counts": {}
+        },
+        "applies": false,
+        "ok": false,
+        "stages": [
+          {
+            "stage": "implementation-design",
+            "checked": [],
+            "unregistered": []
+          }
+        ],
+        "uncoveredFunctions": []
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "ids-na"
+  },
+  {
+    "argv": [
+      "ids",
+      "check"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "intentId": "build-a-sample-feature",
+        "registry": {
+          "path": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/ids.json",
+          "exists": true,
+          "counts": {}
+        },
+        "applies": false,
+        "ok": true,
+        "stages": [
+          {
+            "stage": "implementation-design",
+            "checked": [],
+            "unregistered": []
+          },
+          {
+            "stage": "red-tests",
+            "checked": [],
+            "unregistered": []
+          },
+          {
+            "stage": "build-and-verify",
+            "checked": [],
+            "unregistered": []
+          }
+        ],
+        "uncoveredFunctions": []
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "ids",
+      "check",
+      "--stage",
+      "implementation-design"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "intentId": "build-a-sample-feature",
+        "registry": {
+          "path": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/ids.json",
+          "exists": true,
+          "counts": {}
+        },
+        "applies": false,
+        "ok": true,
+        "stages": [
+          {
+            "stage": "implementation-design",
+            "checked": [],
+            "unregistered": []
+          }
+        ],
+        "uncoveredFunctions": []
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "ids-array"
+  },
+  {
+    "argv": [
+      "ids",
+      "check"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": {
+        "intentId": "build-a-sample-feature",
+        "registry": {
+          "path": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/ids.json",
+          "exists": true,
+          "counts": {
+            "0": 1
+          }
+        },
+        "applies": true,
+        "ok": false,
+        "stages": [
+          {
+            "stage": "implementation-design",
+            "checked": [
+              ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md"
+            ],
+            "unregistered": [
+              {
+                "id": "FN-03",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "ids.json"
+              },
+              {
+                "id": "AC-9",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "acceptance-criteria"
+              },
+              {
+                "id": "US-2",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "user-stories"
+              },
+              {
+                "id": "WU-01",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "ids.json"
+              },
+              {
+                "id": "IF-1",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "ids.json"
+              },
+              {
+                "id": "CFG-1",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "ids.json"
+              },
+              {
+                "id": "TS-4",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "ids.json"
+              }
+            ]
+          },
+          {
+            "stage": "red-tests",
+            "checked": [
+              ".aidlc/intents/build-a-sample-feature/develop/red-tests/a-first.md",
+              ".aidlc/intents/build-a-sample-feature/develop/red-tests/sub/notes.md"
+            ],
+            "unregistered": [
+              {
+                "id": "FN-77",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/red-tests/sub/notes.md",
+                "source": "ids.json"
+              }
+            ]
+          },
+          {
+            "stage": "build-and-verify",
+            "checked": [
+              ".aidlc/intents/build-a-sample-feature/develop/build-and-verify/green-verification-report.md"
+            ],
+            "unregistered": []
+          }
+        ],
+        "uncoveredFunctions": []
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "ids",
+      "check",
+      "--stage",
+      "implementation-design"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": {
+        "intentId": "build-a-sample-feature",
+        "registry": {
+          "path": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/ids.json",
+          "exists": true,
+          "counts": {
+            "0": 1
+          }
+        },
+        "applies": true,
+        "ok": false,
+        "stages": [
+          {
+            "stage": "implementation-design",
+            "checked": [
+              ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md"
+            ],
+            "unregistered": [
+              {
+                "id": "FN-03",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "ids.json"
+              },
+              {
+                "id": "AC-9",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "acceptance-criteria"
+              },
+              {
+                "id": "US-2",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "user-stories"
+              },
+              {
+                "id": "WU-01",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "ids.json"
+              },
+              {
+                "id": "IF-1",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "ids.json"
+              },
+              {
+                "id": "CFG-1",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "ids.json"
+              },
+              {
+                "id": "TS-4",
+                "file": ".aidlc/intents/build-a-sample-feature/develop/implementation-design/functional-design.md",
+                "source": "ids.json"
+              }
+            ]
+          }
+        ],
+        "uncoveredFunctions": []
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  }
+]

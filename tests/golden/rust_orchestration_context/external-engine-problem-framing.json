@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "<ROOT>",
+  "granted": [
+    "request",
+    "project",
+    "sources",
+    "knowledge",
+    "profile",
+    "repos"
+  ],
+  "warnings": [
+    "This project has not been scanned on this machine by this version of dtech-aidlc, so the project profile and the document change check are unavailable. Run `dtech-aidlc onboard --harness <claude|deepseek>`."
+  ],
+  "request": {
+    "path": ".aidlc/intents/intent-1/intent.md",
+    "provenance": "User-provided"
+  },
+  "project": {
+    "id": "project",
+    "path": "PROJECT.md",
+    "kind": "project",
+    "status": "ok",
+    "size": 148,
+    "provenance": "User-provided"
+  },
+  "sources": [],
+  "sourceChanges": {
+    "scanned": false,
+    "scannedAt": null,
+    "missing": [],
+    "changed": [],
+    "added": [],
+    "removed": [],
+    "more": {
+      "changed": 0,
+      "added": 0,
+      "removed": 0
+    }
+  },
+  "codebaseMap": {
+    "path": ".aidlc/knowledge/_codebase-map.md",
+    "template": "<REPO>/core/methodology/templates/codebase-map.md",
+    "exists": false,
+    "required": true,
+    "reason": "project kind is brownfield",
+    "bytes": 0,
+    "modifiedAt": null
+  },
+  "knowledge": {
+    "dir": ".aidlc/knowledge",
+    "records": [
+      {
+        "id": "intent-1",
+        "title": "intent-1",
+        "path": ".aidlc/knowledge/intent-1.md",
+        "origin": "legacy"
+      }
+    ],
+    "invalid": [],
+    "record": {
+      "frontmatter": null
+    }
+  }
+}

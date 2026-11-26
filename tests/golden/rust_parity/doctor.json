@@ -1,0 +1,7 @@
+{
+  "doctor": {
+    "code": 0,
+    "stdout": "{\n  \"ok\": true,\n  \"warnings\": 0,\n  \"checks\": [\n    {\n      \"status\": \"pass\",\n      \"message\": \"Graph: 6 phases, 13 stages, 12 agents\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Project configuration and agent models\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Dependency repositories: 0 registered\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Knowledge sources: no aidlc.knowledge.json; run dtech-aidlc onboard --harness <claude|deepseek>\"\n    },\n    {\n      \"status\": \"pass\",\n      \"message\": \"Audit log contains valid JSON lines\"\n    }\n  ]\n}\n",
+    "stderr": ""
+  }
+}

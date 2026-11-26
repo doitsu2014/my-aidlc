@@ -1,0 +1,27 @@
+[
+  {
+    "argv": [
+      "config"
+    ],
+    "outcome": {
+      "error": "Use config agents, config scope, config mode, config gate-mode, or config prerequisite"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "config",
+      "colour"
+    ],
+    "outcome": {
+      "error": "Use config agents, config scope, config mode, config gate-mode, or config prerequisite"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  }
+]

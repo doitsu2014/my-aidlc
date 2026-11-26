@@ -1,0 +1,27 @@
+{
+  "steps": [
+    {
+      "argv": [
+        "config",
+        "agents",
+        "set",
+        "brief-analyst",
+        "haiku"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Model aliases (opus, sonnet, haiku, fable) apply to the claude harness only; this project uses deepseek, which has no model alias support. Nothing was changed.\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "agents"
+      ],
+      "code": 0,
+      "stdout": "[\n  {\n    \"id\": \"brief-analyst\",\n    \"phase\": \"analyze\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": null,\n    \"source\": \"unsupported\"\n  },\n  {\n    \"id\": \"context-risk-analyst\",\n    \"phase\": \"analyze\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": null,\n    \"source\": \"unsupported\"\n  },\n  {\n    \"id\": \"solution-explorer\",\n    \"phase\": \"ideate\",\n    \"defaultModel\": \"opus\",\n    \"model\": null,\n    \"source\": \"unsupported\"\n  },\n  {\n    \"id\": \"decision-facilitator\",\n    \"phase\": \"ideate\",\n    \"defaultModel\": \"opus\",\n    \"model\": null,\n    \"source\": \"unsupported\"\n  },\n  {\n    \"id\": \"implementation-planner\",\n    \"phase\": \"develop\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": null,\n    \"source\": \"unsupported\"\n  },\n  {\n    \"id\": \"builder-verifier\",\n    \"phase\": \"develop\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": null,\n    \"source\": \"unsupported\"\n  },\n  {\n    \"id\": \"release-coordinator\",\n    \"phase\": \"launch\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": null,\n    \"source\": \"unsupported\"\n  },\n  {\n    \"id\": \"operations-handoff\",\n    \"phase\": \"launch\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": null,\n    \"source\": \"unsupported\"\n  },\n  {\n    \"id\": \"outcome-curator\",\n    \"phase\": \"curate\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": null,\n    \"source\": \"unsupported\"\n  },\n  {\n    \"id\": \"knowledge-steward\",\n    \"phase\": \"curate\",\n    \"defaultModel\": \"haiku\",\n    \"model\": null,\n    \"source\": \"unsupported\"\n  },\n  {\n    \"id\": \"record-keeper\",\n    \"phase\": \"archived\",\n    \"defaultModel\": \"haiku\",\n    \"model\": null,\n    \"source\": \"unsupported\"\n  },\n  {\n    \"id\": \"knowledge-archivist\",\n    \"phase\": \"archived\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": null,\n    \"source\": \"unsupported\"\n  }\n]\n",
+      "stderr": "",
+      "files": {}
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "label": "next (missing project)",
+    "exit": 1,
+    "stdout": null,
+    "stderr": "dtech-aidlc: No active intent. Start one with: dtech-aidlc orchestrate next --intent \"...\"",
+    "pointer": null,
+    "intents": {},
+    "intentFiles": {},
+    "audit": []
+  },
+  {
+    "label": "next --intent (missing project)",
+    "exit": 1,
+    "stdout": null,
+    "stderr": "dtech-aidlc: Project is not initialized at <ROOT>/not-created. Run 'dtech-aidlc onboard --harness <claude|deepseek> --scope <solo|team|enterprise>' there first. An initialized project exists at <ROOT>; run the command there or pass --project <ROOT>.",
+    "pointer": null,
+    "intents": {},
+    "intentFiles": {},
+    "audit": []
+  },
+  {
+    "label": "report (missing project)",
+    "exit": 1,
+    "stdout": null,
+    "stderr": "dtech-aidlc: No active workflow state",
+    "pointer": null,
+    "intents": {},
+    "intentFiles": {},
+    "audit": []
+  }
+]

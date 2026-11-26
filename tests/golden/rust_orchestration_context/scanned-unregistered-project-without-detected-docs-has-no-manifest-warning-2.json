@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "<ROOT>",
+  "granted": [
+    "request",
+    "project",
+    "sources",
+    "knowledge",
+    "profile",
+    "repos"
+  ],
+  "warnings": [
+    "No aidlc.knowledge.json was found, so no project documentation is registered for agents. Run `dtech-aidlc onboard --harness <claude|deepseek>`."
+  ],
+  "project": {
+    "id": "project",
+    "path": "PROJECT.md",
+    "kind": "project",
+    "status": "ok",
+    "size": 148,
+    "provenance": "User-provided"
+  },
+  "sources": [],
+  "sourceChanges": {
+    "scanned": true,
+    "scannedAt": "2026-01-02T03:04:05.000Z",
+    "missing": [],
+    "changed": [],
+    "added": [],
+    "removed": [],
+    "more": {
+      "changed": 0,
+      "added": 0,
+      "removed": 0
+    }
+  },
+  "codebaseMap": {
+    "path": ".aidlc/knowledge/_codebase-map.md",
+    "modifiedAt": null,
+    "exists": false,
+    "required": false,
+    "reason": "project kind is greenfield",
+    "bytes": 0
+  },
+  "knowledge": {
+    "dir": ".aidlc/knowledge",
+    "records": [],
+    "invalid": [],
+    "record": null
+  }
+}

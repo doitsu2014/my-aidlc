@@ -446,7 +446,7 @@ fn intent_slug(text: &str) -> MigrationResult<String> {
 }
 
 fn unsupported_slug_error() -> String {
-    "Cannot derive the legacy intentId exactly like the Node CLI for this intent text; \
+    "Cannot derive the legacy intentId for this intent text; \
      add an explicit \"intentId\" to .aidlc/state.json and retry. No changes were made."
         .into()
 }

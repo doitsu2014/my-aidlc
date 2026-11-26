@@ -39,7 +39,7 @@ fn gate_human_pin_overrides_ai_mode_and_resolves_named_approvers_then_owner() {
 }
 
 #[test]
-fn node_approver_precedence_and_input_safety_are_preserved() {
+fn approver_precedence_and_input_safety_are_preserved() {
     assert_eq!(
         resolve_approver(Some("  Explicit  "), Some("Git"), Some("OS")).unwrap(),
         "Explicit"

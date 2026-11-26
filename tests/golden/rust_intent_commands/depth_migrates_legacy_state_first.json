@@ -1,0 +1,86 @@
+[
+  {
+    "label": "depth-legacy",
+    "argv": [
+      "intent",
+      "depth",
+      "fast",
+      "--approved-by",
+      "Owner",
+      "--detail",
+      "x"
+    ],
+    "outcome": {
+      "ok": {
+        "intentId": "legacy-export-work",
+        "from": "full",
+        "to": "fast"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "state.migrated",
+          "from": 1,
+          "intentId": "legacy-export-work"
+        },
+        {
+          "event": "depth.changed",
+          "intentId": "legacy-export-work",
+          "from": "full",
+          "to": "fast",
+          "by": "Owner",
+          "bySource": "flag",
+          "detail": "x"
+        }
+      ],
+      "intents/": null,
+      "intents/legacy-export-work/": null,
+      "intents/legacy-export-work/intent.md": "# legacy-export-work\n\nLegacy export work\n",
+      "intents/legacy-export-work/state.json": {
+        "json": {
+          "intent": "Legacy export work",
+          "scope": "solo",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "createdAt": "<ts>",
+          "version": 2,
+          "dependencies": {},
+          "intentId": "legacy-export-work",
+          "updatedAt": "<ts>",
+          "depth": "fast",
+          "status": "active"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "legacy-export-work",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.v1.bak.json": {
+        "json": {
+          "intent": "Legacy export work",
+          "scope": "solo",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete"
+            }
+          },
+          "createdAt": "<ts>",
+          "project": "legacy"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  }
+]

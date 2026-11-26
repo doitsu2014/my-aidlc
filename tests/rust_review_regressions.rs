@@ -4,7 +4,11 @@
 //! onboarding parity (every configured harness re-projected, projection stamp, output
 //! and generated-file shapes, audit fields) and the malformed-graph message.
 
-use serde_json::Value;
+#[path = "common/golden.rs"]
+mod golden;
+
+use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -68,17 +72,6 @@ fn rust(project: &Path, args: &[&str]) -> Output {
         .unwrap()
 }
 
-fn node(project: &Path, args: &[&str]) -> Output {
-    Command::new("node")
-        .arg(repo().join("core/tools/dtech-aidlc.mjs"))
-        .args(args)
-        .arg("--project")
-        .arg(project)
-        .env_remove("DTECH_AIDLC_HOME")
-        .output()
-        .expect("Node CLI must be available for parity tests")
-}
-
 fn ok(output: &Output) -> Value {
     assert!(
         output.status.success(),
@@ -131,7 +124,8 @@ fn onboarded(project: &Path) {
 // ---------------------------------------------------------------------------
 
 /// Regression: `orchestrate next` recorded the selection, then failed reading a
-/// `.aidlc/.gitignore` that is not UTF-8 and printed no directive. Node reads it lossily.
+/// `.aidlc/.gitignore` that is not UTF-8 and printed no directive; it must be read
+/// lossily.
 #[test]
 fn orchestrate_next_succeeds_with_a_non_utf8_gitignore() {
     let temp = TempDir::new("gitignore");
@@ -251,24 +245,43 @@ fn normalized(output: &Output, dir: &Path) -> (Option<i32>, String, String) {
     let plain = dir.to_string_lossy().into_owned();
     let escaped = serde_json::to_string(&plain).unwrap();
     let escaped = escaped[1..escaped.len() - 1].to_owned();
-    let swap = |text: String| text.replace(&escaped, "<ROOT>").replace(&plain, "<ROOT>");
+    // Separators after the root become `/` (JSON-escaped in stdout), so golden files
+    // match on every platform.
+    let swap = |text: String, separator: &str| {
+        let text = text.replace(&escaped, "<ROOT>").replace(&plain, "<ROOT>");
+        if text.contains("<ROOT>") {
+            text.replace(separator, "/")
+        } else {
+            text
+        }
+    };
     (
         output.status.code(),
-        swap(String::from_utf8_lossy(&output.stdout).into_owned()),
-        swap(stderr(output)),
+        swap(String::from_utf8_lossy(&output.stdout).into_owned(), r"\\"),
+        swap(stderr(output), r"\"),
     )
 }
 
 /// Regression: `status` and `intent list` reported no active intent for an unmigrated
-/// v1 state, and `status` shortened Node's errors for corrupt, unrecognised, dangling
-/// and invalid pointers.
+/// v1 state, and `status` shortened the reference errors for corrupt, unrecognised,
+/// dangling and invalid pointers. The expected outputs are golden files recorded from the
+/// reference implementation.
 #[test]
-fn status_and_intent_list_match_node_for_unusual_pointers() {
+fn status_and_intent_list_match_golden_for_unusual_pointers() {
     let temp = TempDir::new("status");
-    let (node_dir, rust_dir) = (temp.path("node"), temp.path("rust"));
-    for dir in [&node_dir, &rust_dir] {
-        ok(&node(dir, &["onboard", "--harness", "claude"]));
-    }
+    let dir = temp.path("rust");
+    ok(&rust(&dir, &["onboard", "--harness", "claude"]));
+    assert_golden(
+        "status-unusual-pointers",
+        &status_scenario(&dir, &|dir: &Path, args: &[&str]| rust(dir, args)),
+    );
+    let paused = ok(&rust(&dir, &["status"]));
+    assert_eq!(paused["activeIntent"], Value::Null);
+}
+
+/// Runs `status` / `intent list` for each unusual pointer in an onboarded project and
+/// returns the normalized transcript.
+fn status_scenario(dir: &Path, cli: &dyn Fn(&Path, &[&str]) -> Output) -> Value {
     let cases: &[(&str, &str, bool)] = &[
         (
             "legacy without id",
@@ -298,44 +311,33 @@ fn status_and_intent_list_match_node_for_unusual_pointers() {
             true,
         ),
     ];
+    let mut rows = Vec::new();
     for (label, pointer, intents_dir) in cases {
-        for dir in [&node_dir, &rust_dir] {
-            fs::write(dir.join(".aidlc/state.json"), pointer).unwrap();
-            if *intents_dir {
-                fs::create_dir_all(dir.join(".aidlc/intents")).unwrap();
-            }
+        fs::write(dir.join(".aidlc/state.json"), pointer).unwrap();
+        if *intents_dir {
+            fs::create_dir_all(dir.join(".aidlc/intents")).unwrap();
         }
         for args in [&["status"][..], &["intent", "list"][..]] {
-            assert_eq!(
-                normalized(&node(&node_dir, args), &node_dir),
-                normalized(&rust(&rust_dir, args), &rust_dir),
-                "{label}: {args:?}"
-            );
+            let (exit, stdout, stderr) = normalized(&cli(dir, args), dir);
+            rows.push(serde_json::json!({
+                "case": label,
+                "args": args,
+                "exit": exit,
+                "stdout": stdout,
+                "stderr": stderr,
+            }));
         }
     }
-    // A corrupt intent state is listed with Node's error text.
-    for dir in [&node_dir, &rust_dir] {
-        fs::write(
-            dir.join(".aidlc/state.json"),
-            r#"{"version":2,"activeIntentId":null}"#,
-        )
-        .unwrap();
-        fs::create_dir_all(dir.join(".aidlc/intents/zzz")).unwrap();
-        fs::write(dir.join(".aidlc/intents/zzz/state.json"), "{bad").unwrap();
-    }
-    let expected = rebase(
-        &ok(&node(&node_dir, &["intent", "list"])),
-        &node_dir,
-        "<ROOT>",
-    );
-    let actual = rebase(
-        &ok(&rust(&rust_dir, &["intent", "list"])),
-        &rust_dir,
-        "<ROOT>",
-    );
-    assert_eq!(expected, actual);
-    let paused = ok(&rust(&rust_dir, &["status"]));
-    assert_eq!(paused["activeIntent"], Value::Null);
+    // A corrupt intent state is listed with the reference error text.
+    fs::write(
+        dir.join(".aidlc/state.json"),
+        r#"{"version":2,"activeIntentId":null}"#,
+    )
+    .unwrap();
+    fs::create_dir_all(dir.join(".aidlc/intents/zzz")).unwrap();
+    fs::write(dir.join(".aidlc/intents/zzz/state.json"), "{bad").unwrap();
+    let corrupt = portable(&rebase(&ok(&cli(dir, &["intent", "list"])), dir, "<ROOT>"));
+    serde_json::json!({"pointers": rows, "corruptIntentList": corrupt})
 }
 
 // ---------------------------------------------------------------------------
@@ -402,94 +404,109 @@ fn without_times(value: &Value) -> Value {
 }
 
 /// Regression: native onboarding output, generated files, projection stamp and audit
-/// rows differed from Node (verbatim `\\?\` paths, trimmed projections, build-time
-/// methodology path, missing skipped entries and counts, no `.projection.json`, no
-/// `graphPhases`/`projection` audit fields). With `DTECH_AIDLC_HOME` pointing at this
-/// repository both CLIs use the same engine, so the outputs must be identical.
+/// rows differed from the reference implementation (verbatim `\\?\` paths, trimmed
+/// projections, build-time methodology path, missing skipped entries and counts, no
+/// `.projection.json`, no `graphPhases`/`projection` audit fields). With
+/// `DTECH_AIDLC_HOME` pointing at this repository the outputs must equal the golden
+/// transcript recorded from the reference implementation with the same engine.
 #[test]
-fn onboard_and_rescan_match_node() {
+fn onboard_and_rescan_match_golden() {
     let temp = TempDir::new("onboard");
-    let (node_dir, rust_dir) = (temp.path("node"), temp.path("rust"));
-    brownfield(&node_dir);
-    brownfield(&rust_dir);
-    let run_both = |args: &[&str]| -> (Value, Value) {
-        let n = Command::new("node")
-            .arg(repo().join("core/tools/dtech-aidlc.mjs"))
+    let dir = temp.path("rust");
+    let cli = |dir: &Path, args: &[&str]| -> Output {
+        Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
             .args(args)
             .arg("--project")
-            .arg(&node_dir)
+            .arg(dir)
             .env("DTECH_AIDLC_HOME", repo())
             .output()
-            .unwrap();
-        let r = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
-            .args(args)
-            .arg("--project")
-            .arg(&rust_dir)
-            .env("DTECH_AIDLC_HOME", repo())
-            .output()
-            .unwrap();
-        (
-            without_times(&rebase(&ok(&n), &node_dir, "<ROOT>")),
-            without_times(&rebase(&ok(&r), &rust_dir, "<ROOT>")),
-        )
+            .unwrap()
     };
-    let (expected, actual) = run_both(&["onboard", "--harness", "claude"]);
+    let transcript = onboard_scenario(&dir, &cli);
+    assert!(!transcript["onboard"]["stateDir"]
+        .as_str()
+        .unwrap()
+        .contains(r"\\?\"));
     assert_eq!(
-        serde_json::to_string_pretty(&expected).unwrap(),
-        serde_json::to_string_pretty(&actual).unwrap(),
+        transcript["audit"][0]["projection"],
+        ".claude/skills/dtech-aidlc"
+    );
+    assert_eq!(
+        transcript["rescan"]["documentation"]["manifest"],
+        "aidlc.knowledge.json"
+    );
+    let golden = assert_golden("onboard-and-rescan", &transcript);
+    // Key order of the onboard output is part of the contract.
+    assert_eq!(
+        serde_json::to_string_pretty(&golden["onboard"]).unwrap(),
+        serde_json::to_string_pretty(&golden::checkout_value(&transcript["onboard"])).unwrap(),
         "onboard output (including key order)"
     );
-    assert!(!actual["stateDir"].as_str().unwrap().contains(r"\\?\"));
-    for file in [
-        ".claude/skills/dtech-aidlc/.projection.json",
-        ".aidlc/shared/project-profile.md",
-        "aidlc.knowledge.json",
-        ".aidlc/config.json",
-    ] {
-        let n = String::from_utf8(read(&node_dir.join(file))).unwrap();
-        let r = String::from_utf8(read(&rust_dir.join(file))).unwrap();
-        if file.ends_with("config.json") {
-            assert_eq!(
-                without_times(&serde_json::from_str(&n).unwrap()),
-                without_times(&serde_json::from_str(&r).unwrap()),
-                "{file}"
-            );
-        } else {
-            assert_eq!(n, r, "{file}");
-        }
+}
+
+/// Onboards a small brownfield project, rescans it twice and returns the normalized
+/// outputs, generated files and audit rows.
+fn onboard_scenario(dir: &Path, cli: &dyn Fn(&Path, &[&str]) -> Output) -> Value {
+    brownfield(dir);
+    let clean = |value: &Value| -> Value {
+        versionless(&portable(&without_times(&rebase(
+            &rebase(value, dir, "<ROOT>"),
+            &repo(),
+            "<REPO>",
+        ))))
+    };
+    let run = |args: &[&str]| -> Value { clean(&ok(&cli(dir, args))) };
+    let text =
+        |file: &str| -> Value { Value::String(String::from_utf8(read(&dir.join(file))).unwrap()) };
+    let audit = || -> Value { Value::Array(audit_rows(dir).iter().map(clean).collect()) };
+    let onboard = run(&["onboard", "--harness", "claude"]);
+    let mut files = serde_json::Map::new();
+    // The projection stamp hashes each projected file (text with CRLF read as LF): check
+    // each hash, then record it as `<SHA256>` so harness edits need no re-blessing.
+    let skill_dir = dir.join(".claude/skills/dtech-aidlc");
+    let mut stamp_text = String::from_utf8(read(&skill_dir.join(".projection.json"))).unwrap();
+    let stamp: Value = serde_json::from_str(&stamp_text).unwrap();
+    for (name, entry) in stamp["files"].as_object().unwrap() {
+        let text = String::from_utf8_lossy(&read(&skill_dir.join(name))).replace("\r\n", "\n");
+        let digest = format!("{:x}", Sha256::digest(text.as_bytes()));
+        assert_eq!(
+            entry["sha256"],
+            digest.as_str(),
+            "projection stamp of {name}"
+        );
+        stamp_text = stamp_text.replace(&digest, "<SHA256>");
+    }
+    let version = format!("\"{}\"", env!("CARGO_PKG_VERSION"));
+    files.insert(
+        ".claude/skills/dtech-aidlc/.projection.json".to_owned(),
+        Value::String(stamp_text.replace(&version, "\"<VERSION>\"")),
+    );
+    for file in [".aidlc/shared/project-profile.md", "aidlc.knowledge.json"] {
+        files.insert(file.to_owned(), text(file));
     }
     for file in [
+        ".aidlc/config.json",
         ".aidlc/shared/project-profile.json",
         ".aidlc/shared/sources-snapshot.json",
     ] {
-        assert_eq!(
-            without_times(&read_json(&node_dir.join(file))),
-            without_times(&read_json(&rust_dir.join(file))),
-            "{file}"
-        );
+        files.insert(file.to_owned(), clean(&read_json(&dir.join(file))));
     }
-    let audit = |dir: &Path| -> Vec<Value> { audit_rows(dir).iter().map(without_times).collect() };
-    assert_eq!(audit(&node_dir), audit(&rust_dir));
-    assert_eq!(
-        audit(&rust_dir)[0]["projection"],
-        ".claude/skills/dtech-aidlc"
-    );
+    let onboard_audit = audit();
 
-    for dir in [&node_dir, &rust_dir] {
-        fs::write(dir.join("docs/b.md"), "more\n").unwrap();
-        fs::create_dir_all(dir.join("specs")).unwrap();
-        fs::write(dir.join("specs/openapi.yaml"), "y\n").unwrap();
-    }
-    let (expected, actual) = run_both(&["onboard", "--rescan"]);
-    assert_eq!(expected, actual, "rescan output");
-    assert_eq!(actual["documentation"]["manifest"], "aidlc.knowledge.json");
-    let (expected, actual) = run_both(&["onboard", "--rescan", "--docs", "specs/openapi.yaml"]);
-    assert_eq!(expected, actual, "rescan --docs output");
-    assert_eq!(
-        read(&node_dir.join("aidlc.knowledge.json")),
-        read(&rust_dir.join("aidlc.knowledge.json"))
-    );
-    assert_eq!(audit(&node_dir), audit(&rust_dir));
+    fs::write(dir.join("docs/b.md"), "more\n").unwrap();
+    fs::create_dir_all(dir.join("specs")).unwrap();
+    fs::write(dir.join("specs/openapi.yaml"), "y\n").unwrap();
+    let rescan = run(&["onboard", "--rescan"]);
+    let rescan_docs = run(&["onboard", "--rescan", "--docs", "specs/openapi.yaml"]);
+    serde_json::json!({
+        "onboard": onboard,
+        "files": files,
+        "audit": onboard_audit,
+        "rescan": rescan,
+        "rescanDocs": rescan_docs,
+        "knowledgeAfterRescan": text("aidlc.knowledge.json"),
+        "auditAfterRescan": audit(),
+    })
 }
 
 /// Regression: re-running `onboard` re-projected only the first configured harness.
@@ -550,7 +567,7 @@ fn onboard_writes_the_projection_stamp() {
 // ---------------------------------------------------------------------------
 
 /// Regression: a malformed `phase-graph.json` was reported with the serde error in
-/// parentheses; Node names the graph file.
+/// parentheses; the reference implementation names the graph file (golden file).
 #[test]
 fn malformed_graph_message_names_the_file() {
     let temp = TempDir::new("graph");
@@ -558,12 +575,11 @@ fn malformed_graph_message_names_the_file() {
     let project = temp.path("project");
     fs::create_dir_all(home.join("core/data")).unwrap();
     fs::write(home.join("core/data/phase-graph.json"), "{bad").unwrap();
-    let posix_home = home.to_string_lossy().replace('\\', "/");
-    for home_arg in [home.to_string_lossy().into_owned(), posix_home] {
+    let messages = graph_scenario(&home, &|home_arg: &str| {
         let output = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
             .args(["config", "agents", "--project"])
             .arg(&project)
-            .env("DTECH_AIDLC_HOME", &home_arg)
+            .env("DTECH_AIDLC_HOME", home_arg)
             .output()
             .unwrap();
         assert_eq!(output.status.code(), Some(1));
@@ -575,13 +591,101 @@ fn malformed_graph_message_names_the_file() {
                 graph.display()
             )
         );
-        let expected = Command::new("node")
-            .arg(repo().join("core/tools/dtech-aidlc.mjs"))
-            .args(["config", "agents", "--project"])
-            .arg(&project)
-            .env("DTECH_AIDLC_HOME", &home_arg)
-            .output()
-            .unwrap();
-        assert_eq!(stderr(&expected), stderr(&output));
+        output
+    });
+    assert_golden("malformed-graph", &messages);
+}
+
+/// The stderr of `config agents` for the native and the forward-slash spelling of a
+/// `DTECH_AIDLC_HOME` whose graph is malformed, with the home folder as `<HOME>`.
+fn graph_scenario(home: &Path, cli: &dyn Fn(&str) -> Output) -> Value {
+    let native = home.to_string_lossy().into_owned();
+    let posix_home = native.replace('\\', "/");
+    let mut rows = Vec::new();
+    for home_arg in [native.clone(), posix_home.clone()] {
+        let message = stderr(&cli(&home_arg))
+            .replace(&native, "<HOME>")
+            .replace(&posix_home, "<HOME>")
+            .replace('\\', "/");
+        rows.push(Value::String(message));
     }
+    Value::Array(rows)
+}
+
+/// Replaces this package's version with `<VERSION>`, so a release bump does not
+/// invalidate the golden files.
+fn versionless(value: &Value) -> Value {
+    match value {
+        Value::String(text) if text == env!("CARGO_PKG_VERSION") => json!("<VERSION>"),
+        Value::Array(items) => Value::Array(items.iter().map(versionless).collect()),
+        Value::Object(map) => Value::Object(
+            map.iter()
+                .map(|(key, item)| (key.clone(), versionless(item)))
+                .collect(),
+        ),
+        other => other.clone(),
+    }
+}
+
+/// Rewrites Windows separators to `/` in every string that holds a placeholder path
+/// (`<ROOT>`, `<REPO>`), so golden files match on every platform.
+fn portable(value: &Value) -> Value {
+    match value {
+        Value::String(text) if text.contains("<ROOT>") || text.contains("<REPO>") => {
+            Value::String(text.replace('\\', "/"))
+        }
+        Value::Array(items) => Value::Array(items.iter().map(portable).collect()),
+        Value::Object(map) => Value::Object(
+            map.iter()
+                .map(|(key, item)| (key.clone(), portable(item)))
+                .collect(),
+        ),
+        other => other.clone(),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Golden files: tests/golden/rust_review_regressions/<case>.json. The expectations were
+// recorded from the reference implementation; set DTECH_AIDLC_BLESS=1 to rewrite them
+// from the native CLI after an intentional change.
+// ---------------------------------------------------------------------------
+
+fn golden_path(case: &str) -> PathBuf {
+    repo()
+        .join("tests/golden/rust_review_regressions")
+        .join(format!("{case}.json"))
+}
+
+fn blessing() -> bool {
+    std::env::var_os("DTECH_AIDLC_BLESS").is_some_and(|value| value == "1")
+}
+
+fn write_golden(case: &str, value: &Value) {
+    let path = golden_path(case);
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let mut text = serde_json::to_string_pretty(value).unwrap();
+    text.push('\n');
+    fs::write(path, text).unwrap();
+}
+
+/// Compares `actual` with the golden file (or records it when blessing) and returns
+/// the expected value.
+fn assert_golden(case: &str, actual: &Value) -> Value {
+    // Repository files copied into projects (the scaffold) have the checkout's line
+    // endings; the golden files hold the LF form.
+    let actual = &golden::checkout_value(actual);
+    if blessing() {
+        write_golden(case, actual);
+        return actual.clone();
+    }
+    let path = golden_path(case);
+    let text = fs::read_to_string(&path).unwrap_or_else(|error| {
+        panic!(
+            "cannot read golden {} ({error}); record it with DTECH_AIDLC_BLESS=1",
+            path.display()
+        )
+    });
+    let expected: Value = serde_json::from_str(&text).unwrap();
+    assert_eq!(actual, &expected, "golden {}", path.display());
+    expected
 }

@@ -1,25 +1,40 @@
-//! Binary-level routing parity: the built `dtech-aidlc` executable against the Node
-//! reference CLI (`node core/tools/dtech-aidlc.mjs`).
+//! Binary-level routing parity: the built `dtech-aidlc` executable against golden
+//! snapshots recorded from the former JavaScript reference CLI.
 //!
-//! Every scenario builds the same fixture twice (`<base>/node/proj` and
-//! `<base>/rust/proj`, so both projects have the same folder name), runs Node on one
-//! copy and the Rust binary on the other with identical arguments, and after each step
-//! compares stdout, stderr, the exit code and every file and directory of the project
-//! (`.git` directories excepted). Only the project root, ISO-8601 timestamps and
-//! `mtimeMs` values are normalised; everything else, including JSON formatting and key
+//! Every scenario builds a fixture project (`<base>/proj`), runs the binary on it and,
+//! after each step, compares stdout, stderr, the exit code and every file and directory
+//! of the project (`.git` directories and the embedded engine excepted) with the step
+//! recorded in `tests/golden/rust_routing_parity/<scenario>.json`. The files a step
+//! changes are stored as a delta (new normalised content, or `null` for a removed
+//! entry). Only the project root, the engine and repository directories, the shared git
+//! remote, ISO-8601 timestamps and `mtimeMs` values are normalised (path separators
+//! after a placeholder read as `/`); everything else, including JSON formatting and key
 //! order, must match byte for byte.
 //!
-//! Each Node command key of `core/tools/cli-spec.mjs` has at least one success and one
-//! error case, and every key is also checked for Node's unknown-option and
-//! extra-argument errors. When `node` is not on PATH the tests are skipped; the
-//! `repos pull` clone case also needs `git`.
+//! Onboarded scenarios start from the recorded reference onboarding output
+//! (`fixture-onboarded-<harness>.json`), restored file by file, because Rust onboarding
+//! output is not byte-identical to it (see
+//! `onboarding_success_writes_the_same_configuration_and_knowledge_files_as_the_golden`).
+//!
+//! Each command key has at least one success and one error case, and every key is also
+//! checked for the unknown-option and extra-argument errors. The `repos pull` clone case
+//! needs `git`.
+//!
+//! `DTECH_AIDLC_BLESS=1` rewrites the scenario goldens from the binary. Onboarding
+//! fixtures are kept; delete one to re-record it from the binary's own onboarding.
 
-use serde_json::Value;
-use std::collections::BTreeMap;
+#[path = "common/golden.rs"]
+mod golden;
+
+use serde_json::{json, Map, Value};
+use std::cell::RefCell;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicUsize, Ordering};
+
+const SUITE: &str = "rust_routing_parity";
 
 struct TempDir(PathBuf);
 
@@ -44,7 +59,15 @@ impl Drop for TempDir {
 }
 
 fn repo() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+    golden::repo()
+}
+
+fn null_device() -> &'static str {
+    if cfg!(windows) {
+        "NUL"
+    } else {
+        "/dev/null"
+    }
 }
 
 fn available(program: &str) -> bool {
@@ -53,14 +76,6 @@ fn available(program: &str) -> bool {
         .stdin(Stdio::null())
         .output()
         .is_ok_and(|output| output.status.success())
-}
-
-fn skip_without_node() -> bool {
-    if available("node") {
-        return false;
-    }
-    eprintln!("node is not on PATH; skipping routing parity");
-    true
 }
 
 #[derive(Debug)]
@@ -80,28 +95,40 @@ impl Run {
 /// How the engine (graph, methodology) is found.
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Engine {
-    /// `DTECH_AIDLC_HOME` names this repository for both CLIs, so directive paths name
-    /// the same methodology files and must match exactly.
+    /// `DTECH_AIDLC_HOME` names this repository, so directive paths name the
+    /// methodology files under `core/`.
     Home,
-    /// No `DTECH_AIDLC_HOME`: Node uses its own `core/`, the Rust binary its embedded
-    /// copy (materialised under `<project>/.aidlc/engine`). Engine paths are compared
-    /// from the engine directory on and `.aidlc/engine/` is left out of the file
-    /// comparison.
+    /// No `DTECH_AIDLC_HOME`: the binary uses its embedded copy (materialised under
+    /// `<project>/.aidlc/engine`). Engine paths are compared from the engine directory
+    /// on and `.aidlc/engine/` is left out of the file comparison.
     Embedded,
 }
 
-fn execute(mut command: Command, root: &Path, argv: &[&str], engine: Engine) -> Run {
+/// The CLI under test.
+fn cli() -> Command {
+    Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
+}
+
+/// Runs the CLI with `--project <root>`. Git reads no system or global configuration
+/// and sees a fixed `user.name`, so approver identities do not depend on the machine.
+fn run_cli(root: &Path, argv: &[&str], engine: Engine) -> Run {
     let cwd = if root.is_dir() {
         root.to_path_buf()
     } else {
         root.parent().unwrap().to_path_buf()
     };
+    let mut command = cli();
     command
         .args(argv)
         .arg("--project")
         .arg(root)
         .current_dir(cwd)
-        .env_remove("DTECH_AIDLC_HOME");
+        .env_remove("DTECH_AIDLC_HOME")
+        .env("GIT_CONFIG_NOSYSTEM", "1")
+        .env("GIT_CONFIG_GLOBAL", null_device())
+        .env("GIT_CONFIG_COUNT", "1")
+        .env("GIT_CONFIG_KEY_0", "user.name")
+        .env("GIT_CONFIG_VALUE_0", "Routing Tester");
     if engine == Engine::Home {
         command.env("DTECH_AIDLC_HOME", repo());
     }
@@ -113,117 +140,16 @@ fn execute(mut command: Command, root: &Path, argv: &[&str], engine: Engine) -> 
     }
 }
 
-fn run_node(root: &Path, argv: &[&str], engine: Engine) -> Run {
-    let mut command = Command::new("node");
-    command.arg(repo().join("core/tools/dtech-aidlc.mjs"));
-    execute(command, root, argv, engine)
-}
-
-fn run_rust(root: &Path, argv: &[&str], engine: Engine) -> Run {
-    execute(
-        Command::new(env!("CARGO_BIN_EXE_dtech-aidlc")),
-        root,
-        argv,
-        engine,
-    )
-}
-
-/// Replaces every `YYYY-MM-DDTHH:MM:SS.mmmZ` timestamp with `<ts>`.
-fn replace_timestamps(text: &str) -> String {
-    let bytes = text.as_bytes();
-    let is_ts = |at: usize| {
-        bytes.len() >= at + 24
-            && (0..24).all(|index| {
-                let byte = bytes[at + index];
-                match index {
-                    4 | 7 => byte == b'-',
-                    10 => byte == b'T',
-                    13 | 16 => byte == b':',
-                    19 => byte == b'.',
-                    23 => byte == b'Z',
-                    _ => byte.is_ascii_digit(),
-                }
-            })
-    };
-    let mut out = String::with_capacity(text.len());
-    let mut at = 0;
-    while at < bytes.len() {
-        if is_ts(at) {
-            out.push_str("<ts>");
-            at += 24;
-        } else {
-            let ch = text[at..].chars().next().unwrap();
-            out.push(ch);
-            at += ch.len_utf8();
-        }
-    }
-    out
-}
-
-/// Replaces the number after every `"mtimeMs":` with `0` (file times differ between
-/// the two fixtures).
-fn replace_mtimes(text: &str) -> String {
-    let marker = "\"mtimeMs\":";
-    let mut out = String::with_capacity(text.len());
-    let mut rest = text;
-    while let Some(found) = rest.find(marker) {
-        let (head, tail) = rest.split_at(found + marker.len());
-        out.push_str(head);
-        let spaces = tail.len() - tail.trim_start_matches(' ').len();
-        out.push_str(&tail[..spaces]);
-        let tail = &tail[spaces..];
-        let number = tail
-            .find(|ch: char| !(ch.is_ascii_digit() || ch == '.' || ch == 'e' || ch == '-'))
-            .unwrap_or(tail.len());
-        if number > 0 {
-            out.push('0');
-        }
-        rest = &tail[number..];
-    }
-    out.push_str(rest);
-    out
-}
-
-/// Replaces `path` (as shown, JSON-escaped, or with forward slashes) by `label`.
-fn replace_path(text: &str, path: &Path, label: &str) -> String {
-    let shown = path.display().to_string();
-    let escaped = shown.replace('\\', "\\\\");
-    let forward = shown.replace('\\', "/");
-    text.replace(&escaped, label)
-        .replace(&shown, label)
-        .replace(&forward, label)
-}
-
-/// Normalises the project root and, when given, the engine directory. The engine is
-/// replaced first (the embedded engine of the Rust binary lives inside the project),
-/// and separators after `<ENGINE>` are compared as `/`.
-fn normalise_with(text: &str, root: &Path, engine: Option<&Path>) -> String {
-    let mut text = match engine {
-        Some(engine) => replace_path(text, engine, "<ENGINE>"),
-        None => text.to_owned(),
-    };
-    let mut from = 0;
-    while let Some(found) = text[from..].find("<ENGINE>") {
-        let start = from + found + "<ENGINE>".len();
-        let end = text[start..]
-            .find(|ch: char| ch == '"' || ch.is_whitespace())
-            .map_or(text.len(), |offset| start + offset);
-        let fixed = text[start..end].replace("\\\\", "/").replace('\\', "/");
-        text.replace_range(start..end, &fixed);
-        from = start;
-    }
-    let text = replace_path(&text, root, "<ROOT>");
-    replace_mtimes(&replace_timestamps(&text))
-}
-
-fn normalise(text: &str, root: &Path) -> String {
-    normalise_with(text, root, None)
-}
-
-/// Every file and directory under `root` (relative, `/`-separated), with normalised
-/// file contents. `.git` directories (repository checkouts) are skipped.
-fn snapshot(root: &Path) -> BTreeMap<String, String> {
-    fn walk(root: &Path, dir: &Path, into: &mut BTreeMap<String, String>) {
+/// Every file and directory under `root` (relative, `/`-separated; directories end in
+/// `/`), with file contents passed through `content`. `.git` directories (repository
+/// checkouts) and the embedded engine are skipped.
+fn walk_tree(root: &Path, content: &dyn Fn(&Path, Vec<u8>) -> String) -> BTreeMap<String, String> {
+    fn walk(
+        root: &Path,
+        dir: &Path,
+        content: &dyn Fn(&Path, Vec<u8>) -> String,
+        into: &mut BTreeMap<String, String>,
+    ) {
         let Ok(entries) = fs::read_dir(dir) else {
             return;
         };
@@ -241,47 +167,85 @@ fn snapshot(root: &Path) -> BTreeMap<String, String> {
                     continue;
                 }
                 into.insert(format!("{rel}/"), String::new());
-                walk(root, &path, into);
+                walk(root, &path, content, into);
             } else if kind.is_symlink() {
                 into.insert(rel, "<symlink>".into());
             } else {
                 let bytes = fs::read(&path).unwrap();
-                into.insert(rel, normalise(&String::from_utf8_lossy(&bytes), root));
+                into.insert(rel, content(&path, bytes));
             }
         }
     }
     let mut files = BTreeMap::new();
-    walk(root, root, &mut files);
+    walk(root, root, content, &mut files);
     files
 }
 
-/// Two identical project fixtures, one driven by Node and one by the Rust binary.
+/// The entries of `after` that are new or changed relative to `before` (with their
+/// content) and the removed ones (`null`).
+fn delta(before: &BTreeMap<String, String>, after: &BTreeMap<String, String>) -> Value {
+    let mut changes = Map::new();
+    for (key, value) in after {
+        if before.get(key) != Some(value) {
+            changes.insert(key.clone(), json!(value));
+        }
+    }
+    for key in before.keys() {
+        if !after.contains_key(key) {
+            changes.insert(key.clone(), Value::Null);
+        }
+    }
+    Value::Object(changes)
+}
+
+/// The recorded steps of one scenario.
+struct Session {
+    name: String,
+    expected: Vec<Value>,
+    recorded: Vec<Value>,
+    cursor: usize,
+}
+
+/// One project fixture driven by the binary, checked step by step against a golden.
 struct Pair {
     _base: TempDir,
-    node: PathBuf,
-    rust: PathBuf,
+    root: PathBuf,
     engine: Engine,
+    remote: Option<PathBuf>,
+    session: RefCell<Session>,
 }
 
 impl Pair {
-    /// `setup` runs on both projects; `create` decides whether the project folder exists.
+    /// `setup` prepares the project; `create` decides whether the project folder exists.
+    /// `label` names the golden file.
     fn new(label: &str, create: bool, setup: impl Fn(&Path)) -> Self {
         let base = TempDir::new(label);
-        let node = base.0.join("node").join("proj");
-        let rust = base.0.join("rust").join("proj");
-        for root in [&node, &rust] {
-            if create {
-                fs::create_dir_all(root).unwrap();
-            } else {
-                fs::create_dir_all(root.parent().unwrap()).unwrap();
-            }
-            setup(root);
+        let root = base.0.join("proj");
+        if create {
+            fs::create_dir_all(&root).unwrap();
+        } else {
+            fs::create_dir_all(root.parent().unwrap()).unwrap();
         }
+        setup(&root);
+        let expected = if golden::blessing() {
+            Vec::new()
+        } else {
+            golden::read(SUITE, label)["steps"]
+                .as_array()
+                .cloned()
+                .unwrap_or_else(|| panic!("golden {label} has no steps array"))
+        };
         Pair {
             _base: base,
-            node,
-            rust,
+            root,
             engine: Engine::Home,
+            remote: None,
+            session: RefCell::new(Session {
+                name: label.to_owned(),
+                expected,
+                recorded: Vec::new(),
+                cursor: 0,
+            }),
         }
     }
 
@@ -290,12 +254,17 @@ impl Pair {
         self
     }
 
-    /// The engine directory each CLI reports paths under.
-    fn engine_dirs(&self) -> (PathBuf, PathBuf) {
-        let node = repo().join("core");
+    /// Names a git remote outside the project whose path is normalised to `<REMOTE>`.
+    fn with_remote(mut self, remote: PathBuf) -> Self {
+        self.remote = Some(remote);
+        self
+    }
+
+    /// The engine directory the CLI reports paths under.
+    fn engine_dir(&self) -> PathBuf {
         match self.engine {
-            Engine::Home => (node.clone(), node),
-            Engine::Embedded => (node, self.rust.join(".aidlc").join("engine")),
+            Engine::Home => repo().join("core"),
+            Engine::Embedded => self.root.join(".aidlc").join("engine"),
         }
     }
 
@@ -303,90 +272,161 @@ impl Pair {
         Self::new(label, true, |_| {})
     }
 
-    /// A project with source and documentation files, onboarded by Node in both copies
-    /// so that every later step starts from identical state. (Rust onboarding output is
-    /// not yet at byte parity; see `onboarding_matches_node`.)
+    /// A project with source and documentation files in the onboarded state recorded
+    /// from the reference CLI, so every later step starts from the recorded state.
     fn onboarded(label: &str, harness: &str) -> Self {
         Self::new(label, true, |root| {
             seed_project(root);
-            let run = run_node(
-                root,
-                &["onboard", "--harness", harness, "--scope", "solo"],
-                Engine::Home,
-            );
-            assert_eq!(run.code, 0, "{run:?}");
+            restore_onboarded(root, harness);
         })
     }
 
-    /// Applies the same change to both projects.
-    fn both(&self, change: impl Fn(&Path)) {
-        change(&self.node);
-        change(&self.rust);
+    /// Normalises the engine, repository, remote and project paths, timestamps and
+    /// `mtimeMs` values.
+    fn normalise(&self, text: &str) -> String {
+        let engine = self.engine_dir();
+        let repo = repo();
+        let mut paths: Vec<(&Path, &str)> = vec![(&engine, "<ENGINE>"), (&repo, "<REPO>")];
+        if let Some(remote) = &self.remote {
+            paths.push((remote, "<REMOTE>"));
+        }
+        paths.push((&self.root, "<ROOT>"));
+        golden::normalise(text, &paths)
     }
 
-    /// Runs one command on both projects and asserts identical observable behaviour.
+    /// Every file and directory of the project with normalised contents.
+    fn snapshot(&self) -> BTreeMap<String, String> {
+        walk_tree(&self.root, &|_, bytes| {
+            self.normalise(&String::from_utf8_lossy(&bytes))
+        })
+    }
+
+    /// Applies a change to the project.
+    fn both(&self, change: impl Fn(&Path)) {
+        change(&self.root);
+    }
+
+    /// Records the step when blessing, otherwise returns the golden step it must match.
+    fn next_expected(&self, actual: &Value) -> Option<Value> {
+        let mut session = self.session.borrow_mut();
+        if golden::blessing() {
+            session.recorded.push(actual.clone());
+            return None;
+        }
+        let index = session.cursor;
+        session.cursor += 1;
+        let expected = session.expected.get(index).cloned().unwrap_or_else(|| {
+            panic!(
+                "golden {} has no step {index} for {}",
+                session.name, actual["argv"]
+            )
+        });
+        assert_eq!(
+            expected["argv"], actual["argv"],
+            "golden {} step {index} is for a different command",
+            session.name
+        );
+        Some(expected)
+    }
+
+    /// Runs one command and asserts the observable behaviour recorded in the golden.
     fn step(&self, argv: &[&str]) -> Run {
-        let node = run_node(&self.node, argv, self.engine);
-        let rust = run_rust(&self.rust, argv, self.engine);
-        let (node_engine, rust_engine) = self.engine_dirs();
+        let before = self.snapshot();
+        let run = run_cli(&self.root, argv, self.engine);
+        let after = self.snapshot();
+        let actual = json!({
+            "argv": argv,
+            "code": run.code,
+            "stdout": self.normalise(&run.stdout),
+            "stderr": self.normalise(&run.stderr),
+            "files": delta(&before, &after),
+        });
+        let Some(expected) = self.next_expected(&actual) else {
+            return run;
+        };
         let context = || {
             format!(
-                "{argv:?}\n--- node (exit {}) ---\nstdout: {}\nstderr: {}\n--- rust (exit {}) ---\nstdout: {}\nstderr: {}",
-                node.code, node.stdout, node.stderr, rust.code, rust.stdout, rust.stderr
+                "{argv:?}\n--- golden (exit {}) ---\nstdout: {}\nstderr: {}\n--- rust (exit {}) ---\nstdout: {}\nstderr: {}",
+                expected["code"],
+                expected["stdout"].as_str().unwrap_or_default(),
+                expected["stderr"].as_str().unwrap_or_default(),
+                run.code,
+                run.stdout,
+                run.stderr
             )
         };
-        assert_eq!(node.code, rust.code, "exit code differs for {}", context());
         assert_eq!(
-            normalise_with(&node.stdout, &self.node, Some(&node_engine)),
-            normalise_with(&rust.stdout, &self.rust, Some(&rust_engine)),
+            expected["code"],
+            actual["code"],
+            "exit code differs for {}",
+            context()
+        );
+        assert_eq!(
+            expected["stdout"],
+            actual["stdout"],
             "stdout differs for {}",
             context()
         );
         assert_eq!(
-            normalise_with(&node.stderr, &self.node, Some(&node_engine)),
-            normalise_with(&rust.stderr, &self.rust, Some(&rust_engine)),
+            expected["stderr"],
+            actual["stderr"],
             "stderr differs for {}",
             context()
         );
-        let (node_files, rust_files) = (snapshot(&self.node), snapshot(&self.rust));
-        if node_files != rust_files {
-            let keys: std::collections::BTreeSet<&String> =
-                node_files.keys().chain(rust_files.keys()).collect();
+        let (want, got) = (&expected["files"], &actual["files"]);
+        if want != got {
+            let keys: BTreeSet<&String> = want
+                .as_object()
+                .into_iter()
+                .chain(got.as_object())
+                .flat_map(|map| map.keys())
+                .collect();
             let differing: Vec<String> = keys
                 .into_iter()
-                .filter(|key| node_files.get(*key) != rust_files.get(*key))
+                .filter(|key| want.get(key.as_str()) != got.get(key.as_str()))
                 .map(|key| {
                     format!(
-                        "{key}\n  node: {:?}\n  rust: {:?}",
-                        node_files.get(key),
-                        rust_files.get(key)
+                        "{key}\n  golden: {:?}\n  rust:   {:?}",
+                        want.get(key.as_str()),
+                        got.get(key.as_str())
                     )
                 })
                 .collect();
             panic!(
-                "project files differ after {argv:?}:\n{}",
+                "project files differ after {argv:?} (changes relative to the state before the step):\n{}",
                 differing.join("\n")
             );
         }
-        rust
+        run
     }
 
-    /// Runs a command on both projects, requiring exit code 0 from both, and compares
-    /// only the listed files (used where a command is not yet at full parity).
+    /// Runs a command that must exit 0 and compares only the listed files (used where a
+    /// command is not yet at full parity).
     fn partial(&self, argv: &[&str], files: &[&str]) {
-        let node = run_node(&self.node, argv, self.engine);
-        let rust = run_rust(&self.rust, argv, self.engine);
-        assert_eq!(node.code, 0, "{argv:?} (node): {node:?}");
-        assert_eq!(rust.code, 0, "{argv:?} (rust): {rust:?}");
-        let (node_files, rust_files) = (snapshot(&self.node), snapshot(&self.rust));
+        let run = run_cli(&self.root, argv, self.engine);
+        assert_eq!(run.code, 0, "{argv:?} (rust): {run:?}");
+        let after = self.snapshot();
+        let listed: Map<String, Value> = files
+            .iter()
+            .map(|file| ((*file).to_owned(), json!(after.get(*file))))
+            .collect();
+        if golden::blessing() {
+            for file in files {
+                assert!(after.contains_key(*file), "{argv:?}: wrote no {file}");
+            }
+        }
+        let actual = json!({ "argv": argv, "code": run.code, "files": listed });
+        let Some(expected) = self.next_expected(&actual) else {
+            return;
+        };
+        assert_eq!(expected["code"], json!(0), "golden {argv:?} did not exit 0");
         for file in files {
             assert!(
-                node_files.contains_key(*file),
-                "{argv:?}: node wrote no {file}"
+                expected["files"][*file].is_string(),
+                "{argv:?}: the golden records no {file}"
             );
             assert_eq!(
-                node_files.get(*file),
-                rust_files.get(*file),
+                expected["files"][*file], actual["files"][*file],
                 "{file} differs after {argv:?}"
             );
         }
@@ -405,6 +445,74 @@ impl Pair {
         assert_eq!(run.code, 1, "{argv:?} should fail: {run:?}");
         assert!(run.stderr.starts_with("dtech-aidlc: "), "{run:?}");
         run.stderr
+    }
+}
+
+impl Drop for Pair {
+    fn drop(&mut self) {
+        if std::thread::panicking() {
+            return;
+        }
+        let session = self.session.borrow();
+        if golden::blessing() {
+            golden::write(SUITE, &session.name, &json!({ "steps": session.recorded }));
+        } else {
+            assert_eq!(
+                session.cursor,
+                session.expected.len(),
+                "golden {} has steps the scenario did not run",
+                session.name
+            );
+        }
+    }
+}
+
+/// Restores the recorded onboarded state (`fixture-onboarded-<harness>.json`) into
+/// `root`. When blessing and the fixture is missing, it is recorded from the CLI's own
+/// `onboard --harness <harness> --scope solo`.
+fn restore_onboarded(root: &Path, harness: &str) {
+    let case = format!("fixture-onboarded-{harness}");
+    if !golden::exists(SUITE, &case) {
+        assert!(
+            golden::blessing(),
+            "missing fixture {}; record it with DTECH_AIDLC_BLESS=1",
+            golden::path(SUITE, &case).display()
+        );
+        let run = run_cli(
+            root,
+            &["onboard", "--harness", harness, "--scope", "solo"],
+            Engine::Home,
+        );
+        assert_eq!(run.code, 0, "{run:?}");
+        let repo = repo();
+        let files = walk_tree(root, &|path, bytes| {
+            let text = String::from_utf8(bytes)
+                .unwrap_or_else(|_| panic!("{} is not UTF-8", path.display()));
+            for dir in [root, repo.as_path()] {
+                assert_eq!(
+                    golden::replace_path(&text, dir, "<PATH>"),
+                    text,
+                    "{} names a machine path",
+                    path.display()
+                );
+            }
+            text
+        });
+        golden::write(SUITE, &case, &json!({ "files": files }));
+        return;
+    }
+    let fixture = golden::read(SUITE, &case);
+    let files = fixture["files"]
+        .as_object()
+        .unwrap_or_else(|| panic!("fixture {case} has no files object"));
+    for (rel, content) in files {
+        let path = root.join(rel.trim_end_matches('/'));
+        if rel.ends_with('/') {
+            fs::create_dir_all(&path).unwrap();
+        } else {
+            fs::create_dir_all(path.parent().unwrap()).unwrap();
+            fs::write(&path, content.as_str().unwrap()).unwrap();
+        }
     }
 }
 
@@ -441,7 +549,7 @@ fn first_agent() -> String {
     graph["agents"][0]["id"].as_str().unwrap().to_owned()
 }
 
-/// Every command key of `core/tools/cli-spec.mjs` with its positional-argument limit.
+/// Every command key of the CLI with its positional-argument limit.
 const COMMAND_KEYS: &[(&str, Option<usize>)] = &[
     ("init", Some(0)),
     ("onboard", Some(0)),
@@ -483,10 +591,7 @@ const COMMAND_KEYS: &[(&str, Option<usize>)] = &[
 ];
 
 #[test]
-fn option_and_argument_validation_matches_node_for_every_command() {
-    if skip_without_node() {
-        return;
-    }
+fn option_and_argument_validation_matches_the_golden_for_every_command() {
     let pair = Pair::empty("validation");
     for (key, max) in COMMAND_KEYS {
         let words: Vec<&str> = key.split(' ').collect();
@@ -500,14 +605,14 @@ fn option_and_argument_validation_matches_node_for_every_command() {
             pair.fails(&argv);
         }
     }
-    // Several disallowed options: Node reports the first one given.
+    // Several disallowed options: the first one given is reported.
     pair.fails(&["status", "--scope", "solo", "--depth", "fast"]);
     pair.fails(&["status", "--depth", "fast", "--scope", "solo"]);
     // Parser errors.
     pair.fails(&["status", "--intent"]);
     pair.fails(&["status", "--intent", "a", "--intent", "b"]);
     pair.fails(&["onboard", "--rescan=yes"]);
-    // Unknown commands and actions get Node's exact messages.
+    // Unknown commands and actions get the recorded messages.
     for argv in [
         &["frobnicate"][..],
         &["frobnicate", "--depth", "fast"],
@@ -545,14 +650,11 @@ fn option_and_argument_validation_matches_node_for_every_command() {
         let run = pair.step(argv);
         assert_eq!(run.code, 0, "{run:?}");
     }
-    assert!(!pair.rust.join(".aidlc").exists());
+    assert!(!pair.root.join(".aidlc").exists());
 }
 
 #[test]
 fn an_unsafe_state_directory_is_refused_by_every_command_but_completion() {
-    if skip_without_node() {
-        return;
-    }
     let pair = Pair::new("unsafe", true, |root| {
         fs::write(root.join(".aidlc"), "not a directory\n").unwrap()
     });
@@ -580,10 +682,7 @@ fn an_unsafe_state_directory_is_refused_by_every_command_but_completion() {
 }
 
 #[test]
-fn read_only_commands_match_node_on_new_and_missing_projects() {
-    if skip_without_node() {
-        return;
-    }
+fn read_only_commands_match_the_golden_on_new_and_missing_projects() {
     let pair = Pair::empty("read-only");
     pair.ok(&["scope"]);
     pair.ok(&["scope", "solo", "--depth", "fast"]);
@@ -611,18 +710,18 @@ fn read_only_commands_match_node_on_new_and_missing_projects() {
     pair.fails(&["onboard"]);
     pair.fails(&["onboard", "--harness", "vim"]);
     pair.fails(&["onboard", "--harness", "claude", "--scope", "galaxy"]);
-    assert!(!pair.rust.join(".aidlc").exists());
+    assert!(!pair.root.join(".aidlc").exists());
     // `doctor` reports on an empty project without creating anything.
     pair.step(&["doctor"]);
-    assert!(!pair.rust.join(".aidlc").exists());
+    assert!(!pair.root.join(".aidlc").exists());
     // A project folder that does not exist is never created.
     let missing = Pair::new("missing", false, |_| {});
     missing.step(&["status"]);
     missing.step(&["doctor"]);
     missing.step(&["intent", "list"]);
     missing.step(&["orchestrate", "next"]);
-    assert!(!missing.rust.exists());
-    // `status` and `intent list` read the graph only, like Node, so a malformed
+    assert!(!missing.root.exists());
+    // `status` and `intent list` read the graph only, so a malformed
     // configuration does not stop them; `scope` validates it.
     let broken = Pair::new("broken-config", true, |root| {
         write(root, ".aidlc/config.json", "{bad json\n")
@@ -635,12 +734,10 @@ fn read_only_commands_match_node_on_new_and_missing_projects() {
 }
 
 /// Every validation error of `onboard` / `init` / `onboard --rescan` (checked by the
-/// router before anything is written) matches Node exactly, and nothing is written.
+/// router before anything is written) matches the golden exactly, and nothing is
+/// written.
 #[test]
-fn onboarding_validation_matches_node() {
-    if skip_without_node() {
-        return;
-    }
+fn onboarding_validation_matches_the_golden() {
     let pair = Pair::new("onboard-errors", true, seed_project);
     pair.fails(&["onboard"]);
     pair.fails(&["onboard", "--scope", "solo"]);
@@ -654,9 +751,9 @@ fn onboarding_validation_matches_node() {
     pair.fails(&["onboard", "--rescan"]);
     pair.fails(&["onboard", "--rescan", "--docs", "docs"]);
     pair.fails(&["onboard", "--rescan", "--no-detect"]);
-    assert!(!pair.rust.join(".aidlc").exists());
+    assert!(!pair.root.join(".aidlc").exists());
 
-    // An initialized project (onboarded by Node in both copies).
+    // An initialized project (the recorded onboarded state).
     let pair = Pair::onboarded("onboard-errors-initialized", "claude");
     pair.fails(&["onboard", "--scope", "team"]);
     pair.fails(&["init", "--harness", "deepseek"]);
@@ -687,15 +784,12 @@ fn onboarding_validation_matches_node() {
 }
 
 /// Known gap: Rust onboarding (`dtech_aidlc::onboarding`) is not at byte parity with
-/// Node. Its stdout (`\\?\` paths, shorter `projections`, missing `notes`/`skipped`
+/// the recorded reference onboarding. Its stdout (`\\?\` paths, shorter `projections`, missing `notes`/`skipped`
 /// detail), its audit details, the project profile files and the projection stamp
 /// differ. This test pins down only what does match: the exit code and the
 /// configuration, knowledge manifest, PROJECT.md scaffold and projected skill files.
 #[test]
-fn onboarding_success_writes_the_same_configuration_and_knowledge_files_as_node() {
-    if skip_without_node() {
-        return;
-    }
+fn onboarding_success_writes_the_same_configuration_and_knowledge_files_as_the_golden() {
     let pair = Pair::new("onboard", true, seed_project);
     let shared = [
         ".aidlc/config.json",
@@ -724,10 +818,7 @@ fn onboarding_success_writes_the_same_configuration_and_knowledge_files_as_node(
 }
 
 #[test]
-fn config_commands_match_node() {
-    if skip_without_node() {
-        return;
-    }
+fn config_commands_match_the_golden() {
     let agent = first_agent();
     let pair = Pair::onboarded("config", "claude");
     pair.fails(&["config"]);
@@ -802,10 +893,7 @@ fn config_commands_match_node() {
 }
 
 #[test]
-fn harness_commands_match_node() {
-    if skip_without_node() {
-        return;
-    }
+fn harness_commands_match_the_golden() {
     let pair = Pair::onboarded("harness", "claude");
     pair.ok(&["harness", "status"]);
     pair.fails(&["harness", "add", "vim"]);
@@ -816,13 +904,13 @@ fn harness_commands_match_node() {
     pair.ok(&["harness", "refresh", "--dry-run"]);
     pair.fails(&["harness", "refresh", "vim"]);
     // A user-modified projected file is kept, then replaced (with a backup) on --force.
-    let skills = pair.node.join(".claude/skills");
+    let skills = pair.root.join(".claude/skills");
     let skill = walk_files(&skills)
         .into_iter()
         .next()
         .expect("a projected skill file");
     let rel = skill
-        .strip_prefix(&pair.node)
+        .strip_prefix(&pair.root)
         .unwrap()
         .to_string_lossy()
         .replace('\\', "/");
@@ -856,10 +944,7 @@ fn walk_files(dir: &Path) -> Vec<PathBuf> {
 }
 
 #[test]
-fn knowledge_commands_match_node() {
-    if skip_without_node() {
-        return;
-    }
+fn knowledge_commands_match_the_golden() {
     let fresh = Pair::new("knowledge-init", true, seed_project);
     fresh.ok(&["knowledge", "init"]);
     fresh.ok(&["knowledge", "init"]);
@@ -902,10 +987,7 @@ fn knowledge_commands_match_node() {
 }
 
 #[test]
-fn repos_commands_match_node() {
-    if skip_without_node() {
-        return;
-    }
+fn repos_commands_match_the_golden() {
     let pair = Pair::onboarded("repos", "claude");
     pair.ok(&["repos", "list"]);
     pair.ok(&[
@@ -937,7 +1019,7 @@ fn repos_commands_match_node() {
         "{{\n  \"schemaVersion\": 1,\n  \"repos\": {{\n    \"lib\": {{\n      \"url\": {}\n    }}\n  }}\n}}\n",
         serde_json::to_string(remote.to_str().unwrap()).unwrap()
     );
-    let clone = Pair::onboarded("repos-pull", "claude");
+    let clone = Pair::onboarded("repos-pull", "claude").with_remote(remote.clone());
     clone.both(|root| {
         fs::write(root.join("aidlc.deps.json"), &declared).unwrap();
         write(
@@ -946,7 +1028,7 @@ fn repos_commands_match_node() {
             r#"{"schemaVersion":1,"repos":{"stale":{"url":"https://example.invalid/stale.git"}}}"#,
         );
     });
-    // The note about the dropped runtime entry goes to stderr in both.
+    // The note about the dropped runtime entry goes to stderr.
     let pulled = clone.step(&["repos", "pull"]);
     assert_eq!(pulled.code, 0, "{pulled:?}");
     assert!(
@@ -968,10 +1050,9 @@ fn git(dir: &Path, args: &[&str]) {
         .arg(dir)
         .args(args)
         .env("GIT_CONFIG_NOSYSTEM", "1")
-        .env(
-            "GIT_CONFIG_GLOBAL",
-            if cfg!(windows) { "NUL" } else { "/dev/null" },
-        )
+        .env("GIT_CONFIG_GLOBAL", null_device())
+        .env("GIT_AUTHOR_DATE", "2026-01-01T00:00:00Z")
+        .env("GIT_COMMITTER_DATE", "2026-01-01T00:00:00Z")
         .stdin(Stdio::null())
         .output()
         .unwrap();
@@ -982,8 +1063,8 @@ fn git(dir: &Path, args: &[&str]) {
     );
 }
 
-/// A bare repository with one commit on `main`, shared by both projects so the URL and
-/// commit ids are identical.
+/// A bare repository with one commit on `main`. The author, committer and dates are
+/// fixed, so the commit id is the same on every run and matches the golden.
 fn bare_remote(base: &Path) -> PathBuf {
     let remote = base.join("remote.git");
     let seed = base.join("seed");
@@ -1008,21 +1089,15 @@ fn bare_remote(base: &Path) -> PathBuf {
 
 /// End to end: onboard, start an intent, pass a gate, block Develop and rework the
 /// design, use the intent, ids and deps commands, pause/resume/abandon, write the
-/// knowledge index and run doctor, comparing every step with Node.
+/// knowledge index and run doctor, comparing every step with the golden.
 #[test]
-fn end_to_end_lifecycle_matches_node() {
-    if skip_without_node() {
-        return;
-    }
+fn end_to_end_lifecycle_matches_the_golden() {
     lifecycle(Pair::onboarded("lifecycle", "claude"));
 }
 
 /// The same lifecycle with the methodology embedded in the Rust binary.
 #[test]
-fn end_to_end_lifecycle_with_the_embedded_engine_matches_node() {
-    if skip_without_node() {
-        return;
-    }
+fn end_to_end_lifecycle_with_the_embedded_engine_matches_the_golden() {
     lifecycle(Pair::onboarded("lifecycle-embedded", "claude").with_engine(Engine::Embedded));
 }
 

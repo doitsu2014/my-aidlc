@@ -1,0 +1,30 @@
+[
+  {
+    "label": "unsafe-file",
+    "outcome": {
+      "error": "Refusing unsafe .aidlc path"
+    }
+  },
+  {
+    "label": "unsafe-intents",
+    "outcome": {
+      "error": "Refusing unsafe .aidlc/intents path"
+    }
+  },
+  {
+    "argv": [
+      "doctor",
+      "extra"
+    ],
+    "code": 1,
+    "stderr": "dtech-aidlc: Unexpected argument 'extra' for 'doctor'."
+  },
+  {
+    "argv": [
+      "doctor",
+      "--force"
+    ],
+    "code": 1,
+    "stderr": "dtech-aidlc: Unknown option --force for 'doctor'. Allowed options: --project."
+  }
+]

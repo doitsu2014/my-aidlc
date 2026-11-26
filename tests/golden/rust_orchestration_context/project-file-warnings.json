@@ -1,0 +1,24 @@
+{
+  "scaffold.md developing=false": [
+    "scaffold.md is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first."
+  ],
+  "scaffold.md developing=true": [
+    "scaffold.md is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first."
+  ],
+  "bom.md developing=false": [
+    "bom.md is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first."
+  ],
+  "bom.md developing=true": [
+    "bom.md is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first."
+  ],
+  "owned.md developing=false": [],
+  "owned.md developing=true": [],
+  "partial.md developing=false": [],
+  "partial.md developing=true": [
+    "partial.md has no content under '## Environment prerequisites', '## Known baseline failures'. Develop runs code: record the commands, the environment it needs and the failures already present, or the agents will rediscover them on every work unit."
+  ],
+  "headings.md developing=false": [],
+  "headings.md developing=true": [
+    "headings.md has no content under '## Commands'. Develop runs code: record the commands, the environment it needs and the failures already present, or the agents will rediscover them on every work unit."
+  ]
+}

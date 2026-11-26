@@ -1,0 +1,37 @@
+[
+  {
+    "argv": [
+      "harness",
+      "refresh"
+    ],
+    "outcome": {
+      "error": "Refusing to write through symlink: .claude/skills/dtech-aidlc"
+    },
+    "files": {
+      "changed": {
+        ".aidlc/": "",
+        ".aidlc/config.json": "{\"harness\":\"claude\",\"scope\":\"solo\"}",
+        ".claude/": "",
+        ".claude/skills/": "",
+        ".claude/skills/dtech-aidlc": "<symlink>"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "harness",
+      "add",
+      "claude"
+    ],
+    "outcome": {
+      "error": "Refusing to write through symlink: .claude/skills/dtech-aidlc"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  }
+]

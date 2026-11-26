@@ -1,67 +1,84 @@
-use std::path::PathBuf;
+//! Parser, version, configuration-query and doctor results of the binary, run in an
+//! empty directory, against goldens recorded from the former JavaScript reference CLI
+//! (`tests/golden/rust_parity/`). Set `DTECH_AIDLC_BLESS=1` to re-record them.
+
+#[path = "common/golden.rs"]
+mod golden;
+
+use serde_json::{json, Value};
+use std::path::Path;
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+const SUITE: &str = "rust_parity";
+
 static NEXT_CASE: AtomicUsize = AtomicUsize::new(0);
 
-fn run_pair(args: &[&str]) -> (Output, Output) {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+/// The CLI under test.
+fn cli() -> Command {
+    Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
+}
+
+fn text(bytes: &[u8]) -> String {
+    String::from_utf8(bytes.to_vec()).expect("CLI output is UTF-8")
+}
+
+/// Runs the CLI in a fresh empty directory, checks that it created no project state, and
+/// returns its output with the directory and repository paths normalised.
+fn run_isolated(args: &[&str]) -> (Output, impl Fn(&str) -> String) {
     let case_dir = std::env::temp_dir().join(format!(
         "aidlc-rust-parity-{}-{}",
         std::process::id(),
         NEXT_CASE.fetch_add(1, Ordering::Relaxed)
     ));
-    let node_dir = case_dir.join("node");
-    let rust_dir = case_dir.join("rust");
-    std::fs::create_dir_all(&node_dir).expect("create isolated Node project directory");
-    std::fs::create_dir_all(&rust_dir).expect("create isolated Rust project directory");
-
-    let node = Command::new("node")
-        .arg(root.join("core/tools/dtech-aidlc.mjs"))
+    std::fs::create_dir_all(&case_dir).expect("create isolated project directory");
+    let output = cli()
         .args(args)
-        .current_dir(&node_dir)
+        .current_dir(&case_dir)
         .output()
-        .expect("Node CLI must be available for parity tests");
-    let rust = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
-        .args(args)
-        .current_dir(&rust_dir)
-        .output()
-        .expect("run Rust CLI");
-
-    let node_state = node_dir.join(".aidlc").exists();
-    let rust_state = rust_dir.join(".aidlc").exists();
-    std::fs::remove_dir_all(&case_dir).expect("remove isolated parity directories");
+        .expect("run CLI");
+    let state = case_dir.join(".aidlc").exists();
+    std::fs::remove_dir_all(&case_dir).expect("remove isolated directory");
     assert!(
-        !node_state,
-        "parity validation unexpectedly created Node project state for {args:?}"
+        !state,
+        "validation unexpectedly created project state for {args:?}"
     );
-    assert!(
-        !rust_state,
-        "parity validation unexpectedly created Rust project state for {args:?}"
-    );
-    (node, rust)
+    let normalise = move |value: &str| {
+        let repo = golden::repo();
+        golden::normalise(
+            value,
+            &[(repo.as_path(), "<REPO>"), (Path::new(&case_dir), "<ROOT>")],
+        )
+    };
+    (output, normalise)
 }
 
-fn assert_same_result(args: &[&str]) {
-    let (node, rust) = run_pair(args);
-    assert_eq!(
-        node.status.code(),
-        rust.status.code(),
-        "exit status for {args:?}"
-    );
-    assert_eq!(node.stdout, rust.stdout, "stdout for {args:?}");
-    assert_eq!(node.stderr, rust.stderr, "stderr for {args:?}");
+/// Exit code, stdout and stderr of one run, compared byte for byte after normalisation.
+fn assert_same_result(cases: &mut golden::Cases, args: &[&str]) {
+    let (output, normalise) = run_isolated(args);
+    let actual = json!({
+        "code": output.status.code(),
+        "stdout": normalise(&text(&output.stdout)),
+        "stderr": normalise(&text(&output.stderr)),
+    });
+    let expected = cases.expect(&args.join(" "), actual.clone());
+    assert_eq!(expected["code"], actual["code"], "exit status for {args:?}");
+    assert_eq!(expected["stdout"], actual["stdout"], "stdout for {args:?}");
+    assert_eq!(expected["stderr"], actual["stderr"], "stderr for {args:?}");
 }
 
 #[test]
-fn version_matches_existing_cli() {
-    assert_same_result(&["--version"]);
+fn version_matches_the_golden() {
+    let mut cases = golden::Cases::open(SUITE, "version");
+    assert_same_result(&mut cases, &["--version"]);
+    cases.finish();
 }
 
 #[test]
-fn parser_validation_matches_existing_cli() {
+fn parser_validation_matches_the_golden() {
     // These are CLI parser/routing checks only. They do not imply that the
     // underlying project commands are implemented in Rust.
+    let mut cases = golden::Cases::open(SUITE, "parser-validation");
     for args in [
         &["scope", "--bogus"][..],
         &["scope", "a", "b"][..],
@@ -74,29 +91,33 @@ fn parser_validation_matches_existing_cli() {
         &["orchestrate", "next", "--intent-file", "--force-resume"][..],
         &["config", "prerequisite", "set", "build", "--check"][..],
     ] {
-        assert_same_result(args);
+        assert_same_result(&mut cases, args);
     }
+    cases.finish();
 }
 
 #[test]
-fn configuration_queries_match_existing_cli() {
+fn configuration_queries_match_the_golden() {
+    let mut cases = golden::Cases::open(SUITE, "configuration-queries");
     for args in [
         &["config", "scope"][..],
         &["config", "mode"][..],
         &["config", "gate-mode"][..],
         &["config", "gate-mode", "release-candidate"][..],
     ] {
-        let (node, rust) = run_pair(args);
-        assert_eq!(node.status.code(), rust.status.code(), "{args:?}");
-        assert_eq!(
-            serde_json::from_slice::<serde_json::Value>(&node.stdout).unwrap(),
-            serde_json::from_slice::<serde_json::Value>(&rust.stdout).unwrap(),
-            "{args:?}"
-        );
+        let (output, normalise) = run_isolated(args);
+        let stdout: Value = serde_json::from_str(&normalise(&text(&output.stdout))).unwrap();
+        let actual = json!({ "code": output.status.code(), "stdout": stdout });
+        let expected = cases.expect(&args.join(" "), actual.clone());
+        assert_eq!(expected["code"], actual["code"], "{args:?}");
+        assert_eq!(expected["stdout"], actual["stdout"], "{args:?}");
     }
+    cases.finish();
 }
 
 #[test]
-fn doctor_matches_node() {
-    assert_same_result(&["doctor"]);
+fn doctor_matches_the_golden() {
+    let mut cases = golden::Cases::open(SUITE, "doctor");
+    assert_same_result(&mut cases, &["doctor"]);
+    cases.finish();
 }

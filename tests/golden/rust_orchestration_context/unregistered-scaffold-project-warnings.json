@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "<ROOT>",
+  "granted": [
+    "request",
+    "project",
+    "sources",
+    "knowledge",
+    "profile",
+    "repos"
+  ],
+  "warnings": [
+    "PROJECT.md is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first.",
+    "No aidlc.knowledge.json was found, so no project documentation is registered for agents. Run `dtech-aidlc onboard --harness claude --scope team`."
+  ],
+  "project": {
+    "id": "project",
+    "path": "PROJECT.md",
+    "kind": "project",
+    "status": "ok",
+    "size": 1455,
+    "provenance": "User-provided"
+  },
+  "sources": [],
+  "sourceChanges": {
+    "scanned": false,
+    "scannedAt": null,
+    "missing": [],
+    "changed": [],
+    "added": [],
+    "removed": [],
+    "more": {
+      "changed": 0,
+      "added": 0,
+      "removed": 0
+    }
+  },
+  "codebaseMap": {
+    "path": ".aidlc/knowledge/_codebase-map.md",
+    "modifiedAt": null,
+    "exists": false,
+    "required": null,
+    "reason": "project not scanned",
+    "bytes": 0
+  },
+  "knowledge": {
+    "dir": ".aidlc/knowledge",
+    "records": [],
+    "invalid": [],
+    "record": null
+  }
+}

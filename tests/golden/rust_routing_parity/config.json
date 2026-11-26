@@ -1,0 +1,430 @@
+{
+  "steps": [
+    {
+      "argv": [
+        "config"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Use config agents, config scope, config mode, config gate-mode, or config prerequisite\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "colour"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Use config agents, config scope, config mode, config gate-mode, or config prerequisite\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "scope"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"scope\": \"solo\",\n  \"configured\": true\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "scope",
+        "team"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"scope\": \"team\",\n  \"appliesTo\": \"new intents\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"config.scope.changed\",\"from\":\"solo\",\"to\":\"team\"}\n",
+        ".aidlc/config.json": "{\n  \"harness\": \"claude\",\n  \"harnesses\": [\n    \"claude\"\n  ],\n  \"scope\": \"team\",\n  \"initializedAt\": \"<ts>\"\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "config",
+        "scope",
+        "team"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"scope\": \"team\",\n  \"appliesTo\": \"new intents\"\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "scope",
+        "galaxy"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: scope must be solo, team, or enterprise\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "mode"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"mode\": \"human\",\n  \"configured\": true\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "mode",
+        "ai"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"mode\": \"ai\",\n  \"appliesTo\": \"new intents\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"config.scope.changed\",\"from\":\"solo\",\"to\":\"team\"}\n{\"at\":\"<ts>\",\"event\":\"config.mode.changed\",\"from\":\"human\",\"to\":\"ai\"}\n",
+        ".aidlc/config.json": "{\n  \"harness\": \"claude\",\n  \"harnesses\": [\n    \"claude\"\n  ],\n  \"scope\": \"team\",\n  \"initializedAt\": \"<ts>\",\n  \"mode\": \"ai\"\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "config",
+        "mode",
+        "robot"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: mode must be human or ai\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "gate-mode"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"gateModes\": {},\n  \"gates\": [\n    \"analysis-baseline\",\n    \"solution-direction\",\n    \"release-candidate\",\n    \"launch-and-handoff\",\n    \"closure\",\n    \"intent-closure\"\n  ]\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "gate-mode",
+        "analysis-baseline",
+        "human"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"gate\": \"analysis-baseline\",\n  \"mode\": \"human\",\n  \"appliesTo\": \"every intent, from its next report of this gate\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"config.scope.changed\",\"from\":\"solo\",\"to\":\"team\"}\n{\"at\":\"<ts>\",\"event\":\"config.mode.changed\",\"from\":\"human\",\"to\":\"ai\"}\n{\"at\":\"<ts>\",\"event\":\"config.gate-mode.changed\",\"gate\":\"analysis-baseline\",\"from\":\"default\",\"to\":\"human\"}\n",
+        ".aidlc/config.json": "{\n  \"harness\": \"claude\",\n  \"harnesses\": [\n    \"claude\"\n  ],\n  \"scope\": \"team\",\n  \"initializedAt\": \"<ts>\",\n  \"mode\": \"ai\",\n  \"gateModes\": {\n    \"analysis-baseline\": \"human\"\n  }\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "config",
+        "gate-mode",
+        "analysis-baseline"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"gate\": \"analysis-baseline\",\n  \"mode\": \"human\"\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "gate-mode",
+        "nope",
+        "human"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Unknown gate 'nope'. Gates: analysis-baseline, solution-direction, release-candidate, launch-and-handoff, closure, intent-closure\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "gate-mode",
+        "analysis-baseline",
+        "ai"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Gate mode must be human or default: a gate can be pinned to human approval, never to AI approval\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "gate-mode",
+        "analysis-baseline",
+        "default"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"gate\": \"analysis-baseline\",\n  \"mode\": \"default\",\n  \"appliesTo\": \"every intent, from its next report of this gate\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"config.scope.changed\",\"from\":\"solo\",\"to\":\"team\"}\n{\"at\":\"<ts>\",\"event\":\"config.mode.changed\",\"from\":\"human\",\"to\":\"ai\"}\n{\"at\":\"<ts>\",\"event\":\"config.gate-mode.changed\",\"gate\":\"analysis-baseline\",\"from\":\"default\",\"to\":\"human\"}\n{\"at\":\"<ts>\",\"event\":\"config.gate-mode.changed\",\"gate\":\"analysis-baseline\",\"from\":\"human\",\"to\":\"default\"}\n",
+        ".aidlc/config.json": "{\n  \"harness\": \"claude\",\n  \"harnesses\": [\n    \"claude\"\n  ],\n  \"scope\": \"team\",\n  \"initializedAt\": \"<ts>\",\n  \"mode\": \"ai\"\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "config",
+        "prerequisite",
+        "set",
+        "toolchain",
+        "--check",
+        "exit 0",
+        "--hint",
+        "Install the toolchain",
+        "--applies-to",
+        "problem-framing",
+        "--applies-to",
+        "problem-framing"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"name\": \"toolchain\",\n  \"check\": \"exit 0\",\n  \"hint\": \"Install the toolchain\",\n  \"stages\": [\n    \"problem-framing\"\n  ]\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"config.scope.changed\",\"from\":\"solo\",\"to\":\"team\"}\n{\"at\":\"<ts>\",\"event\":\"config.mode.changed\",\"from\":\"human\",\"to\":\"ai\"}\n{\"at\":\"<ts>\",\"event\":\"config.gate-mode.changed\",\"gate\":\"analysis-baseline\",\"from\":\"default\",\"to\":\"human\"}\n{\"at\":\"<ts>\",\"event\":\"config.gate-mode.changed\",\"gate\":\"analysis-baseline\",\"from\":\"human\",\"to\":\"default\"}\n{\"at\":\"<ts>\",\"event\":\"config.prerequisite.set\",\"name\":\"toolchain\",\"check\":\"exit 0\",\"stages\":[\"problem-framing\"]}\n",
+        ".aidlc/config.json": "{\n  \"harness\": \"claude\",\n  \"harnesses\": [\n    \"claude\"\n  ],\n  \"scope\": \"team\",\n  \"initializedAt\": \"<ts>\",\n  \"mode\": \"ai\",\n  \"prerequisites\": {\n    \"toolchain\": {\n      \"check\": \"exit 0\",\n      \"hint\": \"Install the toolchain\",\n      \"stages\": [\n        \"problem-framing\"\n      ]\n    }\n  }\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "config",
+        "prerequisite",
+        "set",
+        "broken",
+        "--check",
+        "exit 3"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"name\": \"broken\",\n  \"check\": \"exit 3\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"config.scope.changed\",\"from\":\"solo\",\"to\":\"team\"}\n{\"at\":\"<ts>\",\"event\":\"config.mode.changed\",\"from\":\"human\",\"to\":\"ai\"}\n{\"at\":\"<ts>\",\"event\":\"config.gate-mode.changed\",\"gate\":\"analysis-baseline\",\"from\":\"default\",\"to\":\"human\"}\n{\"at\":\"<ts>\",\"event\":\"config.gate-mode.changed\",\"gate\":\"analysis-baseline\",\"from\":\"human\",\"to\":\"default\"}\n{\"at\":\"<ts>\",\"event\":\"config.prerequisite.set\",\"name\":\"toolchain\",\"check\":\"exit 0\",\"stages\":[\"problem-framing\"]}\n{\"at\":\"<ts>\",\"event\":\"config.prerequisite.set\",\"name\":\"broken\",\"check\":\"exit 3\",\"stages\":[]}\n",
+        ".aidlc/config.json": "{\n  \"harness\": \"claude\",\n  \"harnesses\": [\n    \"claude\"\n  ],\n  \"scope\": \"team\",\n  \"initializedAt\": \"<ts>\",\n  \"mode\": \"ai\",\n  \"prerequisites\": {\n    \"toolchain\": {\n      \"check\": \"exit 0\",\n      \"hint\": \"Install the toolchain\",\n      \"stages\": [\n        \"problem-framing\"\n      ]\n    },\n    \"broken\": {\n      \"check\": \"exit 3\"\n    }\n  }\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "config",
+        "prerequisite"
+      ],
+      "code": 0,
+      "stdout": "[\n  {\n    \"name\": \"toolchain\",\n    \"check\": \"exit 0\",\n    \"hint\": \"Install the toolchain\",\n    \"stages\": [\n      \"problem-framing\"\n    ]\n  },\n  {\n    \"name\": \"broken\",\n    \"check\": \"exit 3\"\n  }\n]\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "prerequisite",
+        "check",
+        "toolchain"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"ok\": true,\n  \"results\": [\n    {\n      \"name\": \"toolchain\",\n      \"ok\": true,\n      \"check\": \"exit 0\",\n      \"hint\": \"Install the toolchain\",\n      \"exitCode\": 0,\n      \"startedAt\": \"<ts>\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "prerequisite",
+        "check"
+      ],
+      "code": 1,
+      "stdout": "{\n  \"ok\": false,\n  \"results\": [\n    {\n      \"name\": \"toolchain\",\n      \"ok\": true,\n      \"check\": \"exit 0\",\n      \"hint\": \"Install the toolchain\",\n      \"exitCode\": 0,\n      \"startedAt\": \"<ts>\"\n    },\n    {\n      \"name\": \"broken\",\n      \"ok\": false,\n      \"check\": \"exit 3\",\n      \"hint\": null,\n      \"exitCode\": 3,\n      \"startedAt\": \"<ts>\",\n      \"output\": \"\"\n    }\n  ]\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "prerequisite",
+        "check",
+        "nope"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Unknown prerequisite 'nope'. Declared: toolchain, broken\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "prerequisite",
+        "set"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Usage: config prerequisite set NAME --check \"COMMAND\" [--hint TEXT] [--applies-to STAGE]...\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "prerequisite",
+        "set",
+        "nocheck"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Prerequisite nocheck needs a one-line --check command\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "prerequisite",
+        "set",
+        "bad",
+        "--check",
+        "exit 0",
+        "--applies-to",
+        "nowhere"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Prerequisite bad names unknown stage or phase: nowhere\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "prerequisite",
+        "remove",
+        "broken"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"name\": \"broken\",\n  \"removed\": true\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"config.scope.changed\",\"from\":\"solo\",\"to\":\"team\"}\n{\"at\":\"<ts>\",\"event\":\"config.mode.changed\",\"from\":\"human\",\"to\":\"ai\"}\n{\"at\":\"<ts>\",\"event\":\"config.gate-mode.changed\",\"gate\":\"analysis-baseline\",\"from\":\"default\",\"to\":\"human\"}\n{\"at\":\"<ts>\",\"event\":\"config.gate-mode.changed\",\"gate\":\"analysis-baseline\",\"from\":\"human\",\"to\":\"default\"}\n{\"at\":\"<ts>\",\"event\":\"config.prerequisite.set\",\"name\":\"toolchain\",\"check\":\"exit 0\",\"stages\":[\"problem-framing\"]}\n{\"at\":\"<ts>\",\"event\":\"config.prerequisite.set\",\"name\":\"broken\",\"check\":\"exit 3\",\"stages\":[]}\n{\"at\":\"<ts>\",\"event\":\"config.prerequisite.removed\",\"name\":\"broken\"}\n",
+        ".aidlc/config.json": "{\n  \"harness\": \"claude\",\n  \"harnesses\": [\n    \"claude\"\n  ],\n  \"scope\": \"team\",\n  \"initializedAt\": \"<ts>\",\n  \"mode\": \"ai\",\n  \"prerequisites\": {\n    \"toolchain\": {\n      \"check\": \"exit 0\",\n      \"hint\": \"Install the toolchain\",\n      \"stages\": [\n        \"problem-framing\"\n      ]\n    }\n  }\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "config",
+        "prerequisite",
+        "remove",
+        "broken"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Unknown prerequisite 'broken'\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "prerequisite",
+        "audit"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Use config prerequisite set, remove or check\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "agents"
+      ],
+      "code": 0,
+      "stdout": "[\n  {\n    \"id\": \"brief-analyst\",\n    \"phase\": \"analyze\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": \"sonnet\",\n    \"source\": \"default\"\n  },\n  {\n    \"id\": \"context-risk-analyst\",\n    \"phase\": \"analyze\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": \"sonnet\",\n    \"source\": \"default\"\n  },\n  {\n    \"id\": \"solution-explorer\",\n    \"phase\": \"ideate\",\n    \"defaultModel\": \"opus\",\n    \"model\": \"opus\",\n    \"source\": \"default\"\n  },\n  {\n    \"id\": \"decision-facilitator\",\n    \"phase\": \"ideate\",\n    \"defaultModel\": \"opus\",\n    \"model\": \"opus\",\n    \"source\": \"default\"\n  },\n  {\n    \"id\": \"implementation-planner\",\n    \"phase\": \"develop\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": \"sonnet\",\n    \"source\": \"default\"\n  },\n  {\n    \"id\": \"builder-verifier\",\n    \"phase\": \"develop\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": \"sonnet\",\n    \"source\": \"default\"\n  },\n  {\n    \"id\": \"release-coordinator\",\n    \"phase\": \"launch\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": \"sonnet\",\n    \"source\": \"default\"\n  },\n  {\n    \"id\": \"operations-handoff\",\n    \"phase\": \"launch\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": \"sonnet\",\n    \"source\": \"default\"\n  },\n  {\n    \"id\": \"outcome-curator\",\n    \"phase\": \"curate\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": \"sonnet\",\n    \"source\": \"default\"\n  },\n  {\n    \"id\": \"knowledge-steward\",\n    \"phase\": \"curate\",\n    \"defaultModel\": \"haiku\",\n    \"model\": \"haiku\",\n    \"source\": \"default\"\n  },\n  {\n    \"id\": \"record-keeper\",\n    \"phase\": \"archived\",\n    \"defaultModel\": \"haiku\",\n    \"model\": \"haiku\",\n    \"source\": \"default\"\n  },\n  {\n    \"id\": \"knowledge-archivist\",\n    \"phase\": \"archived\",\n    \"defaultModel\": \"sonnet\",\n    \"model\": \"sonnet\",\n    \"source\": \"default\"\n  }\n]\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "agents",
+        "set",
+        "brief-analyst",
+        "haiku"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"id\": \"brief-analyst\",\n  \"defaultModel\": \"sonnet\",\n  \"model\": \"haiku\",\n  \"source\": \"project\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"config.scope.changed\",\"from\":\"solo\",\"to\":\"team\"}\n{\"at\":\"<ts>\",\"event\":\"config.mode.changed\",\"from\":\"human\",\"to\":\"ai\"}\n{\"at\":\"<ts>\",\"event\":\"config.gate-mode.changed\",\"gate\":\"analysis-baseline\",\"from\":\"default\",\"to\":\"human\"}\n{\"at\":\"<ts>\",\"event\":\"config.gate-mode.changed\",\"gate\":\"analysis-baseline\",\"from\":\"human\",\"to\":\"default\"}\n{\"at\":\"<ts>\",\"event\":\"config.prerequisite.set\",\"name\":\"toolchain\",\"check\":\"exit 0\",\"stages\":[\"problem-framing\"]}\n{\"at\":\"<ts>\",\"event\":\"config.prerequisite.set\",\"name\":\"broken\",\"check\":\"exit 3\",\"stages\":[]}\n{\"at\":\"<ts>\",\"event\":\"config.prerequisite.removed\",\"name\":\"broken\"}\n{\"at\":\"<ts>\",\"event\":\"config.agent-model.set\",\"agent\":\"brief-analyst\",\"model\":\"haiku\"}\n",
+        ".aidlc/config.json": "{\n  \"harness\": \"claude\",\n  \"harnesses\": [\n    \"claude\"\n  ],\n  \"scope\": \"team\",\n  \"initializedAt\": \"<ts>\",\n  \"mode\": \"ai\",\n  \"prerequisites\": {\n    \"toolchain\": {\n      \"check\": \"exit 0\",\n      \"hint\": \"Install the toolchain\",\n      \"stages\": [\n        \"problem-framing\"\n      ]\n    }\n  },\n  \"agentModels\": {\n    \"brief-analyst\": \"haiku\"\n  }\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "config",
+        "agents",
+        "set",
+        "brief-analyst",
+        "gpt4"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Invalid model alias: gpt4; choose opus, sonnet, haiku, or fable\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "agents",
+        "set",
+        "nobody",
+        "haiku"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Unknown agent: nobody\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "agents",
+        "promote",
+        "brief-analyst"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Use config agents set or config agents reset\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "config",
+        "agents",
+        "reset",
+        "brief-analyst"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"id\": \"brief-analyst\",\n  \"defaultModel\": \"sonnet\",\n  \"model\": \"sonnet\",\n  \"source\": \"default\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"config.scope.changed\",\"from\":\"solo\",\"to\":\"team\"}\n{\"at\":\"<ts>\",\"event\":\"config.mode.changed\",\"from\":\"human\",\"to\":\"ai\"}\n{\"at\":\"<ts>\",\"event\":\"config.gate-mode.changed\",\"gate\":\"analysis-baseline\",\"from\":\"default\",\"to\":\"human\"}\n{\"at\":\"<ts>\",\"event\":\"config.gate-mode.changed\",\"gate\":\"analysis-baseline\",\"from\":\"human\",\"to\":\"default\"}\n{\"at\":\"<ts>\",\"event\":\"config.prerequisite.set\",\"name\":\"toolchain\",\"check\":\"exit 0\",\"stages\":[\"problem-framing\"]}\n{\"at\":\"<ts>\",\"event\":\"config.prerequisite.set\",\"name\":\"broken\",\"check\":\"exit 3\",\"stages\":[]}\n{\"at\":\"<ts>\",\"event\":\"config.prerequisite.removed\",\"name\":\"broken\"}\n{\"at\":\"<ts>\",\"event\":\"config.agent-model.set\",\"agent\":\"brief-analyst\",\"model\":\"haiku\"}\n{\"at\":\"<ts>\",\"event\":\"config.agent-model.reset\",\"agent\":\"brief-analyst\"}\n",
+        ".aidlc/config.json": "{\n  \"harness\": \"claude\",\n  \"harnesses\": [\n    \"claude\"\n  ],\n  \"scope\": \"team\",\n  \"initializedAt\": \"<ts>\",\n  \"mode\": \"ai\",\n  \"prerequisites\": {\n    \"toolchain\": {\n      \"check\": \"exit 0\",\n      \"hint\": \"Install the toolchain\",\n      \"stages\": [\n        \"problem-framing\"\n      ]\n    }\n  },\n  \"agentModels\": {}\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "scope",
+        "solo"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"scope\": \"solo\",\n  \"depth\": \"full\",\n  \"stages\": [\n    {\n      \"id\": \"problem-framing\",\n      \"phase\": \"analyze\",\n      \"agent\": \"brief-analyst\",\n      \"defaultModel\": \"sonnet\",\n      \"model\": \"sonnet\",\n      \"source\": \"default\",\n      \"produces\": [\n        \"problem-statement\",\n        \"success-measures\",\n        \"stakeholder-map\",\n        \"acceptance-criteria\",\n        \"user-stories\"\n      ]\n    },\n    {\n      \"id\": \"context-and-risk\",\n      \"phase\": \"analyze\",\n      \"agent\": \"context-risk-analyst\",\n      \"defaultModel\": \"sonnet\",\n      \"model\": \"sonnet\",\n      \"source\": \"default\",\n      \"produces\": [\n        \"constraints-and-assumptions\",\n        \"evidence-log\",\n        \"risk-register\",\n        \"open-questions\",\n        \"quality-requirements\"\n      ]\n    },\n    {\n      \"id\": \"option-generation\",\n      \"phase\": \"ideate\",\n      \"agent\": \"solution-explorer\",\n      \"defaultModel\": \"opus\",\n      \"model\": \"opus\",\n      \"source\": \"default\",\n      \"produces\": [\n        \"solution-options\",\n        \"trade-off-matrix\"\n      ]\n    },\n    {\n      \"id\": \"direction-selection\",\n      \"phase\": \"ideate\",\n      \"agent\": \"decision-facilitator\",\n      \"defaultModel\": \"opus\",\n      \"model\": \"opus\",\n      \"source\": \"default\",\n      \"produces\": [\n        \"recommended-direction\",\n        \"decision-record\",\n        \"scope-boundary\",\n        \"architecture-design\",\n        \"threat-model\"\n      ]\n    },\n    {\n      \"id\": \"implementation-design\",\n      \"phase\": \"develop\",\n      \"agent\": \"implementation-planner\",\n      \"defaultModel\": \"sonnet\",\n      \"model\": \"sonnet\",\n      \"source\": \"default\",\n      \"produces\": [\n        \"implementation-plan\",\n        \"interfaces-and-contracts\",\n        \"functional-design\",\n        \"test-strategy\",\n        \"work-units\",\n        \"work-units-json\",\n        \"id-registry\"\n      ]\n    },\n    {\n      \"id\": \"red-tests\",\n      \"phase\": \"develop\",\n      \"agent\": \"builder-verifier\",\n      \"defaultModel\": \"sonnet\",\n      \"model\": \"sonnet\",\n      \"source\": \"default\",\n      \"produces\": [\n        \"failing-tests\",\n        \"red-evidence\"\n      ]\n    },\n    {\n      \"id\": \"build-and-verify\",\n      \"phase\": \"develop\",\n      \"agent\": \"builder-verifier\",\n      \"defaultModel\": \"sonnet\",\n      \"model\": \"sonnet\",\n      \"source\": \"default\",\n      \"produces\": [\n        \"implementation\",\n        \"green-verification-report\",\n        \"regression-report\",\n        \"known-limitations\"\n      ]\n    },\n    {\n      \"id\": \"intent-record\",\n      \"phase\": \"archived\",\n      \"agent\": \"record-keeper\",\n      \"defaultModel\": \"haiku\",\n      \"model\": \"haiku\",\n      \"source\": \"default\",\n      \"produces\": [\n        \"intent-summary\",\n        \"completed-scope\",\n        \"artifact-index\"\n      ]\n    },\n    {\n      \"id\": \"knowledge-writeback\",\n      \"phase\": \"archived\",\n      \"agent\": \"knowledge-archivist\",\n      \"defaultModel\": \"sonnet\",\n      \"model\": \"sonnet\",\n      \"source\": \"default\",\n      \"produces\": [\n        \"knowledge-record\",\n        \"next-intent-notes\"\n      ]\n    }\n  ]\n}\n",
+      "stderr": "",
+      "files": {}
+    }
+  ]
+}

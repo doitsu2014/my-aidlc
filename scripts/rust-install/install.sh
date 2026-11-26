@@ -1,5 +1,5 @@
 #!/bin/sh
-# Experimental Rust installer prototype. Kept separate from the production installer.
+# Install, upgrade or uninstall a prebuilt Rust dtech-aidlc (target/release binary plus assets/).
 set -eu
 
 usage() {

@@ -286,7 +286,7 @@ pub fn command_key(positionals: &[String]) -> Option<String> {
     }
 }
 
-/// Parses using the complete global and command option vocabulary from `cli-spec.mjs`.
+/// Parses using the complete global and command option vocabulary of the CLI spec.
 pub fn parse_args(args: &[String]) -> Result<ParsedArgs, ArgsError> {
     let mut specs = GLOBAL_FLAGS.to_vec();
     for command in COMMANDS {
@@ -497,9 +497,9 @@ mod tests {
         assert_eq!(command_flags("orchestrate next").unwrap().len(), 9);
     }
 
-    /// `COMMAND_MAX_ARGS` and the per-command option names of `core/tools/cli-spec.mjs`.
+    /// Expected `COMMAND_MAX_ARGS` and per-command option names (the published CLI spec).
     #[test]
-    fn command_table_matches_node_cli_spec() {
+    fn command_table_matches_cli_spec() {
         let spec: &[(&str, usize, &[&str])] = &[
             (
                 "init",

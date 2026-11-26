@@ -1,0 +1,37 @@
+{
+  "config scope": {
+    "code": 0,
+    "stdout": {
+      "scope": "solo",
+      "configured": false
+    }
+  },
+  "config mode": {
+    "code": 0,
+    "stdout": {
+      "mode": "human",
+      "configured": false
+    }
+  },
+  "config gate-mode": {
+    "code": 0,
+    "stdout": {
+      "gateModes": {},
+      "gates": [
+        "analysis-baseline",
+        "solution-direction",
+        "release-candidate",
+        "launch-and-handoff",
+        "closure",
+        "intent-closure"
+      ]
+    }
+  },
+  "config gate-mode release-candidate": {
+    "code": 0,
+    "stdout": {
+      "gate": "release-candidate",
+      "mode": "default"
+    }
+  }
+}

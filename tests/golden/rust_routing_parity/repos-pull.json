@@ -1,0 +1,56 @@
+{
+  "steps": [
+    {
+      "argv": [
+        "repos",
+        "pull"
+      ],
+      "code": 0,
+      "stdout": "[\n  {\n    \"name\": \"lib\",\n    \"ok\": true,\n    \"commit\": \"0262d12777f4f20c81e8fc9258c85accedc99d7c\",\n    \"path\": \"<ROOT>/.aidlc/repos/lib\"\n  }\n]\n",
+      "stderr": "dtech-aidlc: note: removed from the runtime copy because they are not declared in aidlc.deps.json: stale. Add them to aidlc.deps.json to keep them.\n",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"repos.pulled\",\"results\":[{\"name\":\"lib\",\"ok\":true,\"commit\":\"0262d12777f4f20c81e8fc9258c85accedc99d7c\"}]}\n",
+        ".aidlc/deps-lock.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"lib\": {\n      \"commit\": \"0262d12777f4f20c81e8fc9258c85accedc99d7c\"\n    }\n  }\n}\n",
+        ".aidlc/deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"lib\": {\n      \"url\": \"<REMOTE>\"\n    }\n  }\n}\n",
+        ".aidlc/repos/": "",
+        ".aidlc/repos/lib/": "",
+        ".aidlc/repos/lib/tracked.txt": "base\n"
+      }
+    },
+    {
+      "argv": [
+        "repos",
+        "list"
+      ],
+      "code": 0,
+      "stdout": "[\n  {\n    \"name\": \"lib\",\n    \"url\": \"<REMOTE>\",\n    \"path\": \"<ROOT>/.aidlc/repos/lib\",\n    \"status\": \"cloned\",\n    \"commit\": \"0262d12777f4f20c81e8fc9258c85accedc99d7c\"\n  }\n]\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "repos",
+        "pull",
+        "lib"
+      ],
+      "code": 0,
+      "stdout": "[\n  {\n    \"name\": \"lib\",\n    \"ok\": true,\n    \"commit\": \"0262d12777f4f20c81e8fc9258c85accedc99d7c\",\n    \"path\": \"<ROOT>/.aidlc/repos/lib\"\n  }\n]\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"repos.pulled\",\"results\":[{\"name\":\"lib\",\"ok\":true,\"commit\":\"0262d12777f4f20c81e8fc9258c85accedc99d7c\"}]}\n{\"at\":\"<ts>\",\"event\":\"repos.pulled\",\"results\":[{\"name\":\"lib\",\"ok\":true,\"commit\":\"0262d12777f4f20c81e8fc9258c85accedc99d7c\"}]}\n"
+      }
+    },
+    {
+      "argv": [
+        "repos",
+        "pull"
+      ],
+      "code": 1,
+      "stdout": "[\n  {\n    \"name\": \"lib\",\n    \"ok\": false,\n    \"error\": \"Checkout has dirty or untracked changes; refusing to update\"\n  }\n]\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/audit.jsonl": "{\"at\":\"<ts>\",\"event\":\"project.initialized\",\"harness\":\"claude\",\"scope\":\"solo\",\"graphPhases\":6,\"projection\":\".claude/skills/dtech-aidlc\"}\n{\"at\":\"<ts>\",\"event\":\"knowledge.sources.registered\",\"added\":[\"README.md\",\"docs\"],\"status\":\"created\"}\n{\"at\":\"<ts>\",\"event\":\"project.onboarded\",\"kind\":\"brownfield\",\"languages\":[\"rust\"]}\n{\"at\":\"<ts>\",\"event\":\"repos.pulled\",\"results\":[{\"name\":\"lib\",\"ok\":true,\"commit\":\"0262d12777f4f20c81e8fc9258c85accedc99d7c\"}]}\n{\"at\":\"<ts>\",\"event\":\"repos.pulled\",\"results\":[{\"name\":\"lib\",\"ok\":true,\"commit\":\"0262d12777f4f20c81e8fc9258c85accedc99d7c\"}]}\n{\"at\":\"<ts>\",\"event\":\"repos.pulled\",\"results\":[{\"name\":\"lib\",\"ok\":false,\"commit\":null}]}\n"
+      }
+    }
+  ]
+}

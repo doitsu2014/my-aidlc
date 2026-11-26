@@ -1,21 +1,24 @@
-//! Parity and safety tests for the native `doctor` command (`dtech_aidlc::doctor::run`).
+//! Golden and safety tests for the native `doctor` command (`dtech_aidlc::doctor::run`).
 //!
-//! Every case builds a fixture once, copies it, runs Node `doctor` on one copy and the
-//! Rust handler on the other, and compares the JSON report, the exit code or the error
-//! text (project paths normalised). The Rust copy is snapshotted before and after to
-//! prove `doctor` changes nothing. Node comparisons are skipped only when `node` is not
-//! on PATH; the Rust-side expectations still run.
+//! Every case builds a fixture, runs the Rust handler and checks the JSON report, the
+//! exit code or the error text (project paths normalised, path separators shown as `/`)
+//! against `tests/golden/rust_doctor/<test>.json`. The project is snapshotted before
+//! and after to prove `doctor` changes nothing. The golden files were recorded from the
+//! reference CLI that the native command replaces; see the `golden` module for
+//! re-blessing.
 
 use dtech_aidlc::args::FlagValue;
 use dtech_aidlc::doctor;
+use golden::{Golden, Masks};
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
+
+const STEM: &str = "rust_doctor";
 
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
@@ -50,25 +53,16 @@ fn repo() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }
 
-fn node_available() -> bool {
-    static AVAILABLE: OnceLock<bool> = OnceLock::new();
-    *AVAILABLE.get_or_init(|| {
-        Command::new("node")
-            .arg("--version")
-            .output()
-            .is_ok_and(|output| output.status.success())
-    })
-}
-
-fn node(project: &Path, args: &[&str]) -> (i32, String, String) {
-    let output = Command::new("node")
-        .arg(repo().join("core/tools/dtech-aidlc.mjs"))
+/// Run the command-line program: (exit code, stdout, stderr).
+fn cli(project: &Path, args: &[&str]) -> (i32, String, String) {
+    let mut program = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"));
+    let output = program
         .args(args)
         .arg("--project")
         .arg(project)
         .env_remove("DTECH_AIDLC_HOME")
         .output()
-        .expect("run node");
+        .expect("run dtech-aidlc");
     (
         output.status.code().unwrap_or(-1),
         String::from_utf8_lossy(&output.stdout).into_owned(),
@@ -77,24 +71,16 @@ fn node(project: &Path, args: &[&str]) -> (i32, String, String) {
 }
 
 fn onboard(project: &Path, harness: &str) {
-    if node_available() {
-        let (code, _, stderr) = node(
-            project,
-            &["onboard", "--harness", harness, "--scope", "solo"],
-        );
-        assert_eq!(code, 0, "node onboard failed: {stderr}");
-    } else {
-        dtech_aidlc::onboarding::onboard_project(
-            project,
-            &dtech_aidlc::onboarding::OnboardOptions {
-                harness: harness.into(),
-                scope: "solo".into(),
-                explicit_docs: Vec::new(),
-                detect_docs: true,
-            },
-        )
-        .unwrap();
-    }
+    dtech_aidlc::onboarding::onboard_project(
+        project,
+        &dtech_aidlc::onboarding::OnboardOptions {
+            harness: harness.into(),
+            scope: "solo".into(),
+            explicit_docs: Vec::new(),
+            detect_docs: true,
+        },
+    )
+    .unwrap();
 }
 
 fn copy_tree(from: &Path, to: &Path) {
@@ -140,6 +126,11 @@ fn rust_doctor(project: &Path) -> Result<(Value, i32), String> {
     doctor::run("doctor", project, &[], &BTreeMap::new())
 }
 
+/// Run `doctor` on `project`.
+fn run_doctor(project: &Path) -> Result<(Value, i32), String> {
+    rust_doctor(project)
+}
+
 fn path_forms(root: &Path) -> Vec<String> {
     let mut forms = vec![root.display().to_string()];
     if let Ok(canonical) = fs::canonicalize(root) {
@@ -177,53 +168,449 @@ fn normalise(value: &Value, roots: &[&Path]) -> Value {
     }
 }
 
-/// Run Node on `node_root` and Rust on `rust_root` (already holding identical
-/// fixtures), assert the Rust copy is untouched, and compare the outcomes.
-fn compare_roots(node_root: &Path, rust_root: &Path) -> Result<(Value, i32), String> {
-    let before = snapshot(rust_root);
-    let rust = rust_doctor(rust_root);
-    assert_eq!(before, snapshot(rust_root), "doctor changed project files");
-    if node_available() {
-        let (code, stdout, stderr) = node(node_root, &["doctor"]);
-        match &rust {
-            Ok((value, rust_code)) => {
-                let expected: Value = serde_json::from_str(&stdout)
-                    .unwrap_or_else(|_| panic!("node output: {stdout}\n{stderr}"));
-                assert_eq!(
-                    normalise(value, &[rust_root]),
-                    normalise(&expected, &[node_root]),
-                    "doctor report differs from Node"
-                );
-                assert_eq!(*rust_code, code, "exit code differs from Node");
-            }
-            Err(message) => {
-                assert_eq!(code, 1, "node succeeded: {stdout}");
-                assert_eq!(
-                    normalise_text(&format!("dtech-aidlc: {message}"), &[rust_root]),
-                    normalise_text(stderr.trim_end(), &[node_root]),
-                );
-            }
-        }
-    }
-    rust
+/// Run `doctor` on `root` (already holding the fixture), assert the project is
+/// untouched, and check the outcome against the next golden entry.
+fn check_root(golden: &Golden, label: &str, root: &Path) -> Result<(Value, i32), String> {
+    let before = snapshot(root);
+    let outcome = run_doctor(root);
+    assert_eq!(before, snapshot(root), "doctor changed project files");
+    let masks = Masks::new().path(root, "<ROOT>");
+    let shown = match &outcome {
+        Ok((report, code)) => json!({"report": normalise(report, &[root]), "code": code}),
+        Err(message) => json!({"error": normalise_text(message, &[root])}),
+    };
+    golden.check(json!({"label": label, "outcome": masks.output(&shown)}));
+    outcome
 }
 
-/// Copy `template` (if any) twice, apply `setup` to both copies, then compare.
+/// Copy `template` (if any), apply `setup`, then check `doctor` on the copy.
 fn compare(
+    golden: &Golden,
     label: &str,
     template: Option<&Path>,
     setup: impl Fn(&Path),
 ) -> Result<(Value, i32), String> {
-    let a = TempDir::new(label);
-    let b = TempDir::new(label);
-    for dir in [a.path(), b.path()] {
-        if let Some(template) = template {
-            copy_tree(template, dir);
-        }
-        setup(dir);
+    let dir = TempDir::new(label);
+    if let Some(template) = template {
+        copy_tree(template, dir.path());
     }
-    compare_roots(a.path(), b.path())
+    setup(dir.path());
+    check_root(golden, label, dir.path())
 }
+
+/// Golden expectations stored under `tests/golden/<test file>/<case>.json`.
+///
+/// Each case is a JSON array of entries checked in order. Machine-specific text (temp
+/// project roots, the working directory, ISO timestamps, file mtimes, git commit ids,
+/// the engine version and CRLF line endings) is replaced by placeholders before an entry
+/// is compared, so the files match on Windows and POSIX. Set `DTECH_AIDLC_BLESS=1` to
+/// rewrite the golden files from the current output after an intentional change.
+#[allow(dead_code)]
+mod golden {
+    use serde_json::{json, Map, Value};
+    use std::cell::RefCell;
+    use std::collections::BTreeMap;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::rc::Rc;
+
+    /// Relative path (directories end in `/`) -> canonical file content.
+    pub type Tree = BTreeMap<String, Value>;
+
+    /// Canonical text longer than this is stored as a SHA-256 digest instead of inline.
+    const INLINE_LIMIT: usize = 1500;
+
+    /// JSON keys whose number is a file size.
+    const SIZE_KEYS: [&str; 2] = ["bytes", "size"];
+
+    pub fn blessing() -> bool {
+        std::env::var("DTECH_AIDLC_BLESS").is_ok_and(|value| value == "1")
+    }
+
+    /// Literal replacements applied before the generic placeholders.
+    #[derive(Clone, Default)]
+    pub struct Masks {
+        texts: Vec<(String, String)>,
+        /// Working-tree size -> LF size of repository files copied into projects.
+        sizes: Vec<(u64, u64)>,
+    }
+
+    fn sha256_hex(bytes: &[u8]) -> String {
+        use sha2::{Digest, Sha256};
+        format!("{:x}", Sha256::digest(bytes))
+    }
+
+    impl Masks {
+        /// Masks that also show repository files copied into projects (the scaffold and
+        /// harness files, CRLF in a Windows checkout) with their LF size and digest.
+        pub fn new() -> Self {
+            fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
+                for entry in fs::read_dir(dir).into_iter().flatten().flatten() {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        walk(&path, out);
+                    } else {
+                        out.push(path);
+                    }
+                }
+            }
+            let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+            let mut files = Vec::new();
+            walk(&root.join("core/data/scaffold"), &mut files);
+            walk(&root.join("harness"), &mut files);
+            let mut masks = Masks::default();
+            for file in files {
+                let raw = fs::read(&file).unwrap();
+                let lf = String::from_utf8_lossy(&raw).replace("\r\n", "\n");
+                if raw != lf.as_bytes() {
+                    masks = masks.text(&sha256_hex(&raw), &sha256_hex(lf.as_bytes()));
+                    for key in SIZE_KEYS {
+                        for end in [",", "\n", "}"] {
+                            for colon in [": ", ":"] {
+                                masks = masks.text(
+                                    &format!("\"{key}\"{colon}{}{end}", raw.len()),
+                                    &format!("\"{key}\"{colon}{}{end}", lf.len()),
+                                );
+                            }
+                        }
+                    }
+                    masks.sizes.push((raw.len() as u64, lf.len() as u64));
+                }
+            }
+            masks
+        }
+
+        /// Replace every spelling of `path` (as given, canonical, forward slashes, JSON
+        /// escaped) with `placeholder`.
+        pub fn path(mut self, path: &Path, placeholder: &str) -> Self {
+            let mut forms = vec![path.display().to_string()];
+            if let Ok(canonical) = fs::canonicalize(path) {
+                let text = canonical.display().to_string();
+                forms.push(text.trim_start_matches(r"\\?\").to_owned());
+                forms.push(text);
+            }
+            let more: Vec<String> = forms
+                .iter()
+                .flat_map(|form| [form.replace('\\', "/"), form.replace('\\', "\\\\")])
+                .collect();
+            forms.extend(more);
+            for form in forms {
+                self = self.text(&form, placeholder);
+            }
+            self
+        }
+
+        pub fn text(mut self, from: &str, to: &str) -> Self {
+            if !from.is_empty() && !self.texts.iter().any(|(known, _)| known == from) {
+                self.texts.push((from.to_owned(), to.to_owned()));
+                self.texts
+                    .sort_by_key(|(known, _)| std::cmp::Reverse(known.len()));
+            }
+            self
+        }
+
+        /// The canonical form of `text`.
+        pub fn apply(&self, text: &str) -> String {
+            let mut text = text.replace("\r\n", "\n");
+            for (from, to) in &self.texts {
+                text = text.replace(from, to);
+            }
+            let text = mask_timestamps(&text);
+            let text = mask_version(&text);
+            let text = mask_mtimes(&text);
+            mask_commits(&text)
+        }
+
+        /// `apply` on every string (and object key) inside `value`.
+        pub fn value(&self, value: &Value) -> Value {
+            match value {
+                Value::String(text) => Value::String(self.apply(text)),
+                Value::Array(items) => Value::Array(items.iter().map(|v| self.value(v)).collect()),
+                Value::Object(map) => Value::Object(
+                    map.iter()
+                        .map(|(key, item)| {
+                            let item = match item.as_u64() {
+                                Some(size) if SIZE_KEYS.contains(&key.as_str()) => self
+                                    .sizes
+                                    .iter()
+                                    .find(|(raw, _)| *raw == size)
+                                    .map_or_else(|| item.clone(), |(_, lf)| json!(lf)),
+                                _ => self.value(item),
+                            };
+                            (self.apply(key), item)
+                        })
+                        .collect(),
+                ),
+                other => other.clone(),
+            }
+        }
+
+        /// The canonical form of a command result: `value`, with path separators in every
+        /// string shown as `/` so Windows and POSIX messages match.
+        pub fn output(&self, value: &Value) -> Value {
+            slashes(&self.value(value))
+        }
+
+        /// Canonical file content: inline text, or a digest for long files.
+        pub fn file(&self, bytes: &[u8]) -> Value {
+            let text = self.apply(&String::from_utf8_lossy(bytes));
+            if text.len() <= INLINE_LIMIT {
+                Value::String(text)
+            } else {
+                Value::String(format!(
+                    "sha256:{} ({} bytes)",
+                    sha256_hex(text.as_bytes()),
+                    text.len()
+                ))
+            }
+        }
+    }
+
+    fn slashes(value: &Value) -> Value {
+        match value {
+            Value::String(text) => Value::String(text.replace('\\', "/")),
+            Value::Array(items) => Value::Array(items.iter().map(slashes).collect()),
+            Value::Object(map) => Value::Object(
+                map.iter()
+                    .map(|(key, item)| (key.clone(), slashes(item)))
+                    .collect(),
+            ),
+            other => other.clone(),
+        }
+    }
+
+    /// `2026-01-02T03:04:05.678Z` (fraction and `Z` optional) -> `<TS>`.
+    fn mask_timestamps(text: &str) -> String {
+        let bytes = text.as_bytes();
+        let digit = |b: Option<&u8>| b.is_some_and(u8::is_ascii_digit);
+        let shape = b"dddd-dd-ddTdd:dd:dd";
+        let mut out = String::with_capacity(text.len());
+        let mut i = 0;
+        while i < bytes.len() {
+            let matches_shape = i + shape.len() <= bytes.len()
+                && shape.iter().enumerate().all(|(k, s)| match s {
+                    b'd' => digit(bytes.get(i + k)),
+                    other => bytes[i + k] == *other,
+                });
+            if matches_shape {
+                let mut j = i + shape.len();
+                if bytes.get(j) == Some(&b'.') && digit(bytes.get(j + 1)) {
+                    j += 1;
+                    while digit(bytes.get(j)) {
+                        j += 1;
+                    }
+                }
+                if bytes.get(j) == Some(&b'Z') {
+                    j += 1;
+                }
+                out.push_str("<TS>");
+                i = j;
+                continue;
+            }
+            let c = text[i..].chars().next().unwrap();
+            out.push(c);
+            i += c.len_utf8();
+        }
+        out
+    }
+
+    /// The engine version as a whole token (not part of a longer version) -> `<VERSION>`.
+    fn mask_version(text: &str) -> String {
+        let version = env!("CARGO_PKG_VERSION");
+        let part = |c: char| c.is_ascii_digit() || c == '.';
+        let mut out = String::with_capacity(text.len());
+        let mut rest = text;
+        while let Some(index) = rest.find(version) {
+            let before = rest[..index].chars().next_back();
+            let after = rest[index + version.len()..].chars().next();
+            out.push_str(&rest[..index]);
+            if before.is_some_and(part) || after.is_some_and(part) {
+                out.push_str(version);
+            } else {
+                out.push_str("<VERSION>");
+            }
+            rest = &rest[index + version.len()..];
+        }
+        out.push_str(rest);
+        out
+    }
+
+    /// `"mtimeMs": 1712345678901.25` -> `"mtimeMs": "<MTIME>"` (setup-time file times).
+    fn mask_mtimes(text: &str) -> String {
+        let key = "\"mtimeMs\":";
+        let mut out = String::with_capacity(text.len());
+        let mut rest = text;
+        while let Some(index) = rest.find(key) {
+            let end = index + key.len();
+            out.push_str(&rest[..end]);
+            rest = &rest[end..];
+            let spaces = rest.len() - rest.trim_start_matches(' ').len();
+            out.push_str(&rest[..spaces]);
+            rest = &rest[spaces..];
+            let number = rest
+                .find(|c: char| !(c.is_ascii_digit() || matches!(c, '.' | 'e' | 'E' | '+' | '-')))
+                .unwrap_or(rest.len());
+            if number > 0 {
+                out.push_str("\"<MTIME>\"");
+                rest = &rest[number..];
+            }
+        }
+        out.push_str(rest);
+        out
+    }
+
+    /// A run of exactly 40 hexadecimal digits (a git commit id) -> `<COMMIT>`.
+    fn mask_commits(text: &str) -> String {
+        let bytes = text.as_bytes();
+        let mut out = String::with_capacity(text.len());
+        let mut i = 0;
+        while i < bytes.len() {
+            if bytes[i].is_ascii_hexdigit() && (i == 0 || !bytes[i - 1].is_ascii_alphanumeric()) {
+                let run = bytes[i..]
+                    .iter()
+                    .take_while(|b| b.is_ascii_hexdigit())
+                    .count();
+                let next = bytes.get(i + run);
+                if run == 40 && !next.is_some_and(u8::is_ascii_alphanumeric) {
+                    out.push_str("<COMMIT>");
+                    i += run;
+                    continue;
+                }
+                out.push_str(&text[i..i + run]);
+                i += run;
+                continue;
+            }
+            let c = text[i..].chars().next().unwrap();
+            out.push(c);
+            i += c.len_utf8();
+        }
+        out
+    }
+
+    /// Files added, changed or removed between two trees (`{}` when nothing changed).
+    pub fn tree_delta(before: &Tree, after: &Tree) -> Value {
+        let changed: Map<String, Value> = after
+            .iter()
+            .filter(|(path, content)| before.get(*path) != Some(content))
+            .map(|(path, content)| (path.clone(), content.clone()))
+            .collect();
+        let removed: Vec<&String> = before
+            .keys()
+            .filter(|path| !after.contains_key(*path))
+            .collect();
+        let mut delta = Map::new();
+        if !changed.is_empty() {
+            delta.insert("changed".into(), Value::Object(changed));
+        }
+        if !removed.is_empty() {
+            delta.insert("removed".into(), json!(removed));
+        }
+        Value::Object(delta)
+    }
+
+    /// Audit rows appended since `before`, or the whole log if earlier rows changed.
+    pub fn audit_delta(before: &[Value], after: &[Value]) -> Value {
+        if after.starts_with(before) {
+            json!({"appended": after[before.len()..]})
+        } else {
+            json!({"rewritten": after})
+        }
+    }
+
+    /// One golden case, shared by every handle; checked entry by entry.
+    #[derive(Clone)]
+    pub struct Golden(Rc<RefCell<Inner>>);
+
+    struct Inner {
+        file: PathBuf,
+        bless: bool,
+        skipped: bool,
+        expected: Vec<Value>,
+        seen: Vec<Value>,
+    }
+
+    impl Golden {
+        pub fn new(stem: &str, case: &str) -> Self {
+            let file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/golden")
+                .join(stem)
+                .join(format!("{case}.json"));
+            let bless = blessing();
+            let expected = if bless {
+                Vec::new()
+            } else {
+                let text = fs::read_to_string(&file).unwrap_or_else(|error| {
+                    panic!(
+                        "cannot read golden file {} ({error}); record it with DTECH_AIDLC_BLESS=1",
+                        file.display()
+                    )
+                });
+                match serde_json::from_str(&text) {
+                    Ok(Value::Array(entries)) => entries,
+                    _ => panic!("golden file {} is not a JSON array", file.display()),
+                }
+            };
+            Golden(Rc::new(RefCell::new(Inner {
+                file,
+                bless,
+                skipped: false,
+                expected,
+                seen: Vec::new(),
+            })))
+        }
+
+        /// Neither check nor rewrite this case (the test could not run here).
+        pub fn skip(&self) {
+            self.0.borrow_mut().skipped = true;
+        }
+
+        /// Compare the next entry with the golden file (or record it when blessing).
+        pub fn check(&self, entry: Value) {
+            let mut inner = self.0.borrow_mut();
+            let index = inner.seen.len();
+            if !inner.bless {
+                let actual = serde_json::to_string_pretty(&entry).unwrap();
+                match inner.expected.get(index) {
+                    Some(expected) => {
+                        let expected = serde_json::to_string_pretty(expected).unwrap();
+                        assert!(
+                            actual == expected,
+                            "{} entry {index} differs (rerun with DTECH_AIDLC_BLESS=1 only if the change is intended)\n--- expected\n{expected}\n+++ actual\n{actual}",
+                            inner.file.display()
+                        );
+                    }
+                    None => panic!(
+                        "{} has no entry {index}; actual:\n{actual}",
+                        inner.file.display()
+                    ),
+                }
+            }
+            inner.seen.push(entry);
+        }
+    }
+
+    impl Drop for Inner {
+        fn drop(&mut self) {
+            if self.skipped || std::thread::panicking() {
+                return;
+            }
+            if self.bless {
+                fs::create_dir_all(self.file.parent().unwrap()).unwrap();
+                let text =
+                    serde_json::to_string_pretty(&Value::Array(std::mem::take(&mut self.seen)))
+                        .unwrap();
+                fs::write(&self.file, format!("{text}\n")).unwrap();
+            } else {
+                assert_eq!(
+                    self.seen.len(),
+                    self.expected.len(),
+                    "{}: the test produced fewer entries than the golden file holds",
+                    self.file.display()
+                );
+            }
+        }
+    }
+} // mod golden
 
 fn messages(report: &Value) -> Vec<(String, String)> {
     report["checks"]
@@ -287,6 +674,14 @@ fn sha256_text(text: &str) -> String {
     )
 }
 
+/// The obsolete file name the claude harness manifest lists (a former projected file).
+fn obsolete() -> String {
+    let manifest: Value =
+        serde_json::from_slice(&fs::read(repo().join("harness/claude/manifest.json")).unwrap())
+            .unwrap();
+    manifest["obsoleteFiles"][0].as_str().unwrap().to_owned()
+}
+
 fn sep_join(parts: &[&str]) -> String {
     parts.join(if cfg!(windows) { "\\" } else { "/" })
 }
@@ -294,8 +689,9 @@ fn sep_join(parts: &[&str]) -> String {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn healthy_project_matches_node_and_is_read_only() {
-    let (report, code) = compare("healthy", None, |dir| onboard(dir, "claude")).unwrap();
+fn healthy_project_matches_golden_and_is_read_only() {
+    let golden = Golden::new(STEM, "healthy_project_matches_golden_and_is_read_only");
+    let (report, code) = compare(&golden, "healthy", None, |dir| onboard(dir, "claude")).unwrap();
     assert_eq!(code, 0);
     assert_eq!(report["ok"], true);
     let graph = graph();
@@ -342,7 +738,10 @@ fn healthy_project_matches_node_and_is_read_only() {
     );
 
     // A deepseek project projects a different skill directory.
-    let (report, _) = compare("healthy-deepseek", None, |dir| onboard(dir, "deepseek")).unwrap();
+    let (report, _) = compare(&golden, "healthy-deepseek", None, |dir| {
+        onboard(dir, "deepseek")
+    })
+    .unwrap();
     assert!(has_prefix(
         &report,
         "pass",
@@ -351,8 +750,9 @@ fn healthy_project_matches_node_and_is_read_only() {
 }
 
 #[test]
-fn uninitialized_and_missing_projects_match_node() {
-    let (report, code) = compare("empty", None, |_| {}).unwrap();
+fn uninitialized_and_missing_projects_match_golden() {
+    let golden = Golden::new(STEM, "uninitialized_and_missing_projects_match_golden");
+    let (report, code) = compare(&golden, "empty", None, |_| {}).unwrap();
     assert_eq!(code, 0);
     assert!(has(
         &report,
@@ -362,13 +762,11 @@ fn uninitialized_and_missing_projects_match_node() {
     assert!(!has_prefix(&report, "pass", "Projection"));
     assert!(!has_prefix(&report, "warn", "No allowed approver"));
 
-    let a = TempDir::new("missing");
-    let b = TempDir::new("missing");
-    let (report, code) =
-        compare_roots(&a.path().join("not-there"), &b.path().join("not-there")).unwrap();
+    let parent = TempDir::new("missing");
+    let (report, code) = check_root(&golden, "missing", &parent.path().join("not-there")).unwrap();
     assert_eq!(code, 0);
     assert!(
-        !b.path().join("not-there").exists(),
+        !parent.path().join("not-there").exists(),
         "doctor created the project"
     );
     assert!(has_prefix(
@@ -379,7 +777,8 @@ fn uninitialized_and_missing_projects_match_node() {
 }
 
 #[test]
-fn invalid_configuration_matches_node() {
+fn invalid_configuration_matches_golden() {
+    let golden = Golden::new(STEM, "invalid_configuration_matches_golden");
     let template = TempDir::new("config-template");
     onboard(template.path(), "claude");
     let base = read_json(template.path(), ".aidlc/config.json");
@@ -452,9 +851,12 @@ fn invalid_configuration_matches_node() {
         (with("scope", json!("galaxy")), label.to_owned()),
     ];
     for (index, (text, expected)) in cases.iter().enumerate() {
-        let (report, code) = compare(&format!("config-{index}"), Some(template.path()), |dir| {
-            write(dir, ".aidlc/config.json", text)
-        })
+        let (report, code) = compare(
+            &golden,
+            &format!("config-{index}"),
+            Some(template.path()),
+            |dir| write(dir, ".aidlc/config.json", text),
+        )
         .unwrap();
         assert_eq!(code, 1, "case {index}: {report:#}");
         assert_eq!(report["ok"], false);
@@ -462,15 +864,18 @@ fn invalid_configuration_matches_node() {
     }
 
     // An invalid configuration contributes no projection or approver rows.
-    let (report, _) = compare("config-invalid-rows", Some(template.path()), |dir| {
-        write(dir, ".aidlc/config.json", "{not json")
-    })
+    let (report, _) = compare(
+        &golden,
+        "config-invalid-rows",
+        Some(template.path()),
+        |dir| write(dir, ".aidlc/config.json", "{not json"),
+    )
     .unwrap();
     assert!(!has_prefix(&report, "pass", "Projection"));
     assert!(!has_prefix(&report, "warn", "No allowed approver"));
 
     // Configured roles silence the approver warning; harnesses lists every projection.
-    let (report, code) = compare("config-roles", Some(template.path()), |dir| {
+    let (report, code) = compare(&golden, "config-roles", Some(template.path()), |dir| {
         let mut config = base.clone();
         config["roles"] = json!({"owner": ["Ana"], "approvers": { gate.clone(): ["Ana"] }});
         config["agentModels"] = json!({ agent.clone(): "haiku" });
@@ -481,7 +886,7 @@ fn invalid_configuration_matches_node() {
     assert_eq!(code, 0);
     assert!(!has_prefix(&report, "warn", "No allowed approver"));
 
-    let (report, code) = compare("config-harnesses", Some(template.path()), |dir| {
+    let (report, code) = compare(&golden, "config-harnesses", Some(template.path()), |dir| {
         let mut config = base.clone();
         config["harnesses"] = json!(["claude", "deepseek"]);
         write_json(dir, ".aidlc/config.json", &config);
@@ -499,7 +904,8 @@ fn invalid_configuration_matches_node() {
 }
 
 #[test]
-fn prerequisites_run_and_report_like_node() {
+fn prerequisites_run_and_report_like_golden() {
+    let golden = Golden::new(STEM, "prerequisites_run_and_report_like_golden");
     let template = TempDir::new("prereq-template");
     onboard(template.path(), "claude");
     let mut config = read_json(template.path(), ".aidlc/config.json");
@@ -508,7 +914,7 @@ fn prerequisites_run_and_report_like_node() {
         "broken": {"check": "exit 3", "hint": "Install the tool"},
         "silent": {"check": "exit 4", "hint": ""}
     });
-    let (report, code) = compare("prereq", Some(template.path()), |dir| {
+    let (report, code) = compare(&golden, "prereq", Some(template.path()), |dir| {
         write_json(dir, ".aidlc/config.json", &config)
     })
     .unwrap();
@@ -527,11 +933,12 @@ fn prerequisites_run_and_report_like_node() {
 }
 
 #[test]
-fn knowledge_manifest_and_sources_match_node() {
+fn knowledge_manifest_and_sources_match_golden() {
+    let golden = Golden::new(STEM, "knowledge_manifest_and_sources_match_golden");
     let template = TempDir::new("knowledge-template");
     onboard(template.path(), "claude");
 
-    let (report, code) = compare("knowledge-json", Some(template.path()), |dir| {
+    let (report, code) = compare(&golden, "knowledge-json", Some(template.path()), |dir| {
         write(dir, "aidlc.knowledge.json", "{oops")
     })
     .unwrap();
@@ -543,7 +950,7 @@ fn knowledge_manifest_and_sources_match_node() {
     ));
     assert!(!has_prefix(&report, "pass", "Knowledge sources"));
 
-    let (report, _) = compare("knowledge-schema", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "knowledge-schema", Some(template.path()), |dir| {
         write_json(
             dir,
             "aidlc.knowledge.json",
@@ -557,7 +964,7 @@ fn knowledge_manifest_and_sources_match_node() {
         "Knowledge: Invalid knowledge manifest: expected schemaVersion 1 and a sources array"
     ));
 
-    let (report, _) = compare("knowledge-kind", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "knowledge-kind", Some(template.path()), |dir| {
         write_json(
             dir,
             "aidlc.knowledge.json",
@@ -575,7 +982,7 @@ fn knowledge_manifest_and_sources_match_node() {
         {"id": "project", "path": "PROJECT.md", "kind": "project"},
         {"id": "docs", "path": "docs", "kind": "docs"}
     ]});
-    let (report, code) = compare("knowledge-missing", Some(template.path()), |dir| {
+    let (report, code) = compare(&golden, "knowledge-missing", Some(template.path()), |dir| {
         write_json(dir, "aidlc.knowledge.json", &manifest)
     })
     .unwrap();
@@ -586,11 +993,16 @@ fn knowledge_manifest_and_sources_match_node() {
         "Knowledge sources: 2 registered, 1 missing, "
     ));
 
-    let (report, _) = compare("knowledge-unscanned", Some(template.path()), |dir| {
-        write_json(dir, "aidlc.knowledge.json", &manifest);
-        fs::create_dir_all(dir.join("docs")).unwrap();
-        fs::remove_file(dir.join(".aidlc/shared/sources-snapshot.json")).unwrap();
-    })
+    let (report, _) = compare(
+        &golden,
+        "knowledge-unscanned",
+        Some(template.path()),
+        |dir| {
+            write_json(dir, "aidlc.knowledge.json", &manifest);
+            fs::create_dir_all(dir.join("docs")).unwrap();
+            fs::remove_file(dir.join(".aidlc/shared/sources-snapshot.json")).unwrap();
+        },
+    )
     .unwrap();
     assert!(has(
         &report,
@@ -607,9 +1019,16 @@ fn knowledge_manifest_and_sources_match_node() {
     );
     write(docs_template.path(), "docs/old.md", "# Old\n");
     onboard(docs_template.path(), "claude");
-    let (report, _) = compare("knowledge-docs-clean", Some(docs_template.path()), |_| {}).unwrap();
+    let (report, _) = compare(
+        &golden,
+        "knowledge-docs-clean",
+        Some(docs_template.path()),
+        |_| {},
+    )
+    .unwrap();
     assert!(has_prefix(&report, "pass", "Knowledge sources: "));
     let (report, _) = compare(
+        &golden,
         "knowledge-docs-changed",
         Some(docs_template.path()),
         |dir| {
@@ -629,7 +1048,8 @@ fn knowledge_manifest_and_sources_match_node() {
 }
 
 #[test]
-fn harness_drift_matches_node() {
+fn harness_drift_matches_golden() {
+    let golden = Golden::new(STEM, "harness_drift_matches_golden");
     let template = TempDir::new("drift-template");
     onboard(template.path(), "claude");
     let skill = ".claude/skills/dtech-aidlc";
@@ -637,7 +1057,7 @@ fn harness_drift_matches_node() {
     let stamp = read_json(template.path(), &stamp_rel);
     let version = env!("CARGO_PKG_VERSION");
 
-    let (report, code) = compare("drift-modified", Some(template.path()), |dir| {
+    let (report, code) = compare(&golden, "drift-modified", Some(template.path()), |dir| {
         write(dir, &format!("{skill}/SKILL.md"), "locally edited skill\n")
     })
     .unwrap();
@@ -651,7 +1071,7 @@ fn harness_drift_matches_node() {
         )
     ));
 
-    let (report, code) = compare("drift-missing", Some(template.path()), |dir| {
+    let (report, code) = compare(&golden, "drift-missing", Some(template.path()), |dir| {
         fs::remove_file(dir.join(skill).join("onboarding.md")).unwrap()
     })
     .unwrap();
@@ -672,7 +1092,7 @@ fn harness_drift_matches_node() {
         next["files"]["SKILL.md"] = json!({"sha256": sha256_text(old_text)});
         next
     };
-    let (report, _) = compare("drift-behind", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "drift-behind", Some(template.path()), |dir| {
         write(dir, &format!("{skill}/SKILL.md"), old_text);
         write_json(dir, &stamp_rel, &behind_stamp(json!("0.1.0")));
     })
@@ -683,10 +1103,15 @@ fn harness_drift_matches_node() {
         &format!("Projection claude: behind engine {version} (projected by 0.1.0); run: dtech-aidlc harness refresh")
     ));
 
-    let (report, _) = compare("drift-behind-unstamped", Some(template.path()), |dir| {
-        write(dir, &format!("{skill}/SKILL.md"), old_text);
-        write_json(dir, &stamp_rel, &behind_stamp(Value::Null));
-    })
+    let (report, _) = compare(
+        &golden,
+        "drift-behind-unstamped",
+        Some(template.path()),
+        |dir| {
+            write(dir, &format!("{skill}/SKILL.md"), old_text);
+            write_json(dir, &stamp_rel, &behind_stamp(Value::Null));
+        },
+    )
     .unwrap();
     assert!(has_prefix(
         &report,
@@ -694,7 +1119,7 @@ fn harness_drift_matches_node() {
         &format!("Projection claude: behind engine {version} (projected by an earlier version without a stamp)")
     ));
 
-    let (report, _) = compare("drift-ahead", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "drift-ahead", Some(template.path()), |dir| {
         write(dir, &format!("{skill}/SKILL.md"), "from the future\n");
         let mut next = stamp.clone();
         next["engineVersion"] = json!("99.0.0");
@@ -707,24 +1132,36 @@ fn harness_drift_matches_node() {
         &format!("Projection claude: projected by engine 99.0.0, newer than the installed {version}; upgrade dtech-aidlc")
     ));
 
-    let (report, _) = compare("drift-obsolete", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "drift-obsolete", Some(template.path()), |dir| {
         write(
             dir,
-            &format!("{skill}/manifest.mjs"),
+            &format!("{skill}/{}", obsolete()),
             "export default {};\n",
         );
         write(dir, ".claude/skills/aidlc/SKILL.md", "old skill copy\n");
     })
     .unwrap();
-    assert!(has_prefix(&report, "warn", "Projection claude: .claude/skills/dtech-aidlc/manifest.mjs, .claude/skills/aidlc/SKILL.md edited locally"));
+    assert!(has_prefix(
+        &report,
+        "warn",
+        &format!(
+            "Projection claude: .claude/skills/dtech-aidlc/{}, .claude/skills/aidlc/SKILL.md edited locally",
+            obsolete()
+        )
+    ));
 
     let pristine = "export const old = true;\n";
-    let (report, _) = compare("drift-obsolete-pristine", Some(template.path()), |dir| {
-        write(dir, &format!("{skill}/manifest.mjs"), pristine);
-        let mut next = stamp.clone();
-        next["files"]["manifest.mjs"] = json!({"sha256": sha256_text(pristine)});
-        write_json(dir, &stamp_rel, &next);
-    })
+    let (report, _) = compare(
+        &golden,
+        "drift-obsolete-pristine",
+        Some(template.path()),
+        |dir| {
+            write(dir, &format!("{skill}/{}", obsolete()), pristine);
+            let mut next = stamp.clone();
+            next["files"][obsolete().as_str()] = json!({"sha256": sha256_text(pristine)});
+            write_json(dir, &stamp_rel, &next);
+        },
+    )
     .unwrap();
     assert!(has_prefix(
         &report,
@@ -732,17 +1169,22 @@ fn harness_drift_matches_node() {
         "Projection claude: behind engine"
     ));
 
-    let (report, _) = compare("drift-dir", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "drift-dir", Some(template.path()), |dir| {
         fs::remove_file(dir.join(skill).join("SKILL.md")).unwrap();
         fs::create_dir_all(dir.join(skill).join("SKILL.md")).unwrap();
     })
     .unwrap();
     assert!(has_prefix(&report, "warn", "Projection claude: "));
 
-    let (report, _) = compare("drift-legacy-methodology", Some(template.path()), |dir| {
-        write(dir, ".aidlc/methodology/notes.md", "my notes\n");
-        write(dir, ".aidlc/methodology/sub/other.md", "more notes\n");
-    })
+    let (report, _) = compare(
+        &golden,
+        "drift-legacy-methodology",
+        Some(template.path()),
+        |dir| {
+            write(dir, ".aidlc/methodology/notes.md", "my notes\n");
+            write(dir, ".aidlc/methodology/sub/other.md", "more notes\n");
+        },
+    )
     .unwrap();
     assert!(has(
         &report,
@@ -752,10 +1194,11 @@ fn harness_drift_matches_node() {
 }
 
 #[test]
-fn audit_log_and_dependency_registry_match_node() {
+fn audit_log_and_dependency_registry_match_golden() {
+    let golden = Golden::new(STEM, "audit_log_and_dependency_registry_match_golden");
     let template = TempDir::new("audit-template");
     onboard(template.path(), "claude");
-    let (report, code) = compare("audit-bad", Some(template.path()), |dir| {
+    let (report, code) = compare(&golden, "audit-bad", Some(template.path()), |dir| {
         let mut text = fs::read_to_string(dir.join(".aidlc/audit.jsonl")).unwrap();
         text.push_str("not json\r\n\r\n");
         fs::write(dir.join(".aidlc/audit.jsonl"), text).unwrap();
@@ -764,7 +1207,7 @@ fn audit_log_and_dependency_registry_match_node() {
     assert_eq!(code, 1);
     assert!(has(&report, "fail", "Audit log contains valid JSON lines"));
 
-    let (report, _) = compare("audit-crlf", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "audit-crlf", Some(template.path()), |dir| {
         fs::write(
             dir.join(".aidlc/audit.jsonl"),
             "{\"event\":\"a\"}\r\n\r\n{\"event\":\"b\"}\r\n",
@@ -774,7 +1217,7 @@ fn audit_log_and_dependency_registry_match_node() {
     .unwrap();
     assert!(has(&report, "pass", "Audit log contains valid JSON lines"));
 
-    let (report, code) = compare("deps-bad", Some(template.path()), |dir| {
+    let (report, code) = compare(&golden, "deps-bad", Some(template.path()), |dir| {
         write(dir, ".aidlc/deps.json", "{\"schemaVersion\": 7}")
     })
     .unwrap();
@@ -797,7 +1240,8 @@ fn intent_state(id: &str, stages: Value, current: Option<&str>) -> Value {
 }
 
 #[test]
-fn workflow_state_problems_match_node() {
+fn workflow_state_problems_match_golden() {
+    let golden = Golden::new(STEM, "workflow_state_problems_match_golden");
     let template = TempDir::new("state-template");
     onboard(template.path(), "claude");
     let ids = solo_stage_ids();
@@ -810,7 +1254,7 @@ fn workflow_state_problems_match_node() {
         )
     };
 
-    let (report, code) = compare("state-corrupt", Some(template.path()), |dir| {
+    let (report, code) = compare(&golden, "state-corrupt", Some(template.path()), |dir| {
         write(dir, ".aidlc/state.json", "{broken")
     })
     .unwrap();
@@ -821,7 +1265,7 @@ fn workflow_state_problems_match_node() {
         "State pointer: .aidlc/state.json cannot be parsed"
     ));
 
-    let (report, _) = compare("state-unknown", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "state-unknown", Some(template.path()), |dir| {
         write(dir, ".aidlc/state.json", "[1, 2]")
     })
     .unwrap();
@@ -831,7 +1275,7 @@ fn workflow_state_problems_match_node() {
         "State pointer: .aidlc/state.json is not a recognised state file"
     ));
 
-    let (report, _) = compare("state-ghost", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "state-ghost", Some(template.path()), |dir| {
         pointer(dir, "ghost")
     })
     .unwrap();
@@ -841,7 +1285,7 @@ fn workflow_state_problems_match_node() {
         "State pointer: active intent 'ghost' has no state file"
     ));
 
-    let (report, code) = compare("state-legacy", Some(template.path()), |dir| {
+    let (report, code) = compare(&golden, "state-legacy", Some(template.path()), |dir| {
         write_json(
             dir,
             ".aidlc/state.json",
@@ -856,7 +1300,7 @@ fn workflow_state_problems_match_node() {
         "State: version 1 format; it is migrated automatically by the next orchestrate or intent command"
     ));
 
-    let (report, _) = compare("state-paused", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "state-paused", Some(template.path()), |dir| {
         write_json(
             dir,
             ".aidlc/state.json",
@@ -866,7 +1310,7 @@ fn workflow_state_problems_match_node() {
     .unwrap();
     assert!(has(&report, "pass", "Workflow state"));
 
-    let (report, _) = compare("state-no-config", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "state-no-config", Some(template.path()), |dir| {
         pointer(dir, "demo");
         write_json(
             dir,
@@ -882,13 +1326,13 @@ fn workflow_state_problems_match_node() {
         "Project has workflow state but no .aidlc/config.json"
     ));
 
-    let (report, _) = compare("state-unparseable", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "state-unparseable", Some(template.path()), |dir| {
         write(dir, ".aidlc/intents/demo/state.json", "{")
     })
     .unwrap();
     assert!(has(&report, "fail", "Intent demo: cannot be parsed"));
 
-    let (report, _) = compare("state-null", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "state-null", Some(template.path()), |dir| {
         write(dir, ".aidlc/intents/demo/state.json", "null")
     })
     .unwrap();
@@ -898,7 +1342,7 @@ fn workflow_state_problems_match_node() {
         "Cannot read properties of null"
     ));
 
-    let (report, _) = compare("state-invalid", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "state-invalid", Some(template.path()), |dir| {
         write_json(
             dir,
             ".aidlc/intents/demo/state.json",
@@ -924,7 +1368,7 @@ fn workflow_state_problems_match_node() {
         );
     }
 
-    let (report, _) = compare("state-order", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "state-order", Some(template.path()), |dir| {
         pointer(dir, "demo");
         let stages = json!({
             ids[1].clone(): {"status": "complete"},
@@ -993,7 +1437,7 @@ fn workflow_state_problems_match_node() {
         }
         state
     };
-    let (report, _) = compare("state-gate", Some(template.path()), |dir| {
+    let (report, _) = compare(&golden, "state-gate", Some(template.path()), |dir| {
         pointer(dir, "demo");
         write_json(dir, ".aidlc/intents/demo/state.json", &completed(None));
     })
@@ -1003,66 +1447,71 @@ fn workflow_state_problems_match_node() {
         "fail",
         &format!("Intent demo: gate {gate} was passed without a recorded approval")
     ));
-    let (report, code) = compare("state-gate-approved", Some(template.path()), |dir| {
-        pointer(dir, "demo");
-        write_json(
-            dir,
-            ".aidlc/intents/demo/state.json",
-            &completed(Some("approved")),
-        );
-    })
+    let (report, code) = compare(
+        &golden,
+        "state-gate-approved",
+        Some(template.path()),
+        |dir| {
+            pointer(dir, "demo");
+            write_json(
+                dir,
+                ".aidlc/intents/demo/state.json",
+                &completed(Some("approved")),
+            );
+        },
+    )
     .unwrap();
     assert_eq!(code, 0);
     assert!(has(&report, "pass", "Workflow state"));
 }
 
 #[test]
-fn intent_started_by_node_is_healthy() {
-    if !node_available() {
-        return;
-    }
+fn started_intent_is_healthy() {
+    let golden = Golden::new(STEM, "started_intent_is_healthy");
     let template = TempDir::new("intent-template");
     onboard(template.path(), "claude");
-    let (code, _, stderr) = node(
+    let (code, _, stderr) = cli(
         template.path(),
         &["orchestrate", "next", "--intent", "Doctor parity check"],
     );
     assert_eq!(code, 0, "{stderr}");
-    let (report, code) = compare("intent-active", Some(template.path()), |_| {}).unwrap();
+    let (report, code) = compare(&golden, "intent-active", Some(template.path()), |_| {}).unwrap();
     assert_eq!(code, 0);
     assert!(has(&report, "pass", "Workflow state"));
 }
 
 #[test]
-fn unsafe_state_paths_and_arguments_are_refused_like_node() {
-    let error = compare("unsafe-file", None, |dir| {
+fn unsafe_state_paths_and_arguments_are_refused_like_golden() {
+    let golden = Golden::new(
+        STEM,
+        "unsafe_state_paths_and_arguments_are_refused_like_golden",
+    );
+    let error = compare(&golden, "unsafe-file", None, |dir| {
         write(dir, ".aidlc", "not a directory")
     })
     .unwrap_err();
     assert_eq!(error, "Refusing unsafe .aidlc path");
 
-    let error = compare("unsafe-intents", None, |dir| {
+    let error = compare(&golden, "unsafe-intents", None, |dir| {
         write(dir, ".aidlc/intents", "file")
     })
     .unwrap_err();
     assert_eq!(error, "Refusing unsafe .aidlc/intents path");
 
-    // A symlinked .aidlc (skipped where the platform refuses to create symlinks).
-    let a = TempDir::new("unsafe-link");
-    let b = TempDir::new("unsafe-link");
-    let mut linked = true;
-    for dir in [a.path(), b.path()] {
-        let real = dir.join("real-state");
-        fs::create_dir_all(&real).unwrap();
-        #[cfg(unix)]
-        let made = std::os::unix::fs::symlink(&real, dir.join(".aidlc"));
-        #[cfg(windows)]
-        let made = std::os::windows::fs::symlink_dir(&real, dir.join(".aidlc"));
-        linked &= made.is_ok();
-    }
-    if linked {
-        let error = compare_roots(a.path(), b.path()).unwrap_err();
+    // A symlinked .aidlc (skipped where the platform refuses to create symlinks). The
+    // expected text is the reference CLI's message.
+    let dir = TempDir::new("unsafe-link");
+    let real = dir.path().join("real-state");
+    fs::create_dir_all(&real).unwrap();
+    #[cfg(unix)]
+    let made = std::os::unix::fs::symlink(&real, dir.path().join(".aidlc"));
+    #[cfg(windows)]
+    let made = std::os::windows::fs::symlink_dir(&real, dir.path().join(".aidlc"));
+    if made.is_ok() {
+        let before = snapshot(dir.path());
+        let error = run_doctor(dir.path()).unwrap_err();
         assert_eq!(error, "Refusing to access symlink .aidlc directory");
+        assert_eq!(before, snapshot(dir.path()), "doctor changed project files");
     }
 
     let project = TempDir::new("args");
@@ -1081,13 +1530,15 @@ fn unsafe_state_paths_and_arguments_are_refused_like_node() {
         flag_error,
         "Unknown option --force for 'doctor'. Allowed options: --project."
     );
-    if node_available() {
-        let (code, _, stderr) = node(project.path(), &["doctor", "extra"]);
+    // The command-line program prints the same texts (as the reference CLI did).
+    for (args, message) in [
+        (["doctor", "extra"], &error),
+        (["doctor", "--force"], &flag_error),
+    ] {
+        let (code, _, stderr) = cli(project.path(), &args);
+        golden.check(json!({"argv": args, "code": code, "stderr": stderr.trim_end()}));
         assert_eq!(code, 1);
-        assert_eq!(stderr.trim_end(), format!("dtech-aidlc: {error}"));
-        let (code, _, stderr) = node(project.path(), &["doctor", "--force"]);
-        assert_eq!(code, 1);
-        assert_eq!(stderr.trim_end(), format!("dtech-aidlc: {flag_error}"));
+        assert_eq!(stderr.trim_end(), format!("dtech-aidlc: {message}"));
     }
     assert!(doctor::run("status", project.path(), &[], &BTreeMap::new()).is_err());
     assert!(

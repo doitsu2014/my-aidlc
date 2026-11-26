@@ -1,0 +1,144 @@
+{
+  "pointers": [
+    {
+      "case": "legacy without id",
+      "args": [
+        "status"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"intent\": \"Legacy work\",\n  \"intentId\": null,\n  \"intentDir\": null,\n  \"scope\": \"solo\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"problem-framing\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"in_progress\",\n      \"detail\": null\n    }\n  },\n  \"migration\": \"pending\"\n}\n",
+      "stderr": ""
+    },
+    {
+      "case": "legacy without id",
+      "args": [
+        "intent",
+        "list"
+      ],
+      "exit": 0,
+      "stdout": "[\n  {\n    \"intentId\": \"legacy\",\n    \"title\": \"Legacy work\",\n    \"scope\": \"solo\",\n    \"mode\": \"human\",\n    \"status\": \"active\",\n    \"current\": true,\n    \"currentStage\": \"problem-framing\",\n    \"assignee\": null,\n    \"progress\": {\n      \"done\": 0,\n      \"total\": 9\n    },\n    \"createdAt\": null,\n    \"updatedAt\": null\n  }\n]\n",
+      "stderr": ""
+    },
+    {
+      "case": "legacy without id, intents folder",
+      "args": [
+        "status"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"intent\": \"Legacy work\",\n  \"intentId\": null,\n  \"intentDir\": null,\n  \"scope\": \"solo\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"problem-framing\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"in_progress\",\n      \"detail\": null\n    }\n  },\n  \"migration\": \"pending\"\n}\n",
+      "stderr": ""
+    },
+    {
+      "case": "legacy without id, intents folder",
+      "args": [
+        "intent",
+        "list"
+      ],
+      "exit": 0,
+      "stdout": "[\n  {\n    \"intentId\": \"legacy\",\n    \"title\": \"Legacy work\",\n    \"scope\": \"solo\",\n    \"mode\": \"human\",\n    \"status\": \"active\",\n    \"current\": true,\n    \"currentStage\": \"problem-framing\",\n    \"assignee\": null,\n    \"progress\": {\n      \"done\": 0,\n      \"total\": 9\n    },\n    \"createdAt\": null,\n    \"updatedAt\": null\n  }\n]\n",
+      "stderr": ""
+    },
+    {
+      "case": "legacy with id",
+      "args": [
+        "status"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"intent\": \"Legacy\",\n  \"intentId\": \"leg-1\",\n  \"intentDir\": \"<ROOT>/.aidlc/intents/leg-1\",\n  \"scope\": \"solo\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"stages\": {\n    \"requirements\": {\n      \"status\": \"complete\",\n      \"detail\": null\n    }\n  },\n  \"migration\": \"pending\"\n}\n",
+      "stderr": ""
+    },
+    {
+      "case": "legacy with id",
+      "args": [
+        "intent",
+        "list"
+      ],
+      "exit": 0,
+      "stdout": "[\n  {\n    \"intentId\": \"leg-1\",\n    \"title\": \"Legacy\",\n    \"scope\": \"solo\",\n    \"mode\": \"human\",\n    \"status\": \"active\",\n    \"current\": true,\n    \"currentStage\": null,\n    \"assignee\": null,\n    \"progress\": {\n      \"done\": 0,\n      \"total\": 9\n    },\n    \"createdAt\": null,\n    \"updatedAt\": null\n  }\n]\n",
+      "stderr": ""
+    },
+    {
+      "case": "garbage",
+      "args": [
+        "status"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: .aidlc/state.json cannot be parsed. No changes were made. Intents on disk: none. Run 'dtech-aidlc doctor' for details. To point the project at one of them run 'dtech-aidlc intent resume <id>'.\n"
+    },
+    {
+      "case": "garbage",
+      "args": [
+        "intent",
+        "list"
+      ],
+      "exit": 0,
+      "stdout": "[]\n",
+      "stderr": ""
+    },
+    {
+      "case": "unknown version",
+      "args": [
+        "status"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: .aidlc/state.json is not a recognised state file. No changes were made. Intents on disk: none. Run 'dtech-aidlc doctor' for details. To point the project at one of them run 'dtech-aidlc intent resume <id>'.\n"
+    },
+    {
+      "case": "unknown version",
+      "args": [
+        "intent",
+        "list"
+      ],
+      "exit": 0,
+      "stdout": "[]\n",
+      "stderr": ""
+    },
+    {
+      "case": "dangling",
+      "args": [
+        "status"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Active intent 'ghost' has no state file at .aidlc/intents/ghost/state.json. No changes were made. Run 'dtech-aidlc intent list', then 'dtech-aidlc intent resume <id>' or 'dtech-aidlc intent pause'.\n"
+    },
+    {
+      "case": "dangling",
+      "args": [
+        "intent",
+        "list"
+      ],
+      "exit": 0,
+      "stdout": "[]\n",
+      "stderr": ""
+    },
+    {
+      "case": "invalid legacy",
+      "args": [
+        "status"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: .aidlc/state.json is invalid: intent is not a non-empty string. No changes were made.\n"
+    },
+    {
+      "case": "invalid legacy",
+      "args": [
+        "intent",
+        "list"
+      ],
+      "exit": 0,
+      "stdout": "[\n  {\n    \"intentId\": \"legacy\",\n    \"title\": \"\",\n    \"scope\": \"solo\",\n    \"mode\": \"human\",\n    \"status\": \"active\",\n    \"current\": true,\n    \"currentStage\": null,\n    \"assignee\": null,\n    \"progress\": {\n      \"done\": 0,\n      \"total\": 9\n    },\n    \"createdAt\": null,\n    \"updatedAt\": null\n  }\n]\n",
+      "stderr": ""
+    }
+  ],
+  "corruptIntentList": [
+    {
+      "intentId": "zzz",
+      "status": "unreadable",
+      "error": "<ROOT>/.aidlc/intents/zzz/state.json cannot be parsed as JSON"
+    }
+  ]
+}

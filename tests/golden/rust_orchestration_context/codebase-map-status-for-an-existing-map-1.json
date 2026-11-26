@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "<ROOT>",
+  "granted": [
+    "profile"
+  ],
+  "warnings": [],
+  "codebaseMap": {
+    "path": ".aidlc/knowledge/_codebase-map.md",
+    "modifiedAt": "<TS>",
+    "exists": true,
+    "required": true,
+    "reason": "project kind is unknown",
+    "bytes": 24
+  },
+  "knowledge": {
+    "record": null
+  }
+}

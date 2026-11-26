@@ -1,0 +1,39 @@
+[
+  {
+    "fixture": "symlink"
+  },
+  {
+    "argv": [
+      "knowledge",
+      "init"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Refusing to access symlink .aidlc directory\n"
+    },
+    "files": {
+      "changed": {
+        ".aidlc": "<symlink>"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "index"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Refusing to access symlink .aidlc directory\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  }
+]

@@ -1,0 +1,196 @@
+[
+  {
+    "label": "next --intent",
+    "exit": 0,
+    "stdout": {
+      "intent": "Opravit chybu v přihlášení uživatele",
+      "intentId": "opravit-chybu-v-prihlaseni-uzivatele",
+      "intentDir": "<ROOT>/.aidlc/intents/opravit-chybu-v-prihlaseni-uzivatele",
+      "scope": "solo",
+      "depth": "full",
+      "mode": "human",
+      "orchestrationMode": "human",
+      "scopeSource": "config",
+      "warnings": [],
+      "gate": {
+        "id": "analysis-baseline",
+        "phase": "analyze",
+        "finalStage": "context-and-risk"
+      },
+      "gateMode": "human",
+      "approvalRequiredAfter": "context-and-risk",
+      "contractsFile": "<ENGINE>/methodology/contracts.md",
+      "suggestedBranch": "feature/opravit-chybu-v-prihlaseni-uzivatele",
+      "artifacts": [
+        {
+          "output": "problem-statement",
+          "kind": "document",
+          "path": ".aidlc/intents/opravit-chybu-v-prihlaseni-uzivatele/analyze/problem-framing/problem-statement.md"
+        },
+        {
+          "output": "success-measures",
+          "kind": "document",
+          "path": ".aidlc/intents/opravit-chybu-v-prihlaseni-uzivatele/analyze/problem-framing/success-measures.md"
+        },
+        {
+          "output": "stakeholder-map",
+          "kind": "document",
+          "path": ".aidlc/intents/opravit-chybu-v-prihlaseni-uzivatele/analyze/problem-framing/stakeholder-map.md"
+        },
+        {
+          "output": "acceptance-criteria",
+          "kind": "document",
+          "path": ".aidlc/intents/opravit-chybu-v-prihlaseni-uzivatele/analyze/problem-framing/acceptance-criteria.md",
+          "template": "<ENGINE>/methodology/templates/acceptance-criteria.md"
+        },
+        {
+          "output": "user-stories",
+          "kind": "document",
+          "path": ".aidlc/intents/opravit-chybu-v-prihlaseni-uzivatele/analyze/problem-framing/user-stories.md",
+          "template": "<ENGINE>/methodology/templates/user-stories.md"
+        }
+      ],
+      "stage": {
+        "id": "problem-framing",
+        "phase": "analyze",
+        "order": 1,
+        "agent": "brief-analyst",
+        "inputs": {
+          "artifacts": [],
+          "context": [
+            "request",
+            "project",
+            "sources",
+            "knowledge",
+            "profile",
+            "repos"
+          ]
+        },
+        "produces": [
+          "problem-statement",
+          "success-measures",
+          "stakeholder-map",
+          "acceptance-criteria",
+          "user-stories"
+        ],
+        "phaseGate": false,
+        "phaseFile": "<ENGINE>/methodology/phases/analyze.md",
+        "agentFile": "<ENGINE>/methodology/agents/brief-analyst.md",
+        "model": "sonnet",
+        "modelSource": "default"
+      },
+      "context": {
+        "schemaVersion": 1,
+        "projectRoot": "<ROOT>",
+        "granted": [
+          "request",
+          "project",
+          "sources",
+          "knowledge",
+          "profile",
+          "repos"
+        ],
+        "warnings": [
+          "PROJECT.md is still the unedited scaffold. Fill in the architecture, conventions, commands (build, test, lint, format, baseline), environment prerequisites and known baseline failures before Develop; every agent reads it first."
+        ],
+        "request": {
+          "path": ".aidlc/intents/opravit-chybu-v-prihlaseni-uzivatele/intent.md",
+          "provenance": "User-provided"
+        },
+        "project": {
+          "id": "project",
+          "path": "PROJECT.md",
+          "kind": "project",
+          "status": "ok",
+          "size": 1455,
+          "provenance": "User-provided"
+        },
+        "sources": [],
+        "sourceChanges": {
+          "scanned": true,
+          "scannedAt": "<TS>",
+          "missing": [],
+          "changed": [],
+          "added": [],
+          "removed": [],
+          "more": {
+            "changed": 0,
+            "added": 0,
+            "removed": 0
+          }
+        },
+        "codebaseMap": {
+          "path": ".aidlc/knowledge/_codebase-map.md",
+          "template": "<ENGINE>/methodology/templates/codebase-map.md",
+          "exists": false,
+          "required": false,
+          "reason": "project kind is greenfield",
+          "bytes": 0,
+          "modifiedAt": null
+        },
+        "knowledge": {
+          "dir": ".aidlc/knowledge",
+          "records": [],
+          "invalid": []
+        }
+      }
+    },
+    "stderr": "",
+    "pointer": {
+      "version": 2,
+      "activeIntentId": "opravit-chybu-v-prihlaseni-uzivatele",
+      "updatedAt": "<TS>"
+    },
+    "intents": {
+      "opravit-chybu-v-prihlaseni-uzivatele": {
+        "version": 2,
+        "intentId": "opravit-chybu-v-prihlaseni-uzivatele",
+        "intent": "Opravit chybu v přihlášení uživatele",
+        "scope": "solo",
+        "scopeSource": "config",
+        "projectScope": "solo",
+        "depth": "full",
+        "mode": "human",
+        "status": "active",
+        "currentStage": "problem-framing",
+        "stages": {
+          "problem-framing": {
+            "status": "in_progress",
+            "startedAt": "<TS>"
+          }
+        },
+        "dependencies": {},
+        "createdAt": "<TS>",
+        "modeSource": "config",
+        "updatedAt": "<TS>"
+      }
+    },
+    "intentFiles": {
+      "opravit-chybu-v-prihlaseni-uzivatele": [
+        "intent.md",
+        "state.json"
+      ]
+    },
+    "audit": [
+      {
+        "at": "<TS>",
+        "event": "intent.created",
+        "intent": "Opravit chybu v přihlášení uživatele",
+        "intentId": "opravit-chybu-v-prihlaseni-uzivatele",
+        "scope": "solo",
+        "scopeSource": "config",
+        "projectScope": "solo",
+        "mode": "human",
+        "modeSource": "config"
+      },
+      {
+        "at": "<TS>",
+        "event": "stage.selected",
+        "intent": "Opravit chybu v přihlášení uživatele",
+        "intentId": "opravit-chybu-v-prihlaseni-uzivatele",
+        "stage": "problem-framing",
+        "rework": false
+      }
+    ]
+  }
+]

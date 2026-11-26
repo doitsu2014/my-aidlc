@@ -1,0 +1,1548 @@
+{
+  "unconfigured scope=(default) depth=(default)": [
+    {
+      "scope": "solo",
+      "depth": "full",
+      "stages": [
+        "problem-framing",
+        "context-and-risk",
+        "option-generation",
+        "direction-selection",
+        "implementation-design",
+        "red-tests",
+        "build-and-verify",
+        "intent-record",
+        "knowledge-writeback"
+      ]
+    },
+    {
+      "scope": "team",
+      "depth": "full",
+      "stages": [
+        "problem-framing",
+        "context-and-risk",
+        "option-generation",
+        "direction-selection",
+        "implementation-design",
+        "red-tests",
+        "build-and-verify",
+        "release-readiness",
+        "operational-handoff",
+        "intent-record",
+        "knowledge-writeback"
+      ]
+    },
+    {
+      "scope": "enterprise",
+      "depth": "full",
+      "stages": [
+        "problem-framing",
+        "context-and-risk",
+        "option-generation",
+        "direction-selection",
+        "implementation-design",
+        "red-tests",
+        "build-and-verify",
+        "release-readiness",
+        "operational-handoff",
+        "outcome-review",
+        "knowledge-maintenance",
+        "intent-record",
+        "knowledge-writeback"
+      ]
+    }
+  ],
+  "unconfigured scope=(default) depth=standard": [
+    {
+      "scope": "solo",
+      "depth": "standard",
+      "stages": [
+        "problem-framing",
+        "context-and-risk",
+        "option-generation",
+        "direction-selection",
+        "implementation-design",
+        "red-tests",
+        "build-and-verify",
+        "intent-record",
+        "knowledge-writeback"
+      ]
+    },
+    {
+      "scope": "team",
+      "depth": "standard",
+      "stages": [
+        "problem-framing",
+        "context-and-risk",
+        "option-generation",
+        "direction-selection",
+        "implementation-design",
+        "red-tests",
+        "build-and-verify",
+        "release-readiness",
+        "operational-handoff",
+        "intent-record",
+        "knowledge-writeback"
+      ]
+    },
+    {
+      "scope": "enterprise",
+      "depth": "standard",
+      "stages": [
+        "problem-framing",
+        "context-and-risk",
+        "option-generation",
+        "direction-selection",
+        "implementation-design",
+        "red-tests",
+        "build-and-verify",
+        "release-readiness",
+        "operational-handoff",
+        "outcome-review",
+        "knowledge-maintenance",
+        "intent-record",
+        "knowledge-writeback"
+      ]
+    }
+  ],
+  "unconfigured scope=(default) depth=fast": [
+    {
+      "scope": "solo",
+      "depth": "fast",
+      "stages": [
+        "problem-framing",
+        "implementation-design",
+        "red-tests",
+        "build-and-verify",
+        "knowledge-writeback"
+      ]
+    },
+    {
+      "scope": "team",
+      "depth": "fast",
+      "stages": [
+        "problem-framing",
+        "implementation-design",
+        "red-tests",
+        "build-and-verify",
+        "knowledge-writeback"
+      ]
+    },
+    {
+      "scope": "enterprise",
+      "depth": "fast",
+      "stages": [
+        "problem-framing",
+        "implementation-design",
+        "red-tests",
+        "build-and-verify",
+        "knowledge-writeback"
+      ]
+    }
+  ],
+  "unconfigured scope=solo depth=(default)": {
+    "scope": "solo",
+    "depth": "full",
+    "stages": [
+      {
+        "id": "problem-framing",
+        "phase": "analyze",
+        "agent": "brief-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "problem-statement",
+          "success-measures",
+          "stakeholder-map",
+          "acceptance-criteria",
+          "user-stories"
+        ]
+      },
+      {
+        "id": "context-and-risk",
+        "phase": "analyze",
+        "agent": "context-risk-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "constraints-and-assumptions",
+          "evidence-log",
+          "risk-register",
+          "open-questions",
+          "quality-requirements"
+        ]
+      },
+      {
+        "id": "option-generation",
+        "phase": "ideate",
+        "agent": "solution-explorer",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "solution-options",
+          "trade-off-matrix"
+        ]
+      },
+      {
+        "id": "direction-selection",
+        "phase": "ideate",
+        "agent": "decision-facilitator",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "recommended-direction",
+          "decision-record",
+          "scope-boundary",
+          "architecture-design",
+          "threat-model"
+        ]
+      },
+      {
+        "id": "implementation-design",
+        "phase": "develop",
+        "agent": "implementation-planner",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation-plan",
+          "interfaces-and-contracts",
+          "functional-design",
+          "test-strategy",
+          "work-units",
+          "work-units-json",
+          "id-registry"
+        ]
+      },
+      {
+        "id": "red-tests",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "failing-tests",
+          "red-evidence"
+        ]
+      },
+      {
+        "id": "build-and-verify",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation",
+          "green-verification-report",
+          "regression-report",
+          "known-limitations"
+        ]
+      },
+      {
+        "id": "intent-record",
+        "phase": "archived",
+        "agent": "record-keeper",
+        "defaultModel": "haiku",
+        "model": "haiku",
+        "source": "default",
+        "produces": [
+          "intent-summary",
+          "completed-scope",
+          "artifact-index"
+        ]
+      },
+      {
+        "id": "knowledge-writeback",
+        "phase": "archived",
+        "agent": "knowledge-archivist",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "knowledge-record",
+          "next-intent-notes"
+        ]
+      }
+    ]
+  },
+  "unconfigured scope=solo depth=standard": {
+    "scope": "solo",
+    "depth": "standard",
+    "stages": [
+      {
+        "id": "problem-framing",
+        "phase": "analyze",
+        "agent": "brief-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "problem-statement",
+          "success-measures",
+          "stakeholder-map",
+          "acceptance-criteria",
+          "user-stories"
+        ]
+      },
+      {
+        "id": "context-and-risk",
+        "phase": "analyze",
+        "agent": "context-risk-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "constraints-and-assumptions",
+          "evidence-log",
+          "risk-register",
+          "open-questions",
+          "quality-requirements"
+        ]
+      },
+      {
+        "id": "option-generation",
+        "phase": "ideate",
+        "agent": "solution-explorer",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "solution-options",
+          "trade-off-matrix"
+        ]
+      },
+      {
+        "id": "direction-selection",
+        "phase": "ideate",
+        "agent": "decision-facilitator",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "recommended-direction",
+          "decision-record",
+          "scope-boundary",
+          "architecture-design",
+          "threat-model"
+        ]
+      },
+      {
+        "id": "implementation-design",
+        "phase": "develop",
+        "agent": "implementation-planner",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation-plan",
+          "interfaces-and-contracts",
+          "functional-design",
+          "test-strategy",
+          "work-units",
+          "work-units-json",
+          "id-registry"
+        ]
+      },
+      {
+        "id": "red-tests",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "failing-tests",
+          "red-evidence"
+        ]
+      },
+      {
+        "id": "build-and-verify",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation",
+          "green-verification-report",
+          "regression-report",
+          "known-limitations"
+        ]
+      },
+      {
+        "id": "intent-record",
+        "phase": "archived",
+        "agent": "record-keeper",
+        "defaultModel": "haiku",
+        "model": "haiku",
+        "source": "default",
+        "produces": [
+          "intent-summary",
+          "completed-scope",
+          "artifact-index"
+        ]
+      },
+      {
+        "id": "knowledge-writeback",
+        "phase": "archived",
+        "agent": "knowledge-archivist",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "knowledge-record",
+          "next-intent-notes"
+        ]
+      }
+    ]
+  },
+  "unconfigured scope=solo depth=fast": {
+    "scope": "solo",
+    "depth": "fast",
+    "stages": [
+      {
+        "id": "problem-framing",
+        "phase": "analyze",
+        "agent": "brief-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "problem-statement",
+          "success-measures",
+          "stakeholder-map",
+          "acceptance-criteria",
+          "user-stories"
+        ]
+      },
+      {
+        "id": "implementation-design",
+        "phase": "develop",
+        "agent": "implementation-planner",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation-plan",
+          "interfaces-and-contracts",
+          "functional-design",
+          "test-strategy",
+          "work-units",
+          "work-units-json",
+          "id-registry"
+        ]
+      },
+      {
+        "id": "red-tests",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "failing-tests",
+          "red-evidence"
+        ]
+      },
+      {
+        "id": "build-and-verify",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation",
+          "green-verification-report",
+          "regression-report",
+          "known-limitations"
+        ]
+      },
+      {
+        "id": "knowledge-writeback",
+        "phase": "archived",
+        "agent": "knowledge-archivist",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "knowledge-record",
+          "next-intent-notes"
+        ]
+      }
+    ]
+  },
+  "unconfigured scope=team depth=(default)": {
+    "scope": "team",
+    "depth": "full",
+    "stages": [
+      {
+        "id": "problem-framing",
+        "phase": "analyze",
+        "agent": "brief-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "problem-statement",
+          "success-measures",
+          "stakeholder-map",
+          "acceptance-criteria",
+          "user-stories"
+        ]
+      },
+      {
+        "id": "context-and-risk",
+        "phase": "analyze",
+        "agent": "context-risk-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "constraints-and-assumptions",
+          "evidence-log",
+          "risk-register",
+          "open-questions",
+          "quality-requirements"
+        ]
+      },
+      {
+        "id": "option-generation",
+        "phase": "ideate",
+        "agent": "solution-explorer",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "solution-options",
+          "trade-off-matrix"
+        ]
+      },
+      {
+        "id": "direction-selection",
+        "phase": "ideate",
+        "agent": "decision-facilitator",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "recommended-direction",
+          "decision-record",
+          "scope-boundary",
+          "architecture-design",
+          "threat-model"
+        ]
+      },
+      {
+        "id": "implementation-design",
+        "phase": "develop",
+        "agent": "implementation-planner",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation-plan",
+          "interfaces-and-contracts",
+          "functional-design",
+          "test-strategy",
+          "work-units",
+          "work-units-json",
+          "id-registry"
+        ]
+      },
+      {
+        "id": "red-tests",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "failing-tests",
+          "red-evidence"
+        ]
+      },
+      {
+        "id": "build-and-verify",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation",
+          "green-verification-report",
+          "regression-report",
+          "known-limitations"
+        ]
+      },
+      {
+        "id": "release-readiness",
+        "phase": "launch",
+        "agent": "release-coordinator",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "release-checklist",
+          "deployment-and-rollback-plan",
+          "communications-draft"
+        ]
+      },
+      {
+        "id": "operational-handoff",
+        "phase": "launch",
+        "agent": "operations-handoff",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "launch-record",
+          "monitoring-and-support-ownership",
+          "handoff-record"
+        ]
+      },
+      {
+        "id": "intent-record",
+        "phase": "archived",
+        "agent": "record-keeper",
+        "defaultModel": "haiku",
+        "model": "haiku",
+        "source": "default",
+        "produces": [
+          "intent-summary",
+          "completed-scope",
+          "artifact-index"
+        ]
+      },
+      {
+        "id": "knowledge-writeback",
+        "phase": "archived",
+        "agent": "knowledge-archivist",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "knowledge-record",
+          "next-intent-notes"
+        ]
+      }
+    ]
+  },
+  "unconfigured scope=team depth=standard": {
+    "scope": "team",
+    "depth": "standard",
+    "stages": [
+      {
+        "id": "problem-framing",
+        "phase": "analyze",
+        "agent": "brief-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "problem-statement",
+          "success-measures",
+          "stakeholder-map",
+          "acceptance-criteria",
+          "user-stories"
+        ]
+      },
+      {
+        "id": "context-and-risk",
+        "phase": "analyze",
+        "agent": "context-risk-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "constraints-and-assumptions",
+          "evidence-log",
+          "risk-register",
+          "open-questions",
+          "quality-requirements"
+        ]
+      },
+      {
+        "id": "option-generation",
+        "phase": "ideate",
+        "agent": "solution-explorer",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "solution-options",
+          "trade-off-matrix"
+        ]
+      },
+      {
+        "id": "direction-selection",
+        "phase": "ideate",
+        "agent": "decision-facilitator",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "recommended-direction",
+          "decision-record",
+          "scope-boundary",
+          "architecture-design",
+          "threat-model"
+        ]
+      },
+      {
+        "id": "implementation-design",
+        "phase": "develop",
+        "agent": "implementation-planner",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation-plan",
+          "interfaces-and-contracts",
+          "functional-design",
+          "test-strategy",
+          "work-units",
+          "work-units-json",
+          "id-registry"
+        ]
+      },
+      {
+        "id": "red-tests",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "failing-tests",
+          "red-evidence"
+        ]
+      },
+      {
+        "id": "build-and-verify",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation",
+          "green-verification-report",
+          "regression-report",
+          "known-limitations"
+        ]
+      },
+      {
+        "id": "release-readiness",
+        "phase": "launch",
+        "agent": "release-coordinator",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "release-checklist",
+          "deployment-and-rollback-plan",
+          "communications-draft"
+        ]
+      },
+      {
+        "id": "operational-handoff",
+        "phase": "launch",
+        "agent": "operations-handoff",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "launch-record",
+          "monitoring-and-support-ownership",
+          "handoff-record"
+        ]
+      },
+      {
+        "id": "intent-record",
+        "phase": "archived",
+        "agent": "record-keeper",
+        "defaultModel": "haiku",
+        "model": "haiku",
+        "source": "default",
+        "produces": [
+          "intent-summary",
+          "completed-scope",
+          "artifact-index"
+        ]
+      },
+      {
+        "id": "knowledge-writeback",
+        "phase": "archived",
+        "agent": "knowledge-archivist",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "knowledge-record",
+          "next-intent-notes"
+        ]
+      }
+    ]
+  },
+  "unconfigured scope=team depth=fast": {
+    "scope": "team",
+    "depth": "fast",
+    "stages": [
+      {
+        "id": "problem-framing",
+        "phase": "analyze",
+        "agent": "brief-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "problem-statement",
+          "success-measures",
+          "stakeholder-map",
+          "acceptance-criteria",
+          "user-stories"
+        ]
+      },
+      {
+        "id": "implementation-design",
+        "phase": "develop",
+        "agent": "implementation-planner",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation-plan",
+          "interfaces-and-contracts",
+          "functional-design",
+          "test-strategy",
+          "work-units",
+          "work-units-json",
+          "id-registry"
+        ]
+      },
+      {
+        "id": "red-tests",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "failing-tests",
+          "red-evidence"
+        ]
+      },
+      {
+        "id": "build-and-verify",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation",
+          "green-verification-report",
+          "regression-report",
+          "known-limitations"
+        ]
+      },
+      {
+        "id": "knowledge-writeback",
+        "phase": "archived",
+        "agent": "knowledge-archivist",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "knowledge-record",
+          "next-intent-notes"
+        ]
+      }
+    ]
+  },
+  "unconfigured scope=enterprise depth=(default)": {
+    "scope": "enterprise",
+    "depth": "full",
+    "stages": [
+      {
+        "id": "problem-framing",
+        "phase": "analyze",
+        "agent": "brief-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "problem-statement",
+          "success-measures",
+          "stakeholder-map",
+          "acceptance-criteria",
+          "user-stories"
+        ]
+      },
+      {
+        "id": "context-and-risk",
+        "phase": "analyze",
+        "agent": "context-risk-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "constraints-and-assumptions",
+          "evidence-log",
+          "risk-register",
+          "open-questions",
+          "quality-requirements"
+        ]
+      },
+      {
+        "id": "option-generation",
+        "phase": "ideate",
+        "agent": "solution-explorer",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "solution-options",
+          "trade-off-matrix"
+        ]
+      },
+      {
+        "id": "direction-selection",
+        "phase": "ideate",
+        "agent": "decision-facilitator",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "recommended-direction",
+          "decision-record",
+          "scope-boundary",
+          "architecture-design",
+          "threat-model"
+        ]
+      },
+      {
+        "id": "implementation-design",
+        "phase": "develop",
+        "agent": "implementation-planner",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation-plan",
+          "interfaces-and-contracts",
+          "functional-design",
+          "test-strategy",
+          "work-units",
+          "work-units-json",
+          "id-registry"
+        ]
+      },
+      {
+        "id": "red-tests",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "failing-tests",
+          "red-evidence"
+        ]
+      },
+      {
+        "id": "build-and-verify",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation",
+          "green-verification-report",
+          "regression-report",
+          "known-limitations"
+        ]
+      },
+      {
+        "id": "release-readiness",
+        "phase": "launch",
+        "agent": "release-coordinator",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "release-checklist",
+          "deployment-and-rollback-plan",
+          "communications-draft"
+        ]
+      },
+      {
+        "id": "operational-handoff",
+        "phase": "launch",
+        "agent": "operations-handoff",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "launch-record",
+          "monitoring-and-support-ownership",
+          "handoff-record"
+        ]
+      },
+      {
+        "id": "outcome-review",
+        "phase": "curate",
+        "agent": "outcome-curator",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "outcome-summary",
+          "lessons-learned",
+          "follow-up-register"
+        ]
+      },
+      {
+        "id": "knowledge-maintenance",
+        "phase": "curate",
+        "agent": "knowledge-steward",
+        "defaultModel": "haiku",
+        "model": "haiku",
+        "source": "default",
+        "produces": [
+          "curated-project-record",
+          "retention-and-access-notes",
+          "closure-recommendation"
+        ]
+      },
+      {
+        "id": "intent-record",
+        "phase": "archived",
+        "agent": "record-keeper",
+        "defaultModel": "haiku",
+        "model": "haiku",
+        "source": "default",
+        "produces": [
+          "intent-summary",
+          "completed-scope",
+          "artifact-index"
+        ]
+      },
+      {
+        "id": "knowledge-writeback",
+        "phase": "archived",
+        "agent": "knowledge-archivist",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "knowledge-record",
+          "next-intent-notes"
+        ]
+      }
+    ]
+  },
+  "unconfigured scope=enterprise depth=standard": {
+    "scope": "enterprise",
+    "depth": "standard",
+    "stages": [
+      {
+        "id": "problem-framing",
+        "phase": "analyze",
+        "agent": "brief-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "problem-statement",
+          "success-measures",
+          "stakeholder-map",
+          "acceptance-criteria",
+          "user-stories"
+        ]
+      },
+      {
+        "id": "context-and-risk",
+        "phase": "analyze",
+        "agent": "context-risk-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "constraints-and-assumptions",
+          "evidence-log",
+          "risk-register",
+          "open-questions",
+          "quality-requirements"
+        ]
+      },
+      {
+        "id": "option-generation",
+        "phase": "ideate",
+        "agent": "solution-explorer",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "solution-options",
+          "trade-off-matrix"
+        ]
+      },
+      {
+        "id": "direction-selection",
+        "phase": "ideate",
+        "agent": "decision-facilitator",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "recommended-direction",
+          "decision-record",
+          "scope-boundary",
+          "architecture-design",
+          "threat-model"
+        ]
+      },
+      {
+        "id": "implementation-design",
+        "phase": "develop",
+        "agent": "implementation-planner",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation-plan",
+          "interfaces-and-contracts",
+          "functional-design",
+          "test-strategy",
+          "work-units",
+          "work-units-json",
+          "id-registry"
+        ]
+      },
+      {
+        "id": "red-tests",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "failing-tests",
+          "red-evidence"
+        ]
+      },
+      {
+        "id": "build-and-verify",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation",
+          "green-verification-report",
+          "regression-report",
+          "known-limitations"
+        ]
+      },
+      {
+        "id": "release-readiness",
+        "phase": "launch",
+        "agent": "release-coordinator",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "release-checklist",
+          "deployment-and-rollback-plan",
+          "communications-draft"
+        ]
+      },
+      {
+        "id": "operational-handoff",
+        "phase": "launch",
+        "agent": "operations-handoff",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "launch-record",
+          "monitoring-and-support-ownership",
+          "handoff-record"
+        ]
+      },
+      {
+        "id": "outcome-review",
+        "phase": "curate",
+        "agent": "outcome-curator",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "outcome-summary",
+          "lessons-learned",
+          "follow-up-register"
+        ]
+      },
+      {
+        "id": "knowledge-maintenance",
+        "phase": "curate",
+        "agent": "knowledge-steward",
+        "defaultModel": "haiku",
+        "model": "haiku",
+        "source": "default",
+        "produces": [
+          "curated-project-record",
+          "retention-and-access-notes",
+          "closure-recommendation"
+        ]
+      },
+      {
+        "id": "intent-record",
+        "phase": "archived",
+        "agent": "record-keeper",
+        "defaultModel": "haiku",
+        "model": "haiku",
+        "source": "default",
+        "produces": [
+          "intent-summary",
+          "completed-scope",
+          "artifact-index"
+        ]
+      },
+      {
+        "id": "knowledge-writeback",
+        "phase": "archived",
+        "agent": "knowledge-archivist",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "knowledge-record",
+          "next-intent-notes"
+        ]
+      }
+    ]
+  },
+  "unconfigured scope=enterprise depth=fast": {
+    "scope": "enterprise",
+    "depth": "fast",
+    "stages": [
+      {
+        "id": "problem-framing",
+        "phase": "analyze",
+        "agent": "brief-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "problem-statement",
+          "success-measures",
+          "stakeholder-map",
+          "acceptance-criteria",
+          "user-stories"
+        ]
+      },
+      {
+        "id": "implementation-design",
+        "phase": "develop",
+        "agent": "implementation-planner",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation-plan",
+          "interfaces-and-contracts",
+          "functional-design",
+          "test-strategy",
+          "work-units",
+          "work-units-json",
+          "id-registry"
+        ]
+      },
+      {
+        "id": "red-tests",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "failing-tests",
+          "red-evidence"
+        ]
+      },
+      {
+        "id": "build-and-verify",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation",
+          "green-verification-report",
+          "regression-report",
+          "known-limitations"
+        ]
+      },
+      {
+        "id": "knowledge-writeback",
+        "phase": "archived",
+        "agent": "knowledge-archivist",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "knowledge-record",
+          "next-intent-notes"
+        ]
+      }
+    ]
+  },
+  "configured deepseek scope=solo": {
+    "scope": "solo",
+    "depth": "full",
+    "stages": [
+      {
+        "id": "problem-framing",
+        "phase": "analyze",
+        "agent": "brief-analyst",
+        "produces": [
+          "problem-statement",
+          "success-measures",
+          "stakeholder-map",
+          "acceptance-criteria",
+          "user-stories"
+        ]
+      },
+      {
+        "id": "context-and-risk",
+        "phase": "analyze",
+        "agent": "context-risk-analyst",
+        "produces": [
+          "constraints-and-assumptions",
+          "evidence-log",
+          "risk-register",
+          "open-questions",
+          "quality-requirements"
+        ]
+      },
+      {
+        "id": "option-generation",
+        "phase": "ideate",
+        "agent": "solution-explorer",
+        "produces": [
+          "solution-options",
+          "trade-off-matrix"
+        ]
+      },
+      {
+        "id": "direction-selection",
+        "phase": "ideate",
+        "agent": "decision-facilitator",
+        "produces": [
+          "recommended-direction",
+          "decision-record",
+          "scope-boundary",
+          "architecture-design",
+          "threat-model"
+        ]
+      },
+      {
+        "id": "implementation-design",
+        "phase": "develop",
+        "agent": "implementation-planner",
+        "produces": [
+          "implementation-plan",
+          "interfaces-and-contracts",
+          "functional-design",
+          "test-strategy",
+          "work-units",
+          "work-units-json",
+          "id-registry"
+        ]
+      },
+      {
+        "id": "red-tests",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "produces": [
+          "failing-tests",
+          "red-evidence"
+        ]
+      },
+      {
+        "id": "build-and-verify",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "produces": [
+          "implementation",
+          "green-verification-report",
+          "regression-report",
+          "known-limitations"
+        ]
+      },
+      {
+        "id": "intent-record",
+        "phase": "archived",
+        "agent": "record-keeper",
+        "produces": [
+          "intent-summary",
+          "completed-scope",
+          "artifact-index"
+        ]
+      },
+      {
+        "id": "knowledge-writeback",
+        "phase": "archived",
+        "agent": "knowledge-archivist",
+        "produces": [
+          "knowledge-record",
+          "next-intent-notes"
+        ]
+      }
+    ]
+  },
+  "configured claude-agent-models scope=solo": {
+    "scope": "solo",
+    "depth": "full",
+    "stages": [
+      {
+        "id": "problem-framing",
+        "phase": "analyze",
+        "agent": "brief-analyst",
+        "defaultModel": "sonnet",
+        "model": "opus",
+        "source": "project",
+        "produces": [
+          "problem-statement",
+          "success-measures",
+          "stakeholder-map",
+          "acceptance-criteria",
+          "user-stories"
+        ]
+      },
+      {
+        "id": "context-and-risk",
+        "phase": "analyze",
+        "agent": "context-risk-analyst",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "constraints-and-assumptions",
+          "evidence-log",
+          "risk-register",
+          "open-questions",
+          "quality-requirements"
+        ]
+      },
+      {
+        "id": "option-generation",
+        "phase": "ideate",
+        "agent": "solution-explorer",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "solution-options",
+          "trade-off-matrix"
+        ]
+      },
+      {
+        "id": "direction-selection",
+        "phase": "ideate",
+        "agent": "decision-facilitator",
+        "defaultModel": "opus",
+        "model": "opus",
+        "source": "default",
+        "produces": [
+          "recommended-direction",
+          "decision-record",
+          "scope-boundary",
+          "architecture-design",
+          "threat-model"
+        ]
+      },
+      {
+        "id": "implementation-design",
+        "phase": "develop",
+        "agent": "implementation-planner",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation-plan",
+          "interfaces-and-contracts",
+          "functional-design",
+          "test-strategy",
+          "work-units",
+          "work-units-json",
+          "id-registry"
+        ]
+      },
+      {
+        "id": "red-tests",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "failing-tests",
+          "red-evidence"
+        ]
+      },
+      {
+        "id": "build-and-verify",
+        "phase": "develop",
+        "agent": "builder-verifier",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "implementation",
+          "green-verification-report",
+          "regression-report",
+          "known-limitations"
+        ]
+      },
+      {
+        "id": "intent-record",
+        "phase": "archived",
+        "agent": "record-keeper",
+        "defaultModel": "haiku",
+        "model": "haiku",
+        "source": "default",
+        "produces": [
+          "intent-summary",
+          "completed-scope",
+          "artifact-index"
+        ]
+      },
+      {
+        "id": "knowledge-writeback",
+        "phase": "archived",
+        "agent": "knowledge-archivist",
+        "defaultModel": "sonnet",
+        "model": "sonnet",
+        "source": "default",
+        "produces": [
+          "knowledge-record",
+          "next-intent-notes"
+        ]
+      }
+    ]
+  }
+}

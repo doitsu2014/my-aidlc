@@ -1,0 +1,6 @@
+[
+  {
+    "path": ".aidlc/knowledge/_codebase-map.md",
+    "reason": "the codebase map is required for an existing project (kind brownfield); write it from <ENGINE>/methodology/templates/codebase-map.md"
+  }
+]

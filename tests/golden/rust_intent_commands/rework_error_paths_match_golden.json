@@ -1,0 +1,468 @@
+[
+  {
+    "label": "rework-usage",
+    "argv": [
+      "intent",
+      "rework"
+    ],
+    "outcome": {
+      "error": "Usage: intent rework --detail \"<reason>\"",
+      "code": 1
+    },
+    "aidlc": {
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "red-tests",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "complete",
+              "detail": null
+            },
+            "red-tests": {
+              "status": "blocked",
+              "detail": "split needs revision",
+              "reports": [
+                {
+                  "result": "complete",
+                  "at": "<ts>"
+                },
+                {
+                  "result": "blocked",
+                  "at": "<ts>",
+                  "detail": "split needs revision"
+                }
+              ],
+              "units": {
+                "U-01": {
+                  "status": "complete"
+                },
+                "U-02": {
+                  "status": "blocked",
+                  "detail": "x"
+                }
+              }
+            },
+            "build-and-verify": {
+              "status": "in_progress",
+              "detail": null,
+              "units": {
+                "U-01": {
+                  "status": "complete"
+                }
+              }
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "units": [
+            {
+              "id": "U-01",
+              "status": "complete"
+            },
+            {
+              "id": "U-02",
+              "status": "in_progress"
+            }
+          ],
+          "currentUnit": "U-02"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "rework-blank",
+    "argv": [
+      "intent",
+      "rework",
+      "--detail",
+      "   "
+    ],
+    "outcome": {
+      "error": "intent rework requires --detail \"<reason>\"",
+      "code": 1
+    },
+    "aidlc": {
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "red-tests",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "complete",
+              "detail": null
+            },
+            "red-tests": {
+              "status": "blocked",
+              "detail": "split needs revision",
+              "reports": [
+                {
+                  "result": "complete",
+                  "at": "<ts>"
+                },
+                {
+                  "result": "blocked",
+                  "at": "<ts>",
+                  "detail": "split needs revision"
+                }
+              ],
+              "units": {
+                "U-01": {
+                  "status": "complete"
+                },
+                "U-02": {
+                  "status": "blocked",
+                  "detail": "x"
+                }
+              }
+            },
+            "build-and-verify": {
+              "status": "in_progress",
+              "detail": null,
+              "units": {
+                "U-01": {
+                  "status": "complete"
+                }
+              }
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "units": [
+            {
+              "id": "U-01",
+              "status": "complete"
+            },
+            {
+              "id": "U-02",
+              "status": "in_progress"
+            }
+          ],
+          "currentUnit": "U-02"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "rework-none",
+    "argv": [
+      "intent",
+      "rework",
+      "--detail",
+      "x"
+    ],
+    "outcome": {
+      "error": "No active workflow state",
+      "code": 1
+    },
+    "aidlc": {}
+  },
+  {
+    "label": "rework-not-blocked",
+    "argv": [
+      "intent",
+      "rework",
+      "--detail",
+      "x"
+    ],
+    "outcome": {
+      "error": "Design rework is only available after a blocked Develop stage",
+      "code": 1
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "rework-reset-after-report",
+    "argv": [
+      "intent",
+      "rework",
+      "--detail",
+      "x"
+    ],
+    "outcome": {
+      "error": "Design rework is only available after a blocked Develop stage",
+      "code": 1
+    },
+    "aidlc": {
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "red-tests",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "complete",
+              "detail": null
+            },
+            "red-tests": {
+              "status": "in_progress",
+              "detail": "split needs revision",
+              "reports": [
+                {
+                  "result": "complete",
+                  "at": "<ts>"
+                },
+                {
+                  "result": "blocked",
+                  "at": "<ts>",
+                  "detail": "split needs revision"
+                }
+              ],
+              "units": {
+                "U-01": {
+                  "status": "complete"
+                },
+                "U-02": {
+                  "status": "blocked",
+                  "detail": "x"
+                }
+              },
+              "reworkResetAt": "<ts>"
+            },
+            "build-and-verify": {
+              "status": "in_progress",
+              "detail": null,
+              "units": {
+                "U-01": {
+                  "status": "complete"
+                }
+              }
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "units": [
+            {
+              "id": "U-01",
+              "status": "complete"
+            },
+            {
+              "id": "U-02",
+              "status": "in_progress"
+            }
+          ],
+          "currentUnit": "U-02"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "rework-complete",
+    "argv": [
+      "intent",
+      "rework",
+      "--detail",
+      "x"
+    ],
+    "outcome": {
+      "error": "Design rework requires an active intent",
+      "code": 1
+    },
+    "aidlc": {
+      "intents/": null,
+      "intents/done/": null,
+      "intents/done/intent.md": "# done\n\nDo done\n",
+      "intents/done/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "done",
+          "intent": "Do done",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "complete",
+              "detail": null
+            },
+            "red-tests": {
+              "status": "complete",
+              "detail": null
+            },
+            "build-and-verify": {
+              "status": "complete",
+              "detail": null
+            },
+            "intent-record": {
+              "status": "complete",
+              "detail": null
+            },
+            "knowledge-writeback": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "done",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  }
+]

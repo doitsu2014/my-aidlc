@@ -1,0 +1,439 @@
+[
+  {
+    "fixture": "deps-idle"
+  },
+  {
+    "argv": [
+      "deps",
+      "list"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Initialize a workflow before managing dependencies\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "add",
+      "a",
+      "b"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Initialize a workflow before managing dependencies\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "pull",
+      "a"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Initialize a workflow before managing dependencies\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "bogus"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Initialize a workflow before managing dependencies\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "deps-active"
+  },
+  {
+    "argv": [
+      "deps",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "add",
+      "x",
+      "problem-framing"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "id": "x",
+        "dependencies": [
+          "problem-framing"
+        ]
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/intents/build-a-sample-feature/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"build-a-sample-feature\",\n  \"intent\": \"Build a sample feature\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"full\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"problem-framing\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<TS>\",\n      \"detail\": null\n    }\n  },\n  \"dependencies\": {\n    \"x\": [\n      \"problem-framing\"\n    ]\n  },\n  \"createdAt\": \"<TS>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<TS>\"\n}"
+      }
+    },
+    "audit": {
+      "appended": [
+        {
+          "dependency": "problem-framing",
+          "event": "dependency.added",
+          "id": "x"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "add",
+      "x",
+      "missing-stage"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "id": "x",
+        "dependencies": [
+          "problem-framing",
+          "missing-stage"
+        ]
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/intents/build-a-sample-feature/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"build-a-sample-feature\",\n  \"intent\": \"Build a sample feature\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"full\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"problem-framing\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<TS>\",\n      \"detail\": null\n    }\n  },\n  \"dependencies\": {\n    \"x\": [\n      \"problem-framing\",\n      \"missing-stage\"\n    ]\n  },\n  \"createdAt\": \"<TS>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<TS>\"\n}"
+      }
+    },
+    "audit": {
+      "appended": [
+        {
+          "dependency": "missing-stage",
+          "event": "dependency.added",
+          "id": "x"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "add",
+      "x",
+      "problem-framing"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "id": "x",
+        "dependencies": [
+          "problem-framing",
+          "missing-stage"
+        ]
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": [
+        {
+          "dependency": "problem-framing",
+          "event": "dependency.added",
+          "id": "x"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "add",
+      "y",
+      "x"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "id": "y",
+        "dependencies": [
+          "x"
+        ]
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/intents/build-a-sample-feature/state.json": "{\n  \"version\": 2,\n  \"intentId\": \"build-a-sample-feature\",\n  \"intent\": \"Build a sample feature\",\n  \"scope\": \"solo\",\n  \"scopeSource\": \"config\",\n  \"projectScope\": \"solo\",\n  \"depth\": \"full\",\n  \"mode\": \"human\",\n  \"status\": \"active\",\n  \"currentStage\": \"problem-framing\",\n  \"stages\": {\n    \"problem-framing\": {\n      \"status\": \"in_progress\",\n      \"startedAt\": \"<TS>\",\n      \"detail\": null\n    }\n  },\n  \"dependencies\": {\n    \"x\": [\n      \"problem-framing\",\n      \"missing-stage\"\n    ],\n    \"y\": [\n      \"x\"\n    ]\n  },\n  \"createdAt\": \"<TS>\",\n  \"modeSource\": \"config\",\n  \"updatedAt\": \"<TS>\"\n}"
+      }
+    },
+    "audit": {
+      "appended": [
+        {
+          "dependency": "x",
+          "event": "dependency.added",
+          "id": "y"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "add",
+      "x",
+      "x"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: An item cannot depend on itself\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "add",
+      "bad id",
+      "x"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid item id: use letters, digits, dot, underscore, or hyphen\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "add",
+      "x",
+      "-bad"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency id: use letters, digits, dot, underscore, or hyphen\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "add",
+      "x"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Usage: deps add <id> <dependency-id>\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "add"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Usage: deps add <id> <dependency-id>\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [
+        {
+          "id": "x",
+          "dependency": "problem-framing"
+        },
+        {
+          "id": "x",
+          "dependency": "missing-stage"
+        },
+        {
+          "id": "y",
+          "dependency": "x"
+        }
+      ],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "pull",
+      "x"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "id": "x",
+        "dependencies": [
+          {
+            "id": "problem-framing",
+            "status": "in_progress"
+          },
+          {
+            "id": "missing-stage",
+            "status": "unknown"
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "pull",
+      "y"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "id": "y",
+        "dependencies": [
+          {
+            "id": "x",
+            "status": "unknown"
+          }
+        ]
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "pull",
+      "nothing"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "id": "nothing",
+        "dependencies": []
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "pull"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid item id: use letters, digits, dot, underscore, or hyphen\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "pull",
+      "bad id"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid item id: use letters, digits, dot, underscore, or hyphen\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "deps",
+      "bogus"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Use deps add, deps list, or deps pull\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  }
+]

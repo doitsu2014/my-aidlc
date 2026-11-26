@@ -1,0 +1,738 @@
+[
+  {
+    "label": "config-0",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Invalid project configuration JSON"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-1",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Invalid project configuration: expected an object"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-2",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: mode must be human or ai"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-3",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: mode must be human or ai"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-4",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Unknown agent in agentModels: nobody"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-5",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Invalid model alias for brief-analyst: 5; choose opus, sonnet, haiku, or fable"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-6",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Invalid agentModels: expected an object mapping agent IDs to model aliases"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-7",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Invalid gateModes: expected an object mapping gate ids to \"human\""
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-8",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Unknown gate in gateModes: no-such-gate"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-9",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Invalid gateModes.analysis-baseline: a gate can only be pinned to human"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-10",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Prerequisite name 'Bad Name' must be 1-32 lowercase letters, digits or hyphens"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-11",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Prerequisite tool names unknown stage or phase: nowhere"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-12",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Invalid unitSplitThreshold: expected a positive integer"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-13",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Invalid roles: expected an object"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-14",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Invalid roles.owner: expected an array of names"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-15",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Invalid roles.approvers: expected an object mapping gate ids to names"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-16",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Invalid roles.approvers.g"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-17",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-18",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-invalid-rows",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "fail",
+            "message": "Project configuration and agent models: Invalid project configuration JSON"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 1
+    }
+  },
+  {
+    "label": "config-roles",
+    "outcome": {
+      "report": {
+        "ok": true,
+        "warnings": 0,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          }
+        ]
+      },
+      "code": 0
+    }
+  },
+  {
+    "label": "config-harnesses",
+    "outcome": {
+      "report": {
+        "ok": false,
+        "warnings": 1,
+        "checks": [
+          {
+            "status": "pass",
+            "message": "Graph: 6 phases, 13 stages, 12 agents"
+          },
+          {
+            "status": "pass",
+            "message": "Project configuration and agent models"
+          },
+          {
+            "status": "pass",
+            "message": "Projection claude: current (.claude/skills/dtech-aidlc, engine <VERSION>)"
+          },
+          {
+            "status": "fail",
+            "message": "Projection deepseek: .dsh/skills/aidlc/SKILL.md is missing; run: dtech-aidlc harness refresh"
+          },
+          {
+            "status": "fail",
+            "message": "Projection deepseek: .dsh/skills/aidlc/onboarding.md is missing; run: dtech-aidlc harness refresh"
+          },
+          {
+            "status": "pass",
+            "message": "Dependency repositories: 0 registered"
+          },
+          {
+            "status": "pass",
+            "message": "Knowledge sources: no aidlc.knowledge.json; no documentation detected at the last scan"
+          },
+          {
+            "status": "pass",
+            "message": "Audit log contains valid JSON lines"
+          },
+          {
+            "status": "warn",
+            "message": "No allowed approver is configured for gate analysis-baseline in the default scope"
+          }
+        ]
+      },
+      "code": 1
+    }
+  }
+]

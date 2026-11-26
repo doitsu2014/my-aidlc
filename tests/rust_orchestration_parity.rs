@@ -1,16 +1,21 @@
-//! Node-vs-Rust lifecycle parity for `orchestrate next` / `orchestrate report`.
+//! Golden lifecycle transcripts for `orchestrate next` / `orchestrate report`.
 //!
-//! Every scenario runs the same command sequence twice, once with the Node reference CLI
-//! (`core/tools/dtech-aidlc.mjs`) and once with the native binary, each in its own fresh
-//! temporary project. The Node run finishes completely before the Rust run starts, so the
-//! scenario's own expectations (exit codes, stage ids, gate records) are proven against Node
-//! first. Each step records the exit code, normalized stdout/stderr, `.aidlc/state.json`,
-//! every intent `state.json` and the audit rows written after onboarding; the two
-//! transcripts must then match step for step.
+//! Every scenario runs a command sequence with the native binary in a fresh temporary
+//! project. Each step records the exit code, normalized stdout/stderr,
+//! `.aidlc/state.json`, every intent `state.json` and the audit rows written after
+//! onboarding; the transcript must equal the golden file
+//! `tests/golden/rust_orchestration_parity/<scenario>.json`, which was recorded from the
+//! reference implementation running the same sequence. The scenario's own expectations
+//! (exit codes, stage ids, gate records) are checked on every run as well.
 //!
-//! Native orchestration routing is enabled, so every scenario runs by default.
+//! Set `DTECH_AIDLC_BLESS=1` to rewrite the golden files from the native CLI after an
+//! intentional behaviour change.
+
+#[path = "common/golden.rs"]
+mod golden;
 
 use serde_json::{json, Map, Value};
+use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
@@ -24,37 +29,11 @@ const BLOCKED_EXIT: i32 = 3;
 
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum Cli {
-    Node,
-    Rust,
-}
-
-impl Cli {
-    fn label(self) -> &'static str {
-        match self {
-            Cli::Node => "node",
-            Cli::Rust => "rust",
-        }
-    }
-
-    fn command(self) -> Command {
-        // AIDLC_ORCH_PARITY_SELF_CHECK=1 runs Node for both halves, proving the
-        // normalization removes every volatile value (Node vs Node must pass).
-        let self_check = std::env::var_os("AIDLC_ORCH_PARITY_SELF_CHECK").is_some();
-        let mut command = match self {
-            _ if self == Cli::Node || self_check => {
-                let mut command = Command::new("node");
-                command.arg(
-                    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("core/tools/dtech-aidlc.mjs"),
-                );
-                command
-            }
-            _ => Command::new(env!("CARGO_BIN_EXE_dtech-aidlc")),
-        };
-        command.env_remove("DTECH_AIDLC_HOME");
-        command
-    }
+/// The native CLI, without an inherited `DTECH_AIDLC_HOME`.
+fn native_command() -> Command {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"));
+    command.env_remove("DTECH_AIDLC_HOME");
+    command
 }
 
 /// What one CLI invocation left behind, after normalization.
@@ -71,7 +50,6 @@ struct Step {
 }
 
 struct Project {
-    cli: Cli,
     root: PathBuf,
     audit_offset: usize,
     steps: Vec<Step>,
@@ -88,14 +66,13 @@ impl Drop for Project {
     }
 }
 
-fn unique_root(cli: Cli, scenario: &str) -> PathBuf {
+fn unique_root(scenario: &str) -> PathBuf {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
     std::env::temp_dir().join(format!(
-        "aidlc-orch-parity-{scenario}-{}-{}-{nanos}-{}",
-        cli.label(),
+        "aidlc-orch-parity-{scenario}-{}-{nanos}-{}",
         std::process::id(),
         COUNTER.fetch_add(1, Ordering::SeqCst)
     ))
@@ -123,11 +100,10 @@ fn local_identities() -> Vec<String> {
 }
 
 impl Project {
-    fn new(cli: Cli, scenario: &str) -> Self {
-        let root = unique_root(cli, scenario);
+    fn new(scenario: &str) -> Self {
+        let root = unique_root(scenario);
         fs::create_dir_all(&root).unwrap();
         Project {
-            cli,
             root,
             audit_offset: 0,
             steps: Vec::new(),
@@ -138,11 +114,11 @@ impl Project {
     }
 
     fn who(&self) -> &'static str {
-        self.cli.label()
+        "rust"
     }
 
     fn invoke(&self, args: &[&str]) -> std::process::Output {
-        let mut command = self.cli.command();
+        let mut command = native_command();
         if let Some(home) = &self.home {
             command.env("DTECH_AIDLC_HOME", home);
         }
@@ -333,9 +309,13 @@ impl Project {
     }
 
     fn normalize_text(&self, text: &str) -> String {
+        // Repository files copied into the project (the scaffold) have the checkout's
+        // line endings; the golden files hold the LF form.
+        let text = &golden::checkout_text(text);
         // Engine paths first: the native CLI's engine lives under the project
         // (`<project>/.aidlc/engine`), so replacing the root first would leave
-        // `<ROOT><ENGINE>/...` where Node's installed engine gives `<ENGINE>/...`.
+        // `<ROOT><ENGINE>/...` where the golden files (recorded with an installed
+        // engine) hold `<ENGINE>/...`.
         let mut value = normalize_engine_paths(text);
         for variant in self.root_variants() {
             value = value.replace(&variant, "<ROOT>");
@@ -347,7 +327,7 @@ impl Project {
     }
 
     fn normalize(&self, value: &Value) -> Value {
-        self.normalize_keyed(None, value)
+        golden::checkout_value(&self.normalize_keyed(None, value))
     }
 
     fn normalize_keyed(&self, key: Option<&str>, value: &Value) -> Value {
@@ -417,45 +397,53 @@ fn normalize_engine_paths(text: &str) -> String {
         .join(" ")
 }
 
-/// Runs the scenario completely with Node, then with Rust, and compares the transcripts.
-fn assert_lifecycle_parity(scenario: &str, drive: impl Fn(&mut Project)) {
-    let node = {
-        let mut project = Project::new(Cli::Node, scenario);
-        project.onboard();
-        drive(&mut project);
-        std::mem::take(&mut project.steps)
-    };
+/// Runs the scenario with the native CLI and compares its transcript with the golden
+/// file (or records it when blessing).
+fn assert_lifecycle_golden(scenario: &str, drive: impl Fn(&mut Project)) {
     let rust = {
-        let mut project = Project::new(Cli::Rust, scenario);
+        let mut project = Project::new(scenario);
         project.onboard();
         drive(&mut project);
         std::mem::take(&mut project.steps)
     };
+    let name = format!("{scenario}.json");
+    if blessing() {
+        write_golden(&name, &transcript(&rust));
+        return;
+    }
+    let golden = read_golden(&name);
+    let golden = golden.as_array().expect("golden transcript is an array");
     assert_eq!(
-        node.iter().map(|s| s.label.as_str()).collect::<Vec<_>>(),
+        golden
+            .iter()
+            .map(|step| step["label"].as_str().unwrap_or_default())
+            .collect::<Vec<_>>(),
         rust.iter().map(|s| s.label.as_str()).collect::<Vec<_>>(),
         "{scenario}: step sequence"
     );
-    for (n, r) in node.iter().zip(&rust) {
-        let label = format!("{scenario} / {}", n.label);
-        assert_eq!(r.exit, n.exit, "{label}: exit code");
-        assert_eq!(r.stderr, n.stderr, "{label}: stderr");
-        assert_eq!(r.stdout, n.stdout, "{label}: stdout JSON");
-        assert_eq!(r.pointer, n.pointer, "{label}: .aidlc/state.json");
-        assert_eq!(r.intents, n.intents, "{label}: intent state.json files");
+    for (n, r) in golden.iter().zip(&rust) {
+        let r = step_json(r);
+        let label = format!("{scenario} / {}", r["label"].as_str().unwrap_or_default());
+        assert_eq!(r["exit"], n["exit"], "{label}: exit code");
+        assert_eq!(r["stderr"], n["stderr"], "{label}: stderr");
+        assert_eq!(r["stdout"], n["stdout"], "{label}: stdout JSON");
+        assert_eq!(r["pointer"], n["pointer"], "{label}: .aidlc/state.json");
         assert_eq!(
-            r.intent_files, n.intent_files,
+            r["intents"], n["intents"],
+            "{label}: intent state.json files"
+        );
+        assert_eq!(
+            r["intentFiles"], n["intentFiles"],
             "{label}: files beside intent state"
         );
-        let events = |steps: &Step| {
-            steps
-                .audit
-                .iter()
-                .map(|row| row["event"].clone())
-                .collect::<Vec<_>>()
+        let events = |step: &Value| -> Vec<Value> {
+            step["audit"]
+                .as_array()
+                .map(|rows| rows.iter().map(|row| row["event"].clone()).collect())
+                .unwrap_or_default()
         };
-        assert_eq!(events(r), events(n), "{label}: audit event sequence");
-        assert_eq!(r.audit, n.audit, "{label}: audit rows");
+        assert_eq!(events(&r), events(n), "{label}: audit event sequence");
+        assert_eq!(r["audit"], n["audit"], "{label}: audit rows");
     }
 }
 
@@ -471,8 +459,8 @@ fn complete_current(project: &mut Project, label: &str, directive: &Value) -> Va
 }
 
 #[test]
-fn orchestrate_next_new_intent_directive_matches_node() {
-    assert_lifecycle_parity("new-intent", |p| {
+fn orchestrate_next_new_intent_directive_matches_golden() {
+    assert_lifecycle_golden("new-intent", |p| {
         let directive = start_intent(p, "next --intent", &[]);
         let who = p.who();
         assert_eq!(directive["intentId"], "build-a-sample-feature", "[{who}]");
@@ -499,8 +487,8 @@ fn orchestrate_next_new_intent_directive_matches_node() {
 }
 
 #[test]
-fn orchestrate_next_resume_and_conflicting_intent_match_node() {
-    assert_lifecycle_parity("resume", |p| {
+fn orchestrate_next_resume_and_conflicting_intent_match_golden() {
+    assert_lifecycle_golden("resume", |p| {
         start_intent(p, "next --intent", &[]);
         let resumed = p.run("next (resume)", &["orchestrate", "next"], 0);
         let who = p.who();
@@ -537,8 +525,8 @@ fn orchestrate_next_resume_and_conflicting_intent_match_node() {
 }
 
 #[test]
-fn orchestrate_report_blocked_then_next_reworks_like_node() {
-    assert_lifecycle_parity("blocked-rework", |p| {
+fn orchestrate_report_blocked_then_next_reworks_like_golden() {
+    assert_lifecycle_golden("blocked-rework", |p| {
         start_intent(p, "next --intent", &[]);
         let missing_detail = p.run(
             "report blocked without detail",
@@ -594,7 +582,7 @@ fn orchestrate_report_blocked_then_next_reworks_like_node() {
 }
 
 #[test]
-fn configured_failing_prerequisite_blocks_new_intent_like_node() {
+fn configured_failing_prerequisite_blocks_new_intent_like_golden() {
     let configure = |p: &Project, check: &str| {
         let mut config = p.read_json(".aidlc/config.json");
         assert!(config.is_object(), "[{}] config.json missing", p.who());
@@ -610,7 +598,7 @@ fn configured_failing_prerequisite_blocks_new_intent_like_node() {
             &format!("{}\n", serde_json::to_string_pretty(&config).unwrap()),
         );
     };
-    assert_lifecycle_parity("prerequisite", |p| {
+    assert_lifecycle_golden("prerequisite", |p| {
         configure(p, "exit 7");
         let blocked = p.run(
             "next --intent (prerequisite failing)",
@@ -645,8 +633,8 @@ fn configured_failing_prerequisite_blocks_new_intent_like_node() {
 }
 
 #[test]
-fn completing_first_stage_with_artifacts_matches_node() {
-    assert_lifecycle_parity("complete-stage", |p| {
+fn completing_first_stage_with_artifacts_matches_golden() {
+    assert_lifecycle_golden("complete-stage", |p| {
         let directive = start_intent(p, "next --intent", &[]);
         let who = p.who();
         let early = p.run(
@@ -691,8 +679,8 @@ fn completing_first_stage_with_artifacts_matches_node() {
 }
 
 #[test]
-fn ai_mode_analyze_gate_approval_matches_node() {
-    assert_lifecycle_parity("ai-gate", |p| {
+fn ai_mode_analyze_gate_approval_matches_golden() {
+    assert_lifecycle_golden("ai-gate", |p| {
         let first = start_intent(p, "next --intent --mode ai", &["--mode", "ai"]);
         let who = p.who();
         assert_eq!(first["mode"], "ai", "[{who}]");
@@ -804,13 +792,13 @@ fn ai_mode_analyze_gate_approval_matches_node() {
     });
 }
 
-/// Regression: `orchestrate report` validated the whole project configuration, but Node
-/// reads it with the unvalidated `loadConfig` (malformed JSON is `{}`); and `next`
-/// validated it before the knowledge preflight, where Node validates it inside
-/// `orchestrateNext`. Validation messages print values the way Node's `String()` does.
+/// Regression: `orchestrate report` validated the whole project configuration, but the
+/// reference implementation reads it unvalidated (malformed JSON is `{}`); and `next`
+/// validated it before the knowledge preflight, where the reference validates it while
+/// selecting the stage. Validation messages print values the way the reference does.
 #[test]
-fn configuration_is_read_in_node_order_with_node_messages() {
-    assert_lifecycle_parity("config-order", |p| {
+fn configuration_is_read_in_reference_order_with_reference_messages() {
+    assert_lifecycle_golden("config-order", |p| {
         let who = p.who();
         let original = fs::read_to_string(p.root.join(".aidlc/config.json")).unwrap();
         p.write(".aidlc/config.json", "{bad");
@@ -900,10 +888,11 @@ fn configuration_is_read_in_node_order_with_node_messages() {
 }
 
 /// Regression: a `--project` folder that does not exist leaked the OS error from the
-/// knowledge preflight; Node reports no active intent, or an uninitialized project.
+/// knowledge preflight; the reference reports no active intent, or an uninitialized
+/// project.
 #[test]
-fn missing_project_folder_is_reported_like_node() {
-    assert_lifecycle_parity("missing-project", |p| {
+fn missing_project_folder_is_reported_like_golden() {
+    assert_lifecycle_golden("missing-project", |p| {
         let who = p.who();
         let missing = p.root.join("not-created");
         p.project_arg = Some(missing.clone().into_os_string());
@@ -942,11 +931,11 @@ fn missing_project_folder_is_reported_like_node() {
 }
 
 /// Regression: the project root kept a trailing separator (and, on POSIX, `..`
-/// segments) where Node's `path.resolve` normalises it; and intent text that differs
-/// only by Unicode normalisation is the same intent in Node (`sameIntentText` uses NFC).
+/// segments) where the reference implementation normalises it; and intent text that
+/// differs only by Unicode normalisation is the same intent (compared in NFC).
 #[test]
-fn project_path_spelling_and_nfc_intent_text_match_node() {
-    assert_lifecycle_parity("project-spelling", |p| {
+fn project_path_spelling_and_nfc_intent_text_match_golden() {
+    assert_lifecycle_golden("project-spelling", |p| {
         let who = p.who();
         let expected_dir = p.root.join(".aidlc").join("intents").join("cafe-menu");
         let mut trailing = p.root.clone().into_os_string();
@@ -981,34 +970,41 @@ fn project_path_spelling_and_nfc_intent_text_match_node() {
     });
 }
 
-/// Regression: `DTECH_AIDLC_HOME` was used as spelled; Node resolves it with
-/// `path.resolve`, so directive methodology paths are absolute and normalised.
+/// Regression: `DTECH_AIDLC_HOME` was used as spelled; it must be resolved, so directive
+/// methodology paths are absolute and normalised (golden `engine-home.json`).
 #[test]
-fn engine_home_is_resolved_like_node() {
+fn engine_home_is_resolved_like_golden() {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let spelled = format!("{}/./", repo.to_string_lossy().replace('\\', "/"));
-    let paths = [Cli::Node, Cli::Rust].map(|cli| {
-        let mut p = Project::new(cli, "engine-home");
-        p.onboard();
-        p.home = Some(spelled.clone().into());
-        let directive = start_intent(&mut p, "next --intent", &[]);
-        let templates = directive["artifacts"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|artifact| artifact["template"].clone())
-            .collect::<Vec<_>>();
-        json!({
-            "contractsFile": directive["contractsFile"],
-            "phaseFile": directive["stage"]["phaseFile"],
-            "agentFile": directive["stage"]["agentFile"],
-            "templates": templates,
-        })
+    let mut p = Project::new("engine-home");
+    p.onboard();
+    p.home = Some(spelled.clone().into());
+    let directive = start_intent(&mut p, "next --intent", &[]);
+    let templates = directive["artifacts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|artifact| artifact["template"].clone())
+        .collect::<Vec<_>>();
+    let paths = json!({
+        "contractsFile": directive["contractsFile"],
+        "phaseFile": directive["stage"]["phaseFile"],
+        "agentFile": directive["stage"]["agentFile"],
+        "templates": templates,
     });
-    assert_eq!(paths[1], paths[0], "rust vs node methodology paths");
+    let normalized = without_repo(&paths);
+    if blessing() {
+        write_golden("engine-home.json", &normalized);
+    } else {
+        assert_eq!(
+            normalized,
+            read_golden("engine-home.json"),
+            "methodology paths"
+        );
+    }
     let contracts = repo.join("core").join("methodology").join("contracts.md");
     assert_eq!(
-        paths[1]["contractsFile"].as_str(),
+        paths["contractsFile"].as_str(),
         Some(contracts.to_string_lossy().as_ref())
     );
 }
@@ -1032,10 +1028,10 @@ fn engine_path_normalization_keeps_only_methodology_suffix() {
 }
 
 /// Regression: intent ids for text outside ASCII/Latin-1/Vietnamese (Latin Extended-A,
-/// full-width Latin, ligatures, decomposed marks) must match Node's `intentSlug`, since
+/// full-width Latin, ligatures, decomposed marks) must match the recorded slugs, since
 /// the id names the intent folder, the knowledge record and `suggestedBranch`.
 #[test]
-fn unicode_intent_ids_match_node() {
+fn unicode_intent_ids_match_golden() {
     for (scenario, text) in [
         ("slug-czech", "Opravit chybu v přihlášení uživatele"),
         ("slug-polish", "Naprawić błąd logowania w źródle"),
@@ -1043,7 +1039,7 @@ fn unicode_intent_ids_match_node() {
         ("slug-ligature", "ﬁle ﬂow Ⅻ ①②③ test"),
         ("slug-nfc-hash", "构建 e\u{0301}"),
     ] {
-        assert_lifecycle_parity(scenario, |p| {
+        assert_lifecycle_golden(scenario, |p| {
             let directive = p.run(
                 "next --intent",
                 &["orchestrate", "next", "--intent", text],
@@ -1060,61 +1056,6 @@ fn unicode_intent_ids_match_node() {
     }
 }
 
-/// Node's `intentSlug` folding and NFC, evaluated by Node itself, for parity checks of
-/// `intent_slug_parts` and `nfc`.
-const NODE_UNICODE_SCRIPT: &str = r#"
-const { readFileSync } = await import('node:fs');
-const parts = (source) => {
-  const folded = source.normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/[đĐ]/g, 'd').toLowerCase();
-  const letters = (folded.match(/[\p{L}\p{N}]/gu) || []).length;
-  const kept = (folded.match(/[a-z0-9]/g) || []).length;
-  const base = folded.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48).replace(/-+$/, '');
-  return [base, kept, letters];
-};
-const hex = (text) => [...text].map((c) => c.codePointAt(0).toString(16)).join(' ');
-const out = [];
-if (process.env.AIDLC_MODE === 'codepoints') {
-  for (let cp = 0; cp < 0x110000; cp++) {
-    if (cp >= 0xd800 && cp <= 0xdfff) continue;
-    const text = String.fromCodePoint(cp);
-    const [base, kept, letters] = parts(text);
-    out.push(`${cp.toString(16)}\t${base}\t${kept}\t${letters}\t${hex(text.normalize('NFC'))}`);
-  }
-} else {
-  const inputs = JSON.parse(readFileSync(process.env.AIDLC_INPUT, 'utf8'));
-  for (let cp = 0; cp < 0x110000; cp++) {
-    if (cp >= 0xd800 && cp <= 0xdfff) continue;
-    const text = String.fromCodePoint(cp);
-    for (const form of ['NFD', 'NFKD']) {
-      const decomposed = text.normalize(form);
-      if (decomposed !== text) inputs.push(decomposed, `ab${decomposed}̣́cd`);
-    }
-  }
-  for (const text of inputs) {
-    const [base, kept, letters] = parts(text);
-    out.push(`${hex(text)}\t${base}\t${kept}\t${letters}\t${hex(text.normalize('NFC'))}`);
-  }
-}
-process.stdout.write(out.join('\n'));
-"#;
-
-fn node_unicode(mode: &str, input: Option<&std::path::Path>) -> String {
-    let mut command = Command::new("node");
-    command
-        .args(["--input-type=module", "-e", NODE_UNICODE_SCRIPT])
-        .env("AIDLC_MODE", mode);
-    if let Some(input) = input {
-        command.env("AIDLC_INPUT", input);
-    }
-    let output = command.output().expect("Node must be available");
-    assert!(
-        output.status.success(),
-        "node failed: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    String::from_utf8(output.stdout).unwrap()
-}
-
 fn hex_chars(text: &str) -> String {
     text.chars()
         .map(|c| format!("{:x}", c as u32))
@@ -1128,40 +1069,25 @@ fn rust_unicode_line(key: &str, text: &str) -> String {
     format!("{key}\t{base}\t{kept}\t{letters}\t{}", hex_chars(&nfc))
 }
 
-fn assert_lines_match(node: &str, rust: impl Iterator<Item = String>) {
-    let mut mismatches = Vec::new();
-    let mut count = 0usize;
-    let mut node_lines = node.split('\n');
-    for rust_line in rust {
-        count += 1;
-        let node_line = node_lines.next().unwrap_or("<missing>");
-        if node_line != rust_line && mismatches.len() < 20 {
-            mismatches.push(format!("node {node_line:?}\nrust {rust_line:?}"));
-        }
-    }
-    assert!(node_lines.next().is_none(), "Node produced extra lines");
-    assert!(
-        mismatches.is_empty(),
-        "{count} checked; first mismatches:\n{}",
-        mismatches.join("\n")
-    );
-}
-
-/// Every code point folds (NFKD, `\p{L}\p{N}` count) and normalises (NFC) as in Node.
+/// Every code point folds (NFKD, `\p{L}\p{N}` count) and normalises (NFC) as recorded
+/// from the reference implementation (`unicode-codepoints.json`: line count, SHA-256 of
+/// all lines, per-block hashes and samples).
 #[test]
-fn intent_slug_folding_and_nfc_match_node_for_every_code_point() {
-    let node = node_unicode("codepoints", None);
-    let rust = (0u32..0x110000).filter_map(char::from_u32).map(|c| {
-        let text = c.to_string();
-        rust_unicode_line(&format!("{:x}", c as u32), &text)
-    });
-    assert_lines_match(&node, rust);
+fn intent_slug_folding_and_nfc_match_golden_for_every_code_point() {
+    let rust: Vec<String> = (0u32..0x110000)
+        .filter_map(char::from_u32)
+        .map(|c| rust_unicode_line(&format!("{:x}", c as u32), &c.to_string()))
+        .collect();
+    assert_lines_match_golden("unicode-codepoints.json", &rust);
 }
 
 /// Sequences (decomposed forms, reordered marks, Hangul jamo, mixed scripts) fold and
-/// normalise as in Node, so the fallback hash and the base slug agree.
+/// normalise as recorded from the reference implementation, so the fallback hash and the
+/// base slug agree. The inputs are the seeded random sequences followed by the NFD and
+/// NFKD form of every code point that has one (`unicode-decompositions.txt`, recorded
+/// from the reference; blessing keeps that table and rewrites only the digest).
 #[test]
-fn intent_slug_folding_and_nfc_match_node_for_sequences() {
+fn intent_slug_folding_and_nfc_match_golden_for_sequences() {
     let pool: Vec<char> = [
         0x41..0x5B,
         0x61..0x7B,
@@ -1208,31 +1134,228 @@ fn intent_slug_folding_and_nfc_match_node_for_sequences() {
                 .collect(),
         );
     }
-    let dir = unique_root(Cli::Rust, "unicode-sequences");
-    fs::create_dir_all(&dir).unwrap();
-    let input = dir.join("inputs.json");
-    fs::write(&input, serde_json::to_string(&inputs).unwrap()).unwrap();
-    let node = node_unicode("sequences", Some(&input));
-    let _ = fs::remove_dir_all(&dir);
-    // Node appends the NFD/NFKD forms it found; rebuild each input from its hex key.
-    let rust = node.split('\n').map(|line| {
-        let key = line.split('\t').next().unwrap_or_default();
-        let text: String = key
-            .split(' ')
-            .filter(|part| !part.is_empty())
-            .filter_map(|part| u32::from_str_radix(part, 16).ok())
-            .filter_map(char::from_u32)
-            .collect();
-        rust_unicode_line(key, &text)
-    });
-    let rust: Vec<String> = rust.collect();
-    assert!(rust.len() > inputs.len());
-    for (input, line) in inputs.iter().zip(&rust) {
-        assert_eq!(
-            line.split('\t').next().unwrap_or_default(),
-            hex_chars(input),
-            "Node echoed a different input"
-        );
+    let mut all = inputs;
+    all.extend(decomposed_inputs(&read_golden_text(DECOMPOSITIONS)));
+    let rust: Vec<String> = all
+        .iter()
+        .map(|text| rust_unicode_line(&hex_chars(text), text))
+        .collect();
+    assert_lines_match_golden("unicode-sequences.json", &rust);
+}
+
+// ---------------------------------------------------------------------------
+// Golden files: tests/golden/rust_orchestration_parity/. The transcripts, engine paths
+// and Unicode digests were recorded from the reference implementation; set
+// DTECH_AIDLC_BLESS=1 to rewrite them from the native CLI after an intentional change.
+// ---------------------------------------------------------------------------
+
+fn golden_path(name: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests/golden/rust_orchestration_parity")
+        .join(name)
+}
+
+fn blessing() -> bool {
+    std::env::var_os("DTECH_AIDLC_BLESS").is_some_and(|value| value == "1")
+}
+
+fn write_golden_text(name: &str, text: &str) {
+    let path = golden_path(name);
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    fs::write(path, text).unwrap();
+}
+
+fn write_golden(name: &str, value: &Value) {
+    let mut text = serde_json::to_string_pretty(value).unwrap();
+    text.push('\n');
+    write_golden_text(name, &text);
+}
+
+/// The golden file's text with line endings normalized to `\n`.
+fn read_golden_text(name: &str) -> String {
+    let path = golden_path(name);
+    fs::read_to_string(&path)
+        .unwrap_or_else(|error| {
+            panic!(
+                "cannot read golden {} ({error}); record it with DTECH_AIDLC_BLESS=1",
+                path.display()
+            )
+        })
+        .replace("\r\n", "\n")
+}
+
+fn read_golden(name: &str) -> Value {
+    serde_json::from_str(&read_golden_text(name))
+        .unwrap_or_else(|error| panic!("golden {name} is not JSON: {error}"))
+}
+
+/// One recorded step as JSON.
+fn step_json(step: &Step) -> Value {
+    json!({
+        "label": step.label,
+        "exit": step.exit,
+        "stdout": step.stdout,
+        "stderr": step.stderr,
+        "pointer": step.pointer,
+        "intents": step.intents,
+        "intentFiles": step.intent_files,
+        "audit": step.audit,
+    })
+}
+
+fn transcript(steps: &[Step]) -> Value {
+    Value::Array(steps.iter().map(step_json).collect())
+}
+
+/// Methodology paths with this repository as `<REPO>` and forward slashes.
+fn without_repo(value: &Value) -> Value {
+    let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let native = repo.to_string_lossy().into_owned();
+    let posix = native.replace('\\', "/");
+    match value {
+        Value::String(text) if text.contains(&native) || text.contains(&posix) => Value::String(
+            text.replace(&native, "<REPO>")
+                .replace(&posix, "<REPO>")
+                .replace('\\', "/"),
+        ),
+        Value::Array(items) => Value::Array(items.iter().map(without_repo).collect()),
+        Value::Object(map) => Value::Object(
+            map.iter()
+                .map(|(key, item)| (key.clone(), without_repo(item)))
+                .collect(),
+        ),
+        other => other.clone(),
     }
-    assert_lines_match(&node, rust.into_iter());
+}
+
+const DIGEST_BLOCK: usize = 4096;
+const DIGEST_SAMPLE: usize = 32768;
+
+fn sha256_hex(text: &str) -> String {
+    format!("{:x}", Sha256::digest(text.as_bytes()))
+}
+
+/// A compact record of a large line-oriented output: the line count, the SHA-256 of
+/// the lines joined with `\n`, one SHA-256 per block of lines (to locate a mismatch)
+/// and a sample of lines.
+fn digest_lines(lines: &[String]) -> Value {
+    let blocks: Vec<String> = lines
+        .chunks(DIGEST_BLOCK)
+        .map(|block| sha256_hex(&block.join("\n")))
+        .collect();
+    let samples: Map<String, Value> = lines
+        .iter()
+        .enumerate()
+        .filter(|(index, _)| index % DIGEST_SAMPLE == 0 || *index + 1 == lines.len())
+        .map(|(index, line)| (index.to_string(), json!(line)))
+        .collect();
+    json!({
+        "lines": lines.len(),
+        "sha256": sha256_hex(&lines.join("\n")),
+        "blockLines": DIGEST_BLOCK,
+        "blocks": blocks,
+        "samples": samples,
+    })
+}
+
+/// Compares the native lines with the golden digest `name` (or records it when
+/// blessing), naming the first differing blocks and samples.
+fn assert_lines_match_golden(name: &str, rust: &[String]) {
+    let actual = digest_lines(rust);
+    if blessing() {
+        write_golden(name, &actual);
+        return;
+    }
+    let expected = read_golden(name);
+    if actual == expected {
+        return;
+    }
+    let mut problems = Vec::new();
+    if actual["lines"] != expected["lines"] {
+        problems.push(format!(
+            "line count: golden {} native {}",
+            expected["lines"], actual["lines"]
+        ));
+    }
+    let empty = Vec::new();
+    let golden_blocks = expected["blocks"].as_array().unwrap_or(&empty);
+    for (index, block) in actual["blocks"].as_array().unwrap().iter().enumerate() {
+        if golden_blocks.get(index) != Some(block) && problems.len() < 20 {
+            let first = index * DIGEST_BLOCK;
+            problems.push(format!(
+                "block {index} (lines {first}..{}) differs; first native line {:?}",
+                first + DIGEST_BLOCK,
+                rust[first]
+            ));
+        }
+    }
+    if let Some(samples) = expected["samples"].as_object() {
+        for (index, line) in samples {
+            let native = index.parse::<usize>().ok().and_then(|i| rust.get(i));
+            if native.map(String::as_str) != line.as_str() && problems.len() < 40 {
+                problems.push(format!("line {index}: golden {line} native {native:?}"));
+            }
+        }
+    }
+    panic!(
+        "{name}: native output differs from the golden digest\n{}",
+        problems.join("\n")
+    );
+}
+
+/// Canonical and compatibility decompositions of every code point other than the
+/// Hangul syllables, recorded from the reference implementation: one line per code
+/// point whose NFD or NFKD differs from it, `cp<TAB>NFD<TAB>NFKD` in hex code points,
+/// `-` when that form is the code point itself and `=` when NFKD equals NFD.
+const DECOMPOSITIONS: &str = "unicode-decompositions.txt";
+
+fn parse_hex_chars(text: &str) -> String {
+    text.split(' ')
+        .filter(|part| !part.is_empty())
+        .map(|part| char::from_u32(u32::from_str_radix(part, 16).unwrap()).unwrap())
+        .collect()
+}
+
+/// Hangul syllable decomposition (both NFD and NFKD), computed arithmetically.
+fn hangul_decomposition(c: char) -> Option<String> {
+    let s = (c as u32).checked_sub(0xAC00).filter(|s| *s < 11172)?;
+    let mut out = String::new();
+    out.push(char::from_u32(0x1100 + s / 588).unwrap());
+    out.push(char::from_u32(0x1161 + (s % 588) / 28).unwrap());
+    if s % 28 != 0 {
+        out.push(char::from_u32(0x11A7 + s % 28).unwrap());
+    }
+    Some(out)
+}
+
+/// The decomposed inputs the sequence check appends after its random inputs: for each
+/// code point in order, its NFD and then its NFKD form when that differs from it, each
+/// alone and wrapped as `ab<form>\u{323}\u{301}cd`.
+fn decomposed_inputs(table: &str) -> Vec<String> {
+    let mut forms: BTreeMap<u32, (Option<String>, Option<String>)> = BTreeMap::new();
+    for line in table.lines().filter(|line| !line.is_empty()) {
+        let parts: Vec<&str> = line.split('\t').collect();
+        assert_eq!(parts.len(), 3, "bad decomposition row {line:?}");
+        let cp = u32::from_str_radix(parts[0], 16).unwrap();
+        let nfd = (parts[1] != "-").then(|| parse_hex_chars(parts[1]));
+        let nfkd = match parts[2] {
+            "-" => None,
+            "=" => nfd.clone(),
+            hex => Some(parse_hex_chars(hex)),
+        };
+        forms.insert(cp, (nfd, nfkd));
+    }
+    let mut inputs = Vec::new();
+    for c in (0u32..0x110000).filter_map(char::from_u32) {
+        let (nfd, nfkd) = match hangul_decomposition(c) {
+            Some(syllable) => (Some(syllable.clone()), Some(syllable)),
+            None => forms.get(&(c as u32)).cloned().unwrap_or((None, None)),
+        };
+        for form in [nfd, nfkd].into_iter().flatten() {
+            let wrapped = format!("ab{form}\u{323}\u{301}cd");
+            inputs.push(form);
+            inputs.push(wrapped);
+        }
+    }
+    inputs
 }

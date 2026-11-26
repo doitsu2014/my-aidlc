@@ -1,0 +1,6 @@
+{
+  "sourceChanges": null,
+  "warnings": [
+    "source changes could not be listed: Cannot read properties of null (reading 'path')"
+  ]
+}

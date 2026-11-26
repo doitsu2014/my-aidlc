@@ -1,0 +1,194 @@
+{
+  "steps": [
+    {
+      "argv": [
+        "knowledge",
+        "sources"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"sources\": [\n    {\n      \"id\": \"project\",\n      \"path\": \"PROJECT.md\",\n      \"kind\": \"project\",\n      \"status\": \"ok\",\n      \"size\": 1455\n    },\n    {\n      \"id\": \"README.md\",\n      \"path\": \"README.md\",\n      \"kind\": \"readme\",\n      \"description\": \"Detected readme source.\",\n      \"status\": \"ok\",\n      \"size\": 27\n    },\n    {\n      \"id\": \"docs\",\n      \"path\": \"docs\",\n      \"kind\": \"docs\",\n      \"description\": \"Detected docs source.\",\n      \"status\": \"ok\",\n      \"size\": null\n    }\n  ],\n  \"project\": {\n    \"id\": \"project\",\n    \"path\": \"PROJECT.md\",\n    \"kind\": \"project\",\n    \"status\": \"ok\",\n    \"size\": 1455\n  },\n  \"warnings\": []\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "knowledge",
+        "sources",
+        "list"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"sources\": [\n    {\n      \"id\": \"project\",\n      \"path\": \"PROJECT.md\",\n      \"kind\": \"project\",\n      \"status\": \"ok\",\n      \"size\": 1455\n    },\n    {\n      \"id\": \"README.md\",\n      \"path\": \"README.md\",\n      \"kind\": \"readme\",\n      \"description\": \"Detected readme source.\",\n      \"status\": \"ok\",\n      \"size\": 27\n    },\n    {\n      \"id\": \"docs\",\n      \"path\": \"docs\",\n      \"kind\": \"docs\",\n      \"description\": \"Detected docs source.\",\n      \"status\": \"ok\",\n      \"size\": null\n    }\n  ],\n  \"project\": {\n    \"id\": \"project\",\n    \"path\": \"PROJECT.md\",\n    \"kind\": \"project\",\n    \"status\": \"ok\",\n    \"size\": 1455\n  },\n  \"warnings\": []\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "knowledge",
+        "sources",
+        "add",
+        "extra",
+        "notes/extra.md",
+        "--kind",
+        "docs",
+        "--description",
+        "Extra notes"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"id\": \"extra\",\n  \"path\": \"notes/extra.md\",\n  \"kind\": \"docs\",\n  \"description\": \"Extra notes\"\n}\n",
+      "stderr": "",
+      "files": {
+        "aidlc.knowledge.json": "{\n  \"schemaVersion\": 1,\n  \"sources\": [\n    {\n      \"id\": \"project\",\n      \"path\": \"PROJECT.md\",\n      \"kind\": \"project\"\n    },\n    {\n      \"id\": \"README.md\",\n      \"path\": \"README.md\",\n      \"kind\": \"readme\",\n      \"description\": \"Detected readme source.\"\n    },\n    {\n      \"id\": \"docs\",\n      \"path\": \"docs\",\n      \"kind\": \"docs\",\n      \"description\": \"Detected docs source.\"\n    },\n    {\n      \"id\": \"extra\",\n      \"path\": \"notes/extra.md\",\n      \"kind\": \"docs\",\n      \"description\": \"Extra notes\"\n    }\n  ]\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "knowledge",
+        "sources",
+        "add",
+        "extra",
+        "notes/extra.md"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Source 'extra' already exists\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "knowledge",
+        "sources",
+        "add",
+        "only-id"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Usage: knowledge sources add <id> <path> --kind KIND\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "knowledge",
+        "sources",
+        "add",
+        "outside",
+        "../elsewhere.md"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: source outside: path must be a relative path inside the project root using forward slashes\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "knowledge",
+        "sources",
+        "remove",
+        "extra"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"removed\": \"extra\"\n}\n",
+      "stderr": "",
+      "files": {
+        "aidlc.knowledge.json": "{\n  \"schemaVersion\": 1,\n  \"sources\": [\n    {\n      \"id\": \"project\",\n      \"path\": \"PROJECT.md\",\n      \"kind\": \"project\"\n    },\n    {\n      \"id\": \"README.md\",\n      \"path\": \"README.md\",\n      \"kind\": \"readme\",\n      \"description\": \"Detected readme source.\"\n    },\n    {\n      \"id\": \"docs\",\n      \"path\": \"docs\",\n      \"kind\": \"docs\",\n      \"description\": \"Detected docs source.\"\n    }\n  ]\n}\n"
+      }
+    },
+    {
+      "argv": [
+        "knowledge",
+        "sources",
+        "remove",
+        "extra"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Unknown source 'extra'\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "knowledge",
+        "sources",
+        "remove"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Usage: knowledge sources remove <id>\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "knowledge",
+        "sources",
+        "rename"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Use knowledge sources, knowledge sources add, or knowledge sources remove\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "knowledge",
+        "list"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"records\": [\n    {\n      \"id\": \"legacy-note\",\n      \"title\": \"legacy-note\",\n      \"closed\": null,\n      \"origin\": \"legacy\",\n      \"scope\": null,\n      \"tags\": [],\n      \"supersedes\": [],\n      \"warnings\": [\n        \"no frontmatter; add it using the knowledge-record template\"\n      ],\n      \"file\": \".aidlc/knowledge/legacy-note.md\"\n    },\n    {\n      \"id\": \"routing-note\",\n      \"title\": \"Routing note\",\n      \"origin\": \"archived\",\n      \"scope\": \"solo\",\n      \"closed\": \"2026-11-20\",\n      \"tags\": [\n        \"routing\",\n        \"cli\"\n      ],\n      \"supersedes\": [],\n      \"file\": \".aidlc/knowledge/routing-note.md\",\n      \"parsed\": {\n        \"frontmatter\": {\n          \"id\": \"routing-note\",\n          \"title\": \"Routing note\",\n          \"origin\": \"archived\",\n          \"scope\": \"solo\",\n          \"closed\": \"2026-11-20\",\n          \"tags\": \"[routing, cli]\"\n        },\n        \"lists\": {\n          \"phases-run\": [],\n          \"supersedes\": [],\n          \"tags\": [\n            \"routing\",\n            \"cli\"\n          ]\n        },\n        \"body\": \"# Routing note\\n\\nNative routing.\\n\",\n        \"title\": \"Routing note\",\n        \"headings\": {}\n      }\n    }\n  ],\n  \"invalid\": []\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "knowledge",
+        "show",
+        "routing-note"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"id\": \"routing-note\",\n  \"title\": \"Routing note\",\n  \"origin\": \"archived\",\n  \"scope\": \"solo\",\n  \"closed\": \"2026-11-20\",\n  \"tags\": [\n    \"routing\",\n    \"cli\"\n  ],\n  \"supersedes\": [],\n  \"file\": \".aidlc/knowledge/routing-note.md\",\n  \"parsed\": {\n    \"frontmatter\": {\n      \"id\": \"routing-note\",\n      \"title\": \"Routing note\",\n      \"origin\": \"archived\",\n      \"scope\": \"solo\",\n      \"closed\": \"2026-11-20\",\n      \"tags\": \"[routing, cli]\"\n    },\n    \"lists\": {\n      \"phases-run\": [],\n      \"supersedes\": [],\n      \"tags\": [\n        \"routing\",\n        \"cli\"\n      ]\n    },\n    \"body\": \"# Routing note\\n\\nNative routing.\\n\",\n    \"title\": \"Routing note\",\n    \"headings\": {}\n  }\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "knowledge",
+        "show",
+        "nope"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Unknown knowledge record 'nope'\n",
+      "files": {}
+    },
+    {
+      "argv": [
+        "knowledge",
+        "check"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"ok\": false,\n  \"problems\": [\n    \"routing-note: missing heading Outcome\",\n    \"routing-note: missing heading Decisions\",\n    \"routing-note: missing heading Limitations\",\n    \"routing-note: missing heading Follow-ups\",\n    \"routing-note: missing heading Links\"\n  ],\n  \"records\": 2\n}\n",
+      "stderr": "",
+      "files": {}
+    },
+    {
+      "argv": [
+        "knowledge",
+        "index"
+      ],
+      "code": 0,
+      "stdout": "{\n  \"records\": [\n    {\n      \"id\": \"legacy-note\",\n      \"title\": \"legacy-note\",\n      \"closed\": null,\n      \"origin\": \"legacy\",\n      \"scope\": null,\n      \"tags\": [],\n      \"supersedes\": [],\n      \"warnings\": [\n        \"no frontmatter; add it using the knowledge-record template\"\n      ],\n      \"file\": \".aidlc/knowledge/legacy-note.md\"\n    },\n    {\n      \"id\": \"routing-note\",\n      \"title\": \"Routing note\",\n      \"origin\": \"archived\",\n      \"scope\": \"solo\",\n      \"closed\": \"2026-11-20\",\n      \"tags\": [\n        \"routing\",\n        \"cli\"\n      ],\n      \"supersedes\": [],\n      \"file\": \".aidlc/knowledge/routing-note.md\",\n      \"parsed\": {\n        \"frontmatter\": {\n          \"id\": \"routing-note\",\n          \"title\": \"Routing note\",\n          \"origin\": \"archived\",\n          \"scope\": \"solo\",\n          \"closed\": \"2026-11-20\",\n          \"tags\": \"[routing, cli]\"\n        },\n        \"lists\": {\n          \"phases-run\": [],\n          \"supersedes\": [],\n          \"tags\": [\n            \"routing\",\n            \"cli\"\n          ]\n        },\n        \"body\": \"# Routing note\\n\\nNative routing.\\n\",\n        \"title\": \"Routing note\",\n        \"headings\": {}\n      }\n    }\n  ],\n  \"invalid\": [],\n  \"index\": \".aidlc/knowledge/_index.md\"\n}\n",
+      "stderr": "",
+      "files": {
+        ".aidlc/knowledge/_index.md": "# Knowledge index\n\nRecords: 2. Invalid: 0.\n\n- legacy-note — legacy-note (legacy)\n- routing-note — Routing note (archived, closed 2026-11-20)\n"
+      }
+    },
+    {
+      "argv": [
+        "knowledge",
+        "sources"
+      ],
+      "code": 1,
+      "stdout": "",
+      "stderr": "dtech-aidlc: Invalid knowledge manifest: cannot be parsed as JSON\n",
+      "files": {}
+    }
+  ]
+}

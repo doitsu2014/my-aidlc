@@ -1,0 +1,313 @@
+[
+  {
+    "label": "pause-ok",
+    "argv": [
+      "intent",
+      "pause",
+      "--detail",
+      "lunch"
+    ],
+    "outcome": {
+      "ok": {
+        "paused": true,
+        "intentId": "alpha",
+        "resumeWith": "dtech-aidlc intent resume alpha"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        },
+        {
+          "event": "intent.paused",
+          "intentId": "alpha",
+          "detail": "lunch"
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": null,
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "pause-no-detail",
+    "argv": [
+      "intent",
+      "pause"
+    ],
+    "outcome": {
+      "ok": {
+        "paused": true,
+        "intentId": "alpha",
+        "resumeWith": "dtech-aidlc intent resume alpha"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        },
+        {
+          "event": "intent.paused",
+          "intentId": "alpha",
+          "detail": null
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": null,
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "pause-complete",
+    "argv": [
+      "intent",
+      "pause"
+    ],
+    "outcome": {
+      "ok": {
+        "paused": true,
+        "intentId": "done",
+        "resumeWith": "dtech-aidlc intent resume done"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.paused",
+          "intentId": "done",
+          "detail": null
+        }
+      ],
+      "intents/": null,
+      "intents/done/": null,
+      "intents/done/intent.md": "# done\n\nDo done\n",
+      "intents/done/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "done",
+          "intent": "Do done",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "complete",
+              "detail": null
+            },
+            "red-tests": {
+              "status": "complete",
+              "detail": null
+            },
+            "build-and-verify": {
+              "status": "complete",
+              "detail": null
+            },
+            "intent-record": {
+              "status": "complete",
+              "detail": null
+            },
+            "knowledge-writeback": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": null,
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "pause-ghost",
+    "argv": [
+      "intent",
+      "pause"
+    ],
+    "outcome": {
+      "ok": {
+        "paused": true,
+        "intentId": "ghost",
+        "resumeWith": "dtech-aidlc intent resume ghost"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.paused",
+          "intentId": "ghost",
+          "detail": null
+        }
+      ],
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": null,
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "pause-legacy",
+    "argv": [
+      "intent",
+      "pause"
+    ],
+    "outcome": {
+      "ok": {
+        "paused": true,
+        "intentId": "legacy-export-work",
+        "resumeWith": "dtech-aidlc intent resume legacy-export-work"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "state.migrated",
+          "from": 1,
+          "intentId": "legacy-export-work"
+        },
+        {
+          "event": "intent.paused",
+          "intentId": "legacy-export-work",
+          "detail": null
+        }
+      ],
+      "intents/": null,
+      "intents/legacy-export-work/": null,
+      "intents/legacy-export-work/intent.md": "# legacy-export-work\n\nLegacy export work\n",
+      "intents/legacy-export-work/state.json": {
+        "json": {
+          "intent": "Legacy export work",
+          "scope": "solo",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "createdAt": "<ts>",
+          "version": 2,
+          "dependencies": {},
+          "intentId": "legacy-export-work",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": null,
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.v1.bak.json": {
+        "json": {
+          "intent": "Legacy export work",
+          "scope": "solo",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete"
+            }
+          },
+          "createdAt": "<ts>",
+          "project": "legacy"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  }
+]

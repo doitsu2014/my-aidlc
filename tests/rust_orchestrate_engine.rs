@@ -266,8 +266,8 @@ fn non_regular_methodology_target_is_refused() {
     assert!(!project.join(".aidlc/intents/add-login-page").exists());
 }
 
-/// Regression: with `DTECH_AIDLC_HOME`, context templates point into that engine (Node
-/// `engineRoot()`), and no embedded copy is written into the project.
+/// Regression: with `DTECH_AIDLC_HOME`, context templates point into that engine, and no
+/// embedded copy is written into the project.
 #[test]
 fn external_engine_context_templates_point_into_the_engine() {
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));

@@ -1,0 +1,932 @@
+[
+  {
+    "fixture": "repos-reg"
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "lib",
+      "https://example.invalid/org/lib.git",
+      "--ref",
+      "main"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "name": "lib",
+        "url": "https://example.invalid/org/lib.git",
+        "ref": "main",
+        "path": "<ROOT>/.aidlc/repos/lib"
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"lib\": {\n      \"url\": \"https://example.invalid/org/lib.git\",\n      \"ref\": \"main\"\n    }\n  }\n}"
+      }
+    },
+    "audit": {
+      "appended": [
+        {
+          "ref": "main",
+          "event": "repos.added",
+          "name": "lib"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "lib",
+      "https://example.invalid/org/lib.git",
+      "--ref",
+      "main"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "name": "lib",
+        "url": "https://example.invalid/org/lib.git",
+        "ref": "main",
+        "path": "<ROOT>/.aidlc/repos/lib"
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": [
+        {
+          "ref": "main",
+          "event": "repos.added",
+          "name": "lib"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "lib",
+      "https://example.invalid/org/other.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Dependency lib already exists with a different configuration\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "tool",
+      "git@example.invalid:org/tool.git"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "name": "tool",
+        "url": "git@example.invalid:org/tool.git",
+        "path": "<ROOT>/.aidlc/repos/tool"
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"lib\": {\n      \"url\": \"https://example.invalid/org/lib.git\",\n      \"ref\": \"main\"\n    },\n    \"tool\": {\n      \"url\": \"git@example.invalid:org/tool.git\"\n    }\n  }\n}"
+      }
+    },
+    "audit": {
+      "appended": [
+        {
+          "ref": null,
+          "event": "repos.added",
+          "name": "tool"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "ssh",
+      "ssh://git@example.invalid:2222/org/ssh.git"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "name": "ssh",
+        "url": "ssh://git@example.invalid:2222/org/ssh.git",
+        "path": "<ROOT>/.aidlc/repos/ssh"
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"lib\": {\n      \"url\": \"https://example.invalid/org/lib.git\",\n      \"ref\": \"main\"\n    },\n    \"tool\": {\n      \"url\": \"git@example.invalid:org/tool.git\"\n    },\n    \"ssh\": {\n      \"url\": \"ssh://git@example.invalid:2222/org/ssh.git\"\n    }\n  }\n}"
+      }
+    },
+    "audit": {
+      "appended": [
+        {
+          "ref": null,
+          "event": "repos.added",
+          "name": "ssh"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "creds",
+      "https://user:secret@example.invalid/x.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid repository URL: use https://, ssh://, git@host:path, or an absolute local path without embedded passwords or tokens\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "user",
+      "https://user@example.invalid/x.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid repository URL: use https://, ssh://, git@host:path, or an absolute local path without embedded passwords or tokens\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "sshpass",
+      "ssh://git:pw@example.invalid/x.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid repository URL: use https://, ssh://, git@host:path, or an absolute local path without embedded passwords or tokens\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "rel",
+      "relative/path"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid repository URL: use https://, ssh://, git@host:path, or an absolute local path without embedded passwords or tokens\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "ext",
+      "ext::sh -c x"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid repository URL\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "dash",
+      "-upload-pack"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid repository URL\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "dots",
+      "git@example.invalid:org/../x.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid repository URL: use https://, ssh://, git@host:path, or an absolute local path without embedded passwords or tokens\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "query",
+      "git@example.invalid:org/x.git?y"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid repository URL: use https://, ssh://, git@host:path, or an absolute local path without embedded passwords or tokens\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "port",
+      "https://example.invalid:99999/x.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid repository URL: use https://, ssh://, git@host:path, or an absolute local path without embedded passwords or tokens\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "-bad",
+      "https://example.invalid/x.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency name: -bad\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "badref",
+      "https://example.invalid/x.git",
+      "--ref",
+      "a..b"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency ref\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "badref2",
+      "https://example.invalid/x.git",
+      "--ref",
+      "-x"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency ref\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "only-name"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Usage: repos add <name> <url> [--ref REF]\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Usage: repos add <name> <url> [--ref REF]\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [
+        {
+          "name": "lib",
+          "url": "https://example.invalid/org/lib.git",
+          "ref": "main",
+          "path": "<ROOT>/.aidlc/repos/lib",
+          "status": "not-cloned"
+        },
+        {
+          "name": "tool",
+          "url": "git@example.invalid:org/tool.git",
+          "path": "<ROOT>/.aidlc/repos/tool",
+          "status": "not-cloned"
+        },
+        {
+          "name": "ssh",
+          "url": "ssh://git@example.invalid:2222/org/ssh.git",
+          "path": "<ROOT>/.aidlc/repos/ssh",
+          "status": "not-cloned"
+        }
+      ],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "remove",
+      "unknown"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Unknown dependency: unknown\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "remove",
+      "tool"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "name": "tool",
+        "removed": true
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"lib\": {\n      \"url\": \"https://example.invalid/org/lib.git\",\n      \"ref\": \"main\"\n    },\n    \"ssh\": {\n      \"url\": \"ssh://git@example.invalid:2222/org/ssh.git\"\n    }\n  }\n}"
+      }
+    },
+    "audit": {
+      "appended": [
+        {
+          "name": "tool",
+          "event": "repos.removed"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "remove"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Use repos add <name> <url> [--ref REF], repos list, repos pull [name], or repos remove <name>\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [
+        {
+          "name": "lib",
+          "url": "https://example.invalid/org/lib.git",
+          "ref": "main",
+          "path": "<ROOT>/.aidlc/repos/lib",
+          "status": "not-cloned"
+        },
+        {
+          "name": "ssh",
+          "url": "ssh://git@example.invalid:2222/org/ssh.git",
+          "path": "<ROOT>/.aidlc/repos/ssh",
+          "status": "not-cloned"
+        }
+      ],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "bogus"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Use repos add <name> <url> [--ref REF], repos list, repos pull [name], or repos remove <name>\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Use repos add <name> <url> [--ref REF], repos list, repos pull [name], or repos remove <name>\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "repos-declared"
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "lib",
+      "https://example.invalid/lib.git"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "name": "lib",
+        "url": "https://example.invalid/lib.git",
+        "path": "<ROOT>/.aidlc/repos/lib"
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"kept\": {\n      \"url\": \"https://example.invalid/kept.git\"\n    },\n    \"lib\": {\n      \"url\": \"https://example.invalid/lib.git\"\n    }\n  }\n}",
+        "aidlc.deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"kept\": {\n      \"url\": \"https://example.invalid/kept.git\"\n    },\n    \"lib\": {\n      \"url\": \"https://example.invalid/lib.git\"\n    }\n  }\n}"
+      }
+    },
+    "audit": {
+      "appended": [
+        {
+          "ref": null,
+          "event": "repos.added",
+          "name": "lib"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "kept",
+      "https://example.invalid/kept.git"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "name": "kept",
+        "url": "https://example.invalid/kept.git",
+        "path": "<ROOT>/.aidlc/repos/kept"
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": [
+        {
+          "ref": null,
+          "event": "repos.added",
+          "name": "kept"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "kept",
+      "https://example.invalid/changed.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Dependency kept already exists with a different configuration\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [
+        {
+          "name": "kept",
+          "url": "https://example.invalid/kept.git",
+          "path": "<ROOT>/.aidlc/repos/kept",
+          "status": "not-cloned"
+        },
+        {
+          "name": "lib",
+          "url": "https://example.invalid/lib.git",
+          "path": "<ROOT>/.aidlc/repos/lib",
+          "status": "not-cloned"
+        }
+      ],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "remove",
+      "kept"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "name": "kept",
+        "removed": true
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"lib\": {\n      \"url\": \"https://example.invalid/lib.git\"\n    }\n  }\n}",
+        "aidlc.deps.json": "{\n  \"schemaVersion\": 1,\n  \"repos\": {\n    \"lib\": {\n      \"url\": \"https://example.invalid/lib.git\"\n    }\n  }\n}"
+      }
+    },
+    "audit": {
+      "appended": [
+        {
+          "name": "kept",
+          "event": "repos.removed"
+        }
+      ]
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "remove",
+      "kept"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Unknown dependency: kept\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [
+        {
+          "name": "lib",
+          "url": "https://example.invalid/lib.git",
+          "path": "<ROOT>/.aidlc/repos/lib",
+          "status": "not-cloned"
+        }
+      ],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "repos-badjson"
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency manifest: malformed JSON\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "z",
+      "https://example.invalid/z.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency manifest: malformed JSON\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "remove",
+      "a"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency manifest: malformed JSON\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "repos-badshape"
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency manifest: expected schemaVersion 1 and repos object\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "z",
+      "https://example.invalid/z.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency manifest: expected schemaVersion 1 and repos object\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "remove",
+      "a"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency manifest: expected schemaVersion 1 and repos object\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "repos-badentry"
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency ref\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "z",
+      "https://example.invalid/z.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency ref\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "remove",
+      "a"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency ref\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "repos-baddeclared"
+  },
+  {
+    "argv": [
+      "repos",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": [],
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "add",
+      "z",
+      "https://example.invalid/z.git"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency manifest: expected schemaVersion 1 and repos object\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "repos",
+      "remove",
+      "a"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Invalid dependency manifest: expected schemaVersion 1 and repos object\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  }
+]

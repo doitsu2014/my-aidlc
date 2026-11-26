@@ -1,0 +1,427 @@
+[
+  {
+    "label": "onboarded",
+    "argv": [
+      "intent",
+      "assign",
+      "Dana"
+    ],
+    "outcome": {
+      "ok": {
+        "intentId": "parity-intent-one",
+        "assignee": "Dana"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "intents/parity-intent-one/state.json": {
+          "json": {
+            "version": 2,
+            "intentId": "parity-intent-one",
+            "intent": "Parity intent one",
+            "scope": "solo",
+            "scopeSource": "config",
+            "projectScope": "solo",
+            "depth": "full",
+            "mode": "human",
+            "status": "active",
+            "currentStage": "problem-framing",
+            "stages": {
+              "problem-framing": {
+                "status": "in_progress",
+                "startedAt": "<ts>",
+                "detail": null
+              }
+            },
+            "dependencies": {},
+            "createdAt": "<ts>",
+            "modeSource": "config",
+            "updatedAt": "<ts>",
+            "assignee": "Dana"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "onboarded",
+    "argv": [
+      "intent",
+      "depth",
+      "standard",
+      "--approved-by",
+      "Owner",
+      "--detail",
+      "pilot"
+    ],
+    "outcome": {
+      "ok": {
+        "intentId": "parity-intent-one",
+        "from": "full",
+        "to": "standard"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "project.initialized",
+            "harness": "claude",
+            "scope": "solo",
+            "graphPhases": 6,
+            "projection": ".claude/skills/dtech-aidlc"
+          },
+          {
+            "event": "project.onboarded",
+            "kind": "greenfield",
+            "languages": []
+          },
+          {
+            "event": "intent.created",
+            "intent": "Parity intent one",
+            "intentId": "parity-intent-one",
+            "scope": "solo",
+            "scopeSource": "config",
+            "projectScope": "solo",
+            "mode": "human",
+            "modeSource": "config"
+          },
+          {
+            "event": "stage.selected",
+            "intent": "Parity intent one",
+            "intentId": "parity-intent-one",
+            "stage": "problem-framing",
+            "rework": false
+          },
+          {
+            "event": "depth.changed",
+            "intentId": "parity-intent-one",
+            "from": "full",
+            "to": "standard",
+            "by": "Owner",
+            "bySource": "flag",
+            "detail": "pilot"
+          }
+        ],
+        "intents/parity-intent-one/state.json": {
+          "json": {
+            "version": 2,
+            "intentId": "parity-intent-one",
+            "intent": "Parity intent one",
+            "scope": "solo",
+            "scopeSource": "config",
+            "projectScope": "solo",
+            "depth": "standard",
+            "mode": "human",
+            "status": "active",
+            "currentStage": "problem-framing",
+            "stages": {
+              "problem-framing": {
+                "status": "in_progress",
+                "startedAt": "<ts>",
+                "detail": null
+              }
+            },
+            "dependencies": {},
+            "createdAt": "<ts>",
+            "modeSource": "config",
+            "updatedAt": "<ts>",
+            "assignee": "Dana"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "onboarded",
+    "argv": [
+      "intent",
+      "pause",
+      "--detail",
+      "later"
+    ],
+    "outcome": {
+      "ok": {
+        "paused": true,
+        "intentId": "parity-intent-one",
+        "resumeWith": "dtech-aidlc intent resume parity-intent-one"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "project.initialized",
+            "harness": "claude",
+            "scope": "solo",
+            "graphPhases": 6,
+            "projection": ".claude/skills/dtech-aidlc"
+          },
+          {
+            "event": "project.onboarded",
+            "kind": "greenfield",
+            "languages": []
+          },
+          {
+            "event": "intent.created",
+            "intent": "Parity intent one",
+            "intentId": "parity-intent-one",
+            "scope": "solo",
+            "scopeSource": "config",
+            "projectScope": "solo",
+            "mode": "human",
+            "modeSource": "config"
+          },
+          {
+            "event": "stage.selected",
+            "intent": "Parity intent one",
+            "intentId": "parity-intent-one",
+            "stage": "problem-framing",
+            "rework": false
+          },
+          {
+            "event": "depth.changed",
+            "intentId": "parity-intent-one",
+            "from": "full",
+            "to": "standard",
+            "by": "Owner",
+            "bySource": "flag",
+            "detail": "pilot"
+          },
+          {
+            "event": "intent.paused",
+            "intentId": "parity-intent-one",
+            "detail": "later"
+          }
+        ],
+        "state.json": {
+          "json": {
+            "version": 2,
+            "activeIntentId": null,
+            "updatedAt": "<ts>"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "onboarded",
+    "argv": [
+      "intent",
+      "resume",
+      "parity-intent-one"
+    ],
+    "outcome": {
+      "ok": {
+        "resumed": true,
+        "intentId": "parity-intent-one",
+        "currentStage": "problem-framing"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "project.initialized",
+            "harness": "claude",
+            "scope": "solo",
+            "graphPhases": 6,
+            "projection": ".claude/skills/dtech-aidlc"
+          },
+          {
+            "event": "project.onboarded",
+            "kind": "greenfield",
+            "languages": []
+          },
+          {
+            "event": "intent.created",
+            "intent": "Parity intent one",
+            "intentId": "parity-intent-one",
+            "scope": "solo",
+            "scopeSource": "config",
+            "projectScope": "solo",
+            "mode": "human",
+            "modeSource": "config"
+          },
+          {
+            "event": "stage.selected",
+            "intent": "Parity intent one",
+            "intentId": "parity-intent-one",
+            "stage": "problem-framing",
+            "rework": false
+          },
+          {
+            "event": "depth.changed",
+            "intentId": "parity-intent-one",
+            "from": "full",
+            "to": "standard",
+            "by": "Owner",
+            "bySource": "flag",
+            "detail": "pilot"
+          },
+          {
+            "event": "intent.paused",
+            "intentId": "parity-intent-one",
+            "detail": "later"
+          },
+          {
+            "event": "intent.resumed",
+            "intentId": "parity-intent-one",
+            "detail": null
+          }
+        ],
+        "state.json": {
+          "json": {
+            "version": 2,
+            "activeIntentId": "parity-intent-one",
+            "updatedAt": "<ts>"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "onboarded",
+    "argv": [
+      "intent",
+      "rework",
+      "--detail",
+      "x"
+    ],
+    "outcome": {
+      "error": "Design rework is only available after a blocked Develop stage",
+      "code": 1
+    },
+    "aidlc": {}
+  },
+  {
+    "label": "onboarded",
+    "argv": [
+      "intent",
+      "abandon",
+      "--detail",
+      "superseded"
+    ],
+    "outcome": {
+      "ok": {
+        "abandoned": true,
+        "intentId": "parity-intent-one"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "project.initialized",
+            "harness": "claude",
+            "scope": "solo",
+            "graphPhases": 6,
+            "projection": ".claude/skills/dtech-aidlc"
+          },
+          {
+            "event": "project.onboarded",
+            "kind": "greenfield",
+            "languages": []
+          },
+          {
+            "event": "intent.created",
+            "intent": "Parity intent one",
+            "intentId": "parity-intent-one",
+            "scope": "solo",
+            "scopeSource": "config",
+            "projectScope": "solo",
+            "mode": "human",
+            "modeSource": "config"
+          },
+          {
+            "event": "stage.selected",
+            "intent": "Parity intent one",
+            "intentId": "parity-intent-one",
+            "stage": "problem-framing",
+            "rework": false
+          },
+          {
+            "event": "depth.changed",
+            "intentId": "parity-intent-one",
+            "from": "full",
+            "to": "standard",
+            "by": "Owner",
+            "bySource": "flag",
+            "detail": "pilot"
+          },
+          {
+            "event": "intent.paused",
+            "intentId": "parity-intent-one",
+            "detail": "later"
+          },
+          {
+            "event": "intent.resumed",
+            "intentId": "parity-intent-one",
+            "detail": null
+          },
+          {
+            "event": "intent.abandoned",
+            "intentId": "parity-intent-one",
+            "detail": "superseded"
+          }
+        ],
+        "intents/parity-intent-one/state.json": {
+          "json": {
+            "version": 2,
+            "intentId": "parity-intent-one",
+            "intent": "Parity intent one",
+            "scope": "solo",
+            "scopeSource": "config",
+            "projectScope": "solo",
+            "depth": "standard",
+            "mode": "human",
+            "status": "abandoned",
+            "currentStage": null,
+            "stages": {
+              "problem-framing": {
+                "status": "in_progress",
+                "startedAt": "<ts>",
+                "detail": null
+              }
+            },
+            "dependencies": {},
+            "createdAt": "<ts>",
+            "modeSource": "config",
+            "updatedAt": "<ts>",
+            "assignee": "Dana",
+            "closed": {
+              "kind": "abandoned",
+              "at": "<ts>",
+              "detail": "superseded"
+            }
+          },
+          "raw-trailing-newline": true
+        },
+        "state.json": {
+          "json": {
+            "version": 2,
+            "activeIntentId": null,
+            "updatedAt": "<ts>"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "onboarded",
+    "argv": [
+      "intent",
+      "pause"
+    ],
+    "outcome": {
+      "error": "No unfinished active intent to pause",
+      "code": 1
+    },
+    "aidlc": {}
+  }
+]

@@ -1,0 +1,392 @@
+[
+  {
+    "fixture": "bare"
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources",
+      "remove",
+      "project"
+    ],
+    "outcome": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: No aidlc.knowledge.json\n"
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "sources": [
+          {
+            "id": "project",
+            "path": "PROJECT.md",
+            "kind": "project",
+            "status": "missing",
+            "size": null
+          }
+        ],
+        "project": {
+          "id": "project",
+          "path": "PROJECT.md",
+          "kind": "project",
+          "status": "missing",
+          "size": null
+        },
+        "warnings": [
+          "Source project path PROJECT.md does not exist"
+        ]
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "list"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "records": [],
+        "invalid": []
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "init"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "project": {
+          "path": "PROJECT.md",
+          "created": true
+        },
+        "manifest": "aidlc.knowledge.json",
+        "manifestStatus": "absent",
+        "knowledgeDir": ".aidlc/knowledge",
+        "warnings": []
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/": "",
+        ".aidlc/knowledge/": "",
+        "PROJECT.md": "# Project\n\nStanding knowledge for this repository. Humans edit this file. The tool never overwrites it.\n\n## Purpose and users\n\nWho the software is for, and what problem it solves.\n\n## Domain glossary\n\nTerms the team must use the same way.\n\n## Architecture overview\n\nThe current shape of the system, in enough detail for Analyze to start.\n\n## Conventions\n\nCode, review, and collaboration conventions.\n\n## Constraints and non-negotiables\n\nLegal, operational, and product rules that an intent may not break.\n\n## Testing and release\n\nHow to run tests, what must pass, and how a change is released.\n\n## Commands\n\nThe exact commands an agent runs, from the repository root: build, test, lint, format, and a baseline command that runs the whole existing suite.\n\n## Environment prerequisites\n\nWhat must be installed or running before code can be built or tested (for example Docker Desktop, a database, a language toolchain), and how to check it. Register a check with `dtech-aidlc config prerequisite set NAME --check \"COMMAND\"`.\n\n## Known baseline failures\n\nChecks that already fail before any change (for example existing type errors or lint findings), with the count and the reason, so a new failure can be told apart from an old one.\n\n## Deeper docs\n\nPointers to architecture notes, ADRs, API specs, and runbooks. Register those paths in `aidlc.knowledge.json` (kinds: project, docs, requirements, architecture, adr, api-spec, runbook, conventions, readme).\n"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "init"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "project": {
+          "path": "PROJECT.md",
+          "created": false,
+          "reason": "already exists"
+        },
+        "manifest": "aidlc.knowledge.json",
+        "manifestStatus": "absent",
+        "knowledgeDir": ".aidlc/knowledge",
+        "warnings": []
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "sources": [
+          {
+            "id": "project",
+            "path": "PROJECT.md",
+            "kind": "project",
+            "status": "ok",
+            "size": 1455
+          }
+        ],
+        "project": {
+          "id": "project",
+          "path": "PROJECT.md",
+          "kind": "project",
+          "status": "ok",
+          "size": 1455
+        },
+        "warnings": []
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "lower"
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "sources": [
+          {
+            "id": "project",
+            "path": "project.md",
+            "kind": "project",
+            "status": "ok",
+            "size": 8
+          }
+        ],
+        "project": {
+          "id": "project",
+          "path": "project.md",
+          "kind": "project",
+          "status": "ok",
+          "size": 8
+        },
+        "warnings": []
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        "project.md": "# lower\n"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "init"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "project": {
+          "path": "project.md",
+          "created": false,
+          "reason": "already exists"
+        },
+        "manifest": "aidlc.knowledge.json",
+        "manifestStatus": "absent",
+        "knowledgeDir": ".aidlc/knowledge",
+        "warnings": []
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/": "",
+        ".aidlc/knowledge/": ""
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "nested"
+  },
+  {
+    "argv": [
+      "knowledge",
+      "init"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "project": {
+          "path": "docs/PROJECT.md",
+          "created": false,
+          "reason": "parent directory does not exist"
+        },
+        "manifest": "aidlc.knowledge.json",
+        "manifestStatus": "unchanged",
+        "knowledgeDir": ".aidlc/knowledge",
+        "warnings": []
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/": "",
+        ".aidlc/knowledge/": "",
+        "aidlc.knowledge.json": "{\n  \"schemaVersion\": 1,\n  \"sources\": [\n    {\n      \"id\": \"project\",\n      \"path\": \"docs/PROJECT.md\",\n      \"kind\": \"project\"\n    }\n  ]\n}"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "fixture": "noproject"
+  },
+  {
+    "argv": [
+      "knowledge",
+      "init"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "project": {
+          "path": null,
+          "created": false,
+          "reason": "no project source declared"
+        },
+        "manifest": "aidlc.knowledge.json",
+        "manifestStatus": "unchanged",
+        "knowledgeDir": ".aidlc/knowledge",
+        "warnings": []
+      },
+      "stderr": ""
+    },
+    "files": {
+      "changed": {
+        ".aidlc/": "",
+        ".aidlc/knowledge/": "",
+        "aidlc.knowledge.json": "{\n  \"schemaVersion\": 1,\n  \"sources\": []\n}"
+      }
+    },
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources"
+    ],
+    "outcome": {
+      "code": 0,
+      "stdout": {
+        "sources": [],
+        "project": null,
+        "warnings": []
+      },
+      "stderr": ""
+    },
+    "files": {},
+    "audit": {
+      "appended": []
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "sources"
+    ],
+    "missingProject": {
+      "code": 0,
+      "stdout": {
+        "sources": [
+          {
+            "id": "project",
+            "path": "PROJECT.md",
+            "kind": "project",
+            "status": "missing",
+            "size": null
+          }
+        ],
+        "project": {
+          "id": "project",
+          "path": "PROJECT.md",
+          "kind": "project",
+          "status": "missing",
+          "size": null
+        },
+        "warnings": [
+          "Source project path PROJECT.md does not exist"
+        ]
+      },
+      "stderr": ""
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "list"
+    ],
+    "missingProject": {
+      "code": 0,
+      "stdout": {
+        "records": [],
+        "invalid": []
+      },
+      "stderr": ""
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "check"
+    ],
+    "missingProject": {
+      "code": 0,
+      "stdout": {
+        "ok": true,
+        "problems": [],
+        "records": 0
+      },
+      "stderr": ""
+    }
+  },
+  {
+    "argv": [
+      "knowledge",
+      "show",
+      "x"
+    ],
+    "missingProject": {
+      "code": 1,
+      "stdout": null,
+      "stderr": "dtech-aidlc: Unknown knowledge record 'x'\n"
+    }
+  }
+]

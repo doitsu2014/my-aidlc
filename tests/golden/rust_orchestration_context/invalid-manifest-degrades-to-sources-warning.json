@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "<ROOT>",
+  "granted": [
+    "request",
+    "project",
+    "sources",
+    "knowledge",
+    "profile",
+    "repos"
+  ],
+  "warnings": [
+    "sources could not be listed: Invalid knowledge manifest: cannot be parsed as JSON"
+  ],
+  "codebaseMap": {
+    "path": ".aidlc/knowledge/_codebase-map.md",
+    "modifiedAt": null,
+    "exists": false,
+    "required": null,
+    "reason": "project not scanned",
+    "bytes": 0
+  },
+  "knowledge": {
+    "dir": ".aidlc/knowledge",
+    "records": [],
+    "invalid": [],
+    "record": null
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "<ROOT>",
+  "granted": [
+    "project",
+    "sources"
+  ],
+  "warnings": [
+    "No aidlc.knowledge.json was found, so no project documentation is registered for agents. Run `dtech-aidlc onboard --harness <claude|deepseek>`.",
+    "Source project path PROJECT.md does not exist"
+  ],
+  "project": {
+    "id": "project",
+    "path": "PROJECT.md",
+    "kind": "project",
+    "status": "missing",
+    "size": null,
+    "provenance": "User-provided"
+  },
+  "sources": [],
+  "sourceChanges": {
+    "scanned": false,
+    "scannedAt": null,
+    "missing": [],
+    "changed": [],
+    "added": [],
+    "removed": [],
+    "more": {
+      "changed": 0,
+      "added": 0,
+      "removed": 0
+    }
+  },
+  "codebaseMap": null,
+  "knowledge": {
+    "record": null
+  }
+}

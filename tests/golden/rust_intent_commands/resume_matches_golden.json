@@ -1,0 +1,731 @@
+[
+  {
+    "label": "resume-cycle",
+    "argv": [
+      "intent",
+      "pause",
+      "--detail",
+      "switch"
+    ],
+    "outcome": {
+      "ok": {
+        "paused": true,
+        "intentId": "alpha",
+        "resumeWith": "dtech-aidlc intent resume alpha"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "intent.created",
+            "intentId": "alpha"
+          },
+          {
+            "event": "intent.paused",
+            "intentId": "alpha",
+            "detail": "switch"
+          }
+        ],
+        "state.json": {
+          "json": {
+            "version": 2,
+            "activeIntentId": null,
+            "updatedAt": "<ts>"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "resume-cycle",
+    "argv": [
+      "intent",
+      "resume",
+      "beta"
+    ],
+    "outcome": {
+      "ok": {
+        "resumed": true,
+        "intentId": "beta",
+        "currentStage": "context-and-risk"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "intent.created",
+            "intentId": "alpha"
+          },
+          {
+            "event": "intent.paused",
+            "intentId": "alpha",
+            "detail": "switch"
+          },
+          {
+            "event": "intent.resumed",
+            "intentId": "beta",
+            "detail": null
+          }
+        ],
+        "state.json": {
+          "json": {
+            "version": 2,
+            "activeIntentId": "beta",
+            "updatedAt": "<ts>"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "resume-cycle",
+    "argv": [
+      "intent",
+      "resume",
+      "beta"
+    ],
+    "outcome": {
+      "ok": {
+        "resumed": true,
+        "intentId": "beta",
+        "currentStage": "context-and-risk"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "intent.created",
+            "intentId": "alpha"
+          },
+          {
+            "event": "intent.paused",
+            "intentId": "alpha",
+            "detail": "switch"
+          },
+          {
+            "event": "intent.resumed",
+            "intentId": "beta",
+            "detail": null
+          },
+          {
+            "event": "intent.resumed",
+            "intentId": "beta",
+            "detail": null
+          }
+        ]
+      }
+    }
+  },
+  {
+    "label": "resume-cycle",
+    "argv": [
+      "intent",
+      "resume",
+      "alpha"
+    ],
+    "outcome": {
+      "error": "Intent 'beta' is active; pause or finish it first",
+      "code": 1
+    },
+    "aidlc": {}
+  },
+  {
+    "label": "resume-cycle",
+    "argv": [
+      "intent",
+      "pause"
+    ],
+    "outcome": {
+      "ok": {
+        "paused": true,
+        "intentId": "beta",
+        "resumeWith": "dtech-aidlc intent resume beta"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "intent.created",
+            "intentId": "alpha"
+          },
+          {
+            "event": "intent.paused",
+            "intentId": "alpha",
+            "detail": "switch"
+          },
+          {
+            "event": "intent.resumed",
+            "intentId": "beta",
+            "detail": null
+          },
+          {
+            "event": "intent.resumed",
+            "intentId": "beta",
+            "detail": null
+          },
+          {
+            "event": "intent.paused",
+            "intentId": "beta",
+            "detail": null
+          }
+        ],
+        "state.json": {
+          "json": {
+            "version": 2,
+            "activeIntentId": null,
+            "updatedAt": "<ts>"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "resume-cycle",
+    "argv": [
+      "intent",
+      "resume",
+      "alpha"
+    ],
+    "outcome": {
+      "ok": {
+        "resumed": true,
+        "intentId": "alpha",
+        "currentStage": "context-and-risk"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "intent.created",
+            "intentId": "alpha"
+          },
+          {
+            "event": "intent.paused",
+            "intentId": "alpha",
+            "detail": "switch"
+          },
+          {
+            "event": "intent.resumed",
+            "intentId": "beta",
+            "detail": null
+          },
+          {
+            "event": "intent.resumed",
+            "intentId": "beta",
+            "detail": null
+          },
+          {
+            "event": "intent.paused",
+            "intentId": "beta",
+            "detail": null
+          },
+          {
+            "event": "intent.resumed",
+            "intentId": "alpha",
+            "detail": null
+          }
+        ],
+        "state.json": {
+          "json": {
+            "version": 2,
+            "activeIntentId": "alpha",
+            "updatedAt": "<ts>"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "resume-no-current",
+    "argv": [
+      "intent",
+      "resume",
+      "alpha"
+    ],
+    "outcome": {
+      "ok": {
+        "resumed": true,
+        "intentId": "alpha"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.resumed",
+          "intentId": "alpha",
+          "detail": null
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "alpha",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "resume-over-ghost",
+    "argv": [
+      "intent",
+      "resume",
+      "beta"
+    ],
+    "outcome": {
+      "ok": {
+        "resumed": true,
+        "intentId": "beta",
+        "currentStage": "context-and-risk"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        },
+        {
+          "event": "intent.resumed",
+          "intentId": "beta",
+          "detail": null
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/beta/": null,
+      "intents/beta/intent.md": "# beta\n\nDo beta\n",
+      "intents/beta/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "beta",
+          "intent": "Do beta",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/done/": null,
+      "intents/done/intent.md": "# done\n\nDo done\n",
+      "intents/done/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "done",
+          "intent": "Do done",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "complete",
+              "detail": null
+            },
+            "red-tests": {
+              "status": "complete",
+              "detail": null
+            },
+            "build-and-verify": {
+              "status": "complete",
+              "detail": null
+            },
+            "intent-record": {
+              "status": "complete",
+              "detail": null
+            },
+            "knowledge-writeback": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/gone/": null,
+      "intents/gone/intent.md": "# gone\n\nDo gone\n",
+      "intents/gone/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "gone",
+          "intent": "Do gone",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "closed": {
+            "kind": "abandoned",
+            "at": "<ts>",
+            "detail": "old"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "beta",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "resume-over-complete",
+    "argv": [
+      "intent",
+      "resume",
+      "beta"
+    ],
+    "outcome": {
+      "ok": {
+        "resumed": true,
+        "intentId": "beta",
+        "currentStage": "context-and-risk"
+      }
+    },
+    "aidlc": {
+      "audit.jsonl": [
+        {
+          "event": "intent.created",
+          "intentId": "alpha"
+        },
+        {
+          "event": "intent.resumed",
+          "intentId": "beta",
+          "detail": null
+        }
+      ],
+      "intents/": null,
+      "intents/alpha/": null,
+      "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
+      "intents/alpha/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "alpha",
+          "intent": "Do alpha",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/beta/": null,
+      "intents/beta/intent.md": "# beta\n\nDo beta\n",
+      "intents/beta/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "beta",
+          "intent": "Do beta",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": "context-and-risk",
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/done/": null,
+      "intents/done/intent.md": "# done\n\nDo done\n",
+      "intents/done/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "done",
+          "intent": "Do done",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            },
+            "context-and-risk": {
+              "status": "complete",
+              "detail": null
+            },
+            "option-generation": {
+              "status": "complete",
+              "detail": null
+            },
+            "direction-selection": {
+              "status": "complete",
+              "detail": null
+            },
+            "implementation-design": {
+              "status": "complete",
+              "detail": null
+            },
+            "red-tests": {
+              "status": "complete",
+              "detail": null
+            },
+            "build-and-verify": {
+              "status": "complete",
+              "detail": null
+            },
+            "intent-record": {
+              "status": "complete",
+              "detail": null
+            },
+            "knowledge-writeback": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      },
+      "intents/gone/": null,
+      "intents/gone/intent.md": "# gone\n\nDo gone\n",
+      "intents/gone/state.json": {
+        "json": {
+          "version": 2,
+          "intentId": "gone",
+          "intent": "Do gone",
+          "scope": "solo",
+          "mode": "human",
+          "status": "active",
+          "currentStage": null,
+          "stages": {
+            "problem-framing": {
+              "status": "complete",
+              "detail": null
+            }
+          },
+          "dependencies": {},
+          "createdAt": "<ts>",
+          "updatedAt": "<ts>",
+          "closed": {
+            "kind": "abandoned",
+            "at": "<ts>",
+            "detail": "old"
+          }
+        },
+        "raw-trailing-newline": true
+      },
+      "state.json": {
+        "json": {
+          "version": 2,
+          "activeIntentId": "beta",
+          "updatedAt": "<ts>"
+        },
+        "raw-trailing-newline": true
+      }
+    }
+  },
+  {
+    "label": "resume-legacy",
+    "argv": [
+      "intent",
+      "resume",
+      "beta"
+    ],
+    "outcome": {
+      "error": "Intent 'legacy-export-work' is active; pause or finish it first",
+      "code": 1
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "state.migrated",
+            "from": 1,
+            "intentId": "legacy-export-work"
+          }
+        ],
+        "intents/legacy-export-work/": null,
+        "intents/legacy-export-work/intent.md": "# legacy-export-work\n\nLegacy export work\n",
+        "intents/legacy-export-work/state.json": {
+          "json": {
+            "intent": "Legacy export work",
+            "scope": "solo",
+            "currentStage": "context-and-risk",
+            "stages": {
+              "problem-framing": {
+                "status": "complete",
+                "detail": null
+              }
+            },
+            "createdAt": "<ts>",
+            "version": 2,
+            "dependencies": {},
+            "intentId": "legacy-export-work",
+            "updatedAt": "<ts>"
+          },
+          "raw-trailing-newline": true
+        },
+        "state.json": {
+          "json": {
+            "version": 2,
+            "activeIntentId": "legacy-export-work",
+            "updatedAt": "<ts>"
+          },
+          "raw-trailing-newline": true
+        },
+        "state.v1.bak.json": {
+          "json": {
+            "intent": "Legacy export work",
+            "scope": "solo",
+            "currentStage": "context-and-risk",
+            "stages": {
+              "problem-framing": {
+                "status": "complete"
+              }
+            },
+            "createdAt": "<ts>",
+            "project": "legacy"
+          },
+          "raw-trailing-newline": true
+        }
+      }
+    }
+  },
+  {
+    "label": "resume-legacy",
+    "argv": [
+      "intent",
+      "resume",
+      "legacy-export-work"
+    ],
+    "outcome": {
+      "ok": {
+        "resumed": true,
+        "intentId": "legacy-export-work",
+        "currentStage": "context-and-risk"
+      }
+    },
+    "aidlc": {
+      "changed": {
+        "audit.jsonl": [
+          {
+            "event": "state.migrated",
+            "from": 1,
+            "intentId": "legacy-export-work"
+          },
+          {
+            "event": "intent.resumed",
+            "intentId": "legacy-export-work",
+            "detail": null
+          }
+        ]
+      }
+    }
+  }
+]

@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "projectRoot": "<ROOT>",
+  "granted": [
+    "request",
+    "project",
+    "sources",
+    "knowledge",
+    "profile",
+    "repos"
+  ],
+  "warnings": [
+    "Registered knowledge source gone (gone/spec.md) does not exist. Fix the path in aidlc.knowledge.json.",
+    "24 registered documents changed since the last scan on <SCANNED_DAY> (docs/a.md, docs/b.md, docs/new-00.md, docs/new-01.md, docs/new-02.md). Re-read them before relying on earlier conclusions. Run `dtech-aidlc onboard --rescan` to acknowledge.",
+    "Source gone path gone/spec.md does not exist"
+  ],
+  "request": {
+    "path": ".aidlc/intents/intent-1/intent.md",
+    "provenance": "User-provided"
+  },
+  "project": {
+    "id": "project",
+    "path": "PROJECT.md",
+    "kind": "project",
+    "status": "ok",
+    "size": 148,
+    "provenance": "User-provided"
+  },
+  "sources": [
+    {
+      "id": "docs",
+      "path": "docs",
+      "kind": "docs",
+      "status": "ok",
+      "size": null,
+      "provenance": "Observed"
+    },
+    {
+      "id": "guide",
+      "path": "GUIDE.md",
+      "kind": "docs",
+      "status": "ok",
+      "size": 8,
+      "provenance": "Observed"
+    },
+    {
+      "id": "gone",
+      "path": "gone/spec.md",
+      "kind": "requirements",
+      "status": "missing",
+      "size": null,
+      "provenance": "Observed"
+    }
+  ],
+  "sourceChanges": {
+    "scanned": true,
+    "scannedAt": "<SCANNED_AT>",
+    "missing": [
+      {
+        "id": "gone",
+        "path": "gone/spec.md"
+      }
+    ],
+    "changed": [
+      "docs/a.md"
+    ],
+    "added": [
+      "docs/new-00.md",
+      "docs/new-01.md",
+      "docs/new-02.md",
+      "docs/new-03.md",
+      "docs/new-04.md",
+      "docs/new-05.md",
+      "docs/new-06.md",
+      "docs/new-07.md",
+      "docs/new-08.md",
+      "docs/new-09.md",
+      "docs/new-10.md",
+      "docs/new-11.md",
+      "docs/new-12.md",
+      "docs/new-13.md",
+      "docs/new-14.md",
+      "docs/new-15.md",
+      "docs/new-16.md",
+      "docs/new-17.md",
+      "docs/new-18.md",
+      "docs/new-19.md"
+    ],
+    "removed": [
+      "docs/b.md"
+    ],
+    "more": {
+      "changed": 0,
+      "added": 2,
+      "removed": 0
+    }
+  },
+  "codebaseMap": {
+    "path": ".aidlc/knowledge/_codebase-map.md",
+    "modifiedAt": null,
+    "exists": false,
+    "required": true,
+    "reason": "project kind is brownfield",
+    "bytes": 0
+  },
+  "knowledge": {
+    "dir": ".aidlc/knowledge",
+    "records": [],
+    "invalid": [],
+    "record": null
+  }
+}
