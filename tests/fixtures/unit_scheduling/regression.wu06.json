@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "unit": "WU-06",
+  "scope": "full",
+  "commands": [
+    "cargo test --manifest-path Cargo.toml --workspace --no-fail-fast",
+    "cargo test --manifest-path Cargo.toml --workspace --no-fail-fast -- --ignored"
+  ],
+  "summary": {
+    "passed": 369,
+    "failed": 16,
+    "ignored": 133
+  },
+  "failures": [
+    {
+      "test": "suite_a::tests::ts20_case",
+      "suite": "normal",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_a::tests::ts21_case",
+      "suite": "normal",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_a::tests::ts22_case",
+      "suite": "normal",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_a::tests::ts23_case",
+      "suite": "normal",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_a::tests::ts25_case",
+      "suite": "normal",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_a::tests::ts26_case",
+      "suite": "normal",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_a::tests::ts27a_case",
+      "suite": "normal",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_a::tests::ts29_case",
+      "suite": "normal",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_a::tests::ts30_case",
+      "suite": "normal",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_a::tests::ts32_case",
+      "suite": "normal",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_a::tests::ts42_case",
+      "suite": "normal",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_a::tests::ts56_case",
+      "suite": "normal",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_a::tests::ts65_case",
+      "suite": "normal",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_b::tests::unregistered_case",
+      "suite": "ignored",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_b::tests::ts22_case",
+      "suite": "ignored",
+      "owner": "WU-16"
+    },
+    {
+      "test": "suite_b::tests::ts30_case",
+      "suite": "ignored",
+      "owner": "WU-16"
+    }
+  ]
+}

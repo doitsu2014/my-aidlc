@@ -65,7 +65,7 @@ Approve every gate yourself, or let an AI orchestrator research each gate and re
 <td valign="top">
 
 ### 🧪 Evidence-driven Develop
-Plan bounded vertical slices, then implement and verify each slice with tests alongside the change (test-first for higher-risk behavior). An **ID registry** (`ids.json`) rejects reports that cite functions, tests, or units that were never registered.
+Plan bounded vertical slices, then implement and verify each slice with tests alongside the change (test-first for higher-risk behavior). Work units run in dependency order: a blocked unit is **parked** while the others continue, failing tests are **attributed** to the unit that owns them, and the release candidate waits for a final regression sweep. An **ID registry** (`ids.json`) rejects reports that cite functions, tests, or units that were never registered.
 
 </td>
 </tr>
@@ -273,6 +273,29 @@ dtech-aidlc harness status
 > [!WARNING]
 > Do not edit `.aidlc/state.json` or `.aidlc/audit.jsonl` by hand.
 
+### Work units in Develop
+
+When `implementation-design` writes a `work-units.json` with units, Develop runs `red-tests` and `build-and-verify` once per work unit. The CLI picks the first unit in `work-units.json` order whose `dependsOn` units are done, so dependencies decide the order, and each directive names its unit (`currentUnit`, `unit`) and the queue around it.
+
+- **Report** a unit step with `--unit <id>`; only the current unit can be reported.
+- **Park** a unit that cannot finish for a reason a retry will not fix. The CLI moves on to the next ready unit, and brings `dep-unit` and `foreign-regression` parks back by itself once the units they wait for are done. An environment problem stays `orchestrate report --result blocked --needs <name>`; while its check fails, only that unit waits and the other ready units run.
+- **Auto-park:** after `autoParkThreshold` (default 3) consecutive blocked reports of the same unit and step, the CLI parks the unit for an owner decision instead of selecting it again.
+- **Attributed regression:** completing a unit's `build-and-verify` needs a `regression.json` beside its regression report listing the test run and every failing test. A failure owned by the unit itself, or by a unit that is already done, blocks the report. A failure owned by an unfinished unit is deferred to that unit, and a failure without an owner blocks only the final sweep. Ownership comes from each unit's `tests` in `work-units.json`, `ids.json` traces, the `owner` field, or a `ts<number>_` test-name prefix.
+- **Final sweep:** once every unit is done and none is parked, the CLI selects `build-and-verify` once more without a unit. The release-candidate gate is presented there and passes only with a fresh, full `regression.json` that has no failure outside the baseline. A blocked sweep reopens the units that own its failures.
+- **Scoped rework:** `intent rework --unit <id>` redesigns only the named units; units whose design did not change keep their status and are not replayed. `intent split <id> --into <id>,<id>` replaces one unit with several.
+- **Stalls:** when no unit can run, `orchestrate next` exits with status 3 and `reason: "queue-stalled"`, listing the parked units and what each one needs.
+
+```sh
+dtech-aidlc orchestrate queue
+dtech-aidlc orchestrate park --unit WU-06 --kind dep-unit --blocked-by WU-16 --detail "Needs the retention store from WU-16"
+dtech-aidlc orchestrate revisit --unit WU-10 --detail "Keep 30 days of backups" --approved-by "Owner"
+dtech-aidlc intent rework --unit WU-06 --detail "The allocation contract cannot hold"
+```
+
+Park kinds are `dep-unit` (waits for other units), `foreign-regression` (another unit's tests fail; `--blocked-by TS-20` is resolved to its owner), `owner-decision` (comes back only with `orchestrate revisit --unit <id> --detail "<decision>"`) and `design-defect` (cleared by `intent rework --unit`). `dtech-aidlc doctor` warns about inverted dependencies, tests no unit owns, parked units, decisions recorded by the AI orchestrator, and plans above the split threshold, with suggested waves.
+
+In-flight intents from dtech-aidlc 1.0.0 migrate on the next `orchestrate` or `intent rework` command. The migration only adds the `workUnits` key to the intent's `state.json` and keeps the 1.0.0 keys up to date, so a 1.0.0 binary can still drive the state, and the audit log is never rewritten.
+
 ## Project knowledge
 
 | Location | Purpose |
@@ -308,6 +331,7 @@ Source kinds include `project`, `docs`, `requirements`, `architecture`, `adr`, `
 
 - **Gate pinning:** `dtech-aidlc config gate-mode <gate> human` keeps a single gate with people inside an AI-mode intent. An AI recommendation that leaves an item for written approval cannot pass its gate.
 - **Prerequisites** name what the environment must provide before a stage can run code. For example, `dtech-aidlc config prerequisite set docker --check "docker info" --hint "Start Docker Desktop" --applies-to develop`. `orchestrate next` runs the check before a matching stage, and a stage reported `--result blocked --needs docker` resumes only once the check passes.
+- **Work-unit thresholds** live in `.aidlc/config.json`: `unitSplitThreshold` (default 6) is the number of work units above which the CLI suggests splitting the intent and doctor suggests waves, and `autoParkThreshold` (default 3) is the number of consecutive blocked reports of the same unit and step after which the CLI parks the unit for an owner decision. Both must be positive integers.
 - **Identifiers** for functions, interfaces, tests, work units, and configuration keys are minted once in the intent's `ids.json` during `implementation-design`. `dtech-aidlc ids check` lists cited identifiers that are not registered, and `orchestrate report` refuses a Develop or Launch stage that cites one.
 - **Agent model preferences:** each methodology agent recommends a model alias. It is only a preference: it does not switch the assistant's model or guarantee availability. Claude harness projects may configure supported preferences; DeepSeek-only projects do not use Claude model aliases.
 

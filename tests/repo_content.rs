@@ -998,6 +998,74 @@ fn ai_mode_gate_approval_in_both_skills_requires_classified_open_items() {
     }
 }
 
+#[test]
+fn skills_and_methodology_explain_unit_scheduling() {
+    for skill in skills() {
+        for required in [
+            "## Work units, park, queue and revisit",
+            "--unit <id>",
+            "`regression.json`",
+            "dtech-aidlc orchestrate park --unit <id> --kind dep-unit|foreign-regression|owner-decision|design-defect",
+            "dtech-aidlc orchestrate queue",
+            "dtech-aidlc orchestrate revisit --unit <id> --detail \"<decision>\"",
+            "`reason: \"queue-stalled\"`",
+            "`parked.auto: true`",
+            "dtech-aidlc intent rework --unit <id>",
+            "dtech-aidlc intent split <id> --into <id>,<id>",
+            "the final regression sweep",
+            "never decide for them",
+        ] {
+            assert!(skill.contains(required), "missing {required}");
+        }
+    }
+    let develop = read_lf("core/methodology/phases/develop.md");
+    for required in [
+        "## Work-unit scheduling",
+        "in the order the CLI selects",
+        "`regression.json`",
+        "dtech-aidlc orchestrate park",
+        "`autoParkThreshold`",
+        "`intent rework --unit`",
+        "dtech-aidlc intent split",
+        "final regression sweep, where the release-candidate gate is presented",
+    ] {
+        assert!(develop.contains(required), "develop.md missing {required}");
+    }
+    assert!(!develop.contains("This stage is the phase gate"));
+    let builder = read_lf("core/methodology/agents/builder-verifier.md");
+    for required in [
+        "`regression.json`",
+        "`baseline: true`",
+        "dtech-aidlc orchestrate park --unit <id>",
+    ] {
+        assert!(
+            builder.contains(required),
+            "builder-verifier.md missing {required}"
+        );
+    }
+    let planner = read_lf("core/methodology/agents/implementation-planner.md");
+    assert!(planner.contains("never invert a dependency"));
+    let template = read_lf("core/methodology/templates/work-units.md");
+    assert!(template.contains("\"tests\": [\"TS-001\"]"));
+    // Projections written by 1.0.0 read as behind, not as edited locally.
+    let history: Value = serde_json::from_str(&read("core/data/projection-history.json")).unwrap();
+    for (harness, hash) in [
+        (
+            "claude",
+            "b0ccee48cad0ac1ea89d5eb22991ea955843c81fb6fefeedaa1c1509e2dabf01",
+        ),
+        (
+            "deepseek",
+            "debd57b6c3a928168c06487f432e3ba71dfd78d165ccd1a22f0dd0d7210ff44f",
+        ),
+    ] {
+        assert!(
+            rows(&history["harness"][harness], "SKILL.md").contains(&json!(hash)),
+            "{harness}"
+        );
+    }
+}
+
 /// Removes the first `start ... (?=end)` span (a lazy regex up to a lookahead).
 fn remove_span(text: &str, start: &str, end: &str) -> String {
     if let Some(from) = text.find(start) {
@@ -1195,6 +1263,9 @@ const COMMAND_KEYS: &[&str] = &[
     "onboard",
     "orchestrate next",
     "orchestrate report",
+    "orchestrate park",
+    "orchestrate queue",
+    "orchestrate revisit",
     "ids check",
     "scope",
     "status",
@@ -1205,6 +1276,7 @@ const COMMAND_KEYS: &[&str] = &[
     "intent abandon",
     "intent depth",
     "intent rework",
+    "intent split",
     "intent assign",
     "config agents",
     "config scope",

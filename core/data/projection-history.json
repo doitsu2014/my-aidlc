@@ -6,7 +6,8 @@
       "SKILL.md": [
         "1b6aebe53308e796d0ac355ae067c142e8cdd220037ffa6e0c4cfdbb8154f637",
         "89b889881b09d4c665bef9a0accdfa85e20e5ef81cb6bdfaed10780a16c95b77",
-        "cefb675bfd8665a0ad7be8e8ee36fb755b52e5b25f9673682d53fc870bf44199"
+        "cefb675bfd8665a0ad7be8e8ee36fb755b52e5b25f9673682d53fc870bf44199",
+        "b0ccee48cad0ac1ea89d5eb22991ea955843c81fb6fefeedaa1c1509e2dabf01"
       ],
       "onboarding.md": [
         "1274fc95f3dc08a11b5285be67746b8ea852e0a49b923ea978955bef83a40ca7",
@@ -21,7 +22,8 @@
     "deepseek": {
       "SKILL.md": [
         "3bb520857d050379a73200ad54958b67c93efe1f86686e111cf6a99ec4982589",
-        "87d17d89a43b9f3432e1c1abc5c9a1eefb0dc157fe5c11c067bfec3930dcada6"
+        "87d17d89a43b9f3432e1c1abc5c9a1eefb0dc157fe5c11c067bfec3930dcada6",
+        "debd57b6c3a928168c06487f432e3ba71dfd78d165ccd1a22f0dd0d7210ff44f"
       ],
       "onboarding.md": [
         "0b119b3c4d7f3010dedf42c6a9aa56ab8d44d525bcb1625a956016c11bbcf241",
@@ -36,7 +38,8 @@
     "README.md": [
       "2acd093d8a0c92daaa151a5e69925f3b6275af2e056a6a53758021ccb86e9cc5",
       "4c6820257bbe6eb70c667bd7f2549899cd0b5d0b47191b40c7b30e7c04ef8ea5",
-      "cb16eccee4bb4b9a6004c1330296d7b1d4702f6ea5ad87e0219c0ea5162f395b"
+      "cb16eccee4bb4b9a6004c1330296d7b1d4702f6ea5ad87e0219c0ea5162f395b",
+      "ff4b232594fca9ebe4a66d23c36bfb18204302a0bbf52b333441e1d7517b9c8b"
     ],
     "agents/brief-analyst.md": [
       "1647bec6f69bb9438428c3b642f8394a9b3ef0f6628d1fbaeb0fe28ef69a9192",
@@ -46,7 +49,8 @@
     "agents/builder-verifier.md": [
       "31bb8959137d20d8c14e306f38699d18cfd6066b1b9218f0120d08c5c561539d",
       "3529ee4f9a33ff0c768c56ef5bd1991051ecf1f9b3e9f953a9560bcf7428a7e8",
-      "86d4fe80d642470f33516eee7a8ba58b32ae591b9b044471c54a6a4a5444bf77"
+      "86d4fe80d642470f33516eee7a8ba58b32ae591b9b044471c54a6a4a5444bf77",
+      "2499dc95e181898ad83962b99eb252d10dd56181aca0d37c26b274b2aa4bae93"
     ],
     "agents/context-risk-analyst.md": [
       "0eef6ed4a7ce8ea5848e604d10b7563133429481243ac82dd21b5c90324c4daf",
@@ -61,7 +65,8 @@
     "agents/implementation-planner.md": [
       "272cedf3885316141aa7e20c9213081ee14332d07713e6f6132aef3abec970f2",
       "51d219248f229b76fbb860dd75d986e0ff0aaf9ae38702f009aa0cc7e7d0cf98",
-      "607b880b5099eb63d4bd8823085fa805debc956d3fdd5a5688de54e257e03759"
+      "607b880b5099eb63d4bd8823085fa805debc956d3fdd5a5688de54e257e03759",
+      "7f69dc1ed3752bed0bd52e8cf8bd3a2d1112e1c180ac1bf341f0af209be6b77c"
     ],
     "agents/knowledge-archivist.md": [
       "39645e7bf38c7323c6bd480a4cb1f89eed40d5986aa438532733a650b29f6a4f",
@@ -95,7 +100,8 @@
     ],
     "contracts.md": [
       "51124f4f8bbe5598421f53e1eb880355ab23c214abe00f5ceeb6bd70945d1c6a",
-      "825023447b741614253039d56e2c1d9888c1057d3d07e4b6b93b0d1f22f23b9a"
+      "825023447b741614253039d56e2c1d9888c1057d3d07e4b6b93b0d1f22f23b9a",
+      "b239b4143ae952af6851927548291bae2e79d3ea2bf48bd9ae786887dd3dde35"
     ],
     "phases/analyze.md": [
       "21f0f7491d06b4b8e11f7e47ba46d409572fa6069f6545047d193a3ee2d639b2",
@@ -114,7 +120,8 @@
     "phases/develop.md": [
       "b3000df3726c8b44cef362913523c4e08b3622b1aba1eeb850372848f7cc9961",
       "cad63f53670a06c7741608bafe654472b1b68bbe910ef28ac10b9a4ebb88f3af",
-      "fd36d499d7eaa2b79e8cfa3b4b37be68d5c995190f0c6ba545cac47234887a26"
+      "fd36d499d7eaa2b79e8cfa3b4b37be68d5c995190f0c6ba545cac47234887a26",
+      "5f9b50996696c5c3fb24598c476ed7cadab8b004eac111dddc7c28c70047a39b"
     ],
     "phases/ideate.md": [
       "29a740adbc8df4d7bb0a5d121c702eaaedfa81b64e69560a17ee71aa4fb62e5a",
@@ -141,6 +148,12 @@
     ],
     "templates/knowledge-record.md": [
       "f74ac01fd19545b6c40849a7f52681bace5c9af74f9db3ce1e42cc42b6c27316"
+    ],
+    "templates/test-strategy.md": [
+      "f9dd8d1d9aeb8510b95d70d073cab3f94e9b102d8b3c3cf884ffdc684c97ecc3"
+    ],
+    "templates/work-units.md": [
+      "87a9c3e8593115474a9731039dc9d2df1b415acca5343d13bfc1a5e4fb9cf977"
     ]
   }
 }

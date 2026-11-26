@@ -4,7 +4,7 @@
 //! abandon).
 //!
 //! Entry point: [`run`]. `key` is the command key from `crate::args::command_key`
-//! (`intent depth`, `intent rework`, `intent assign`, `intent pause`,
+//! (`intent depth`, `intent rework`, `intent split`, `intent assign`, `intent pause`,
 //! `intent resume`, `intent abandon`; `intent list` delegates to
 //! [`crate::status::list_intents`]). `args` are the positional arguments after the
 //! command words. Every success returns a JSON object for the router to print with
@@ -15,6 +15,12 @@
 //! `.aidlc/intents/<id>/state.json`. A legacy v1 `.aidlc/state.json` is migrated
 //! through [`crate::workflow::load_workflow`] (and so `crate::state_migration`)
 //! wherever Node migrates.
+//!
+//! On an intent with a work-unit ledger (`crate::work_units`), `intent rework
+//! [--unit ID]...` records a ledger rework request instead of the 1.0.0 whole-intent
+//! reset, and `intent split ID --into ID...` records a split request; both are
+//! reconciled when implementation-design is reported complete again, resetting only
+//! the named or redesigned units and their started direct dependants.
 //!
 //! Safety differences from Node, all of which leave project state unchanged on
 //! failure where Node could leave a partial write:
@@ -81,14 +87,30 @@ pub fn run(
         }
         "intent rework" => {
             let Some(detail) = detail else {
-                return Err("Usage: intent rework --detail \"<reason>\"".into());
+                return Err("Usage: intent rework [--unit ID]... --detail \"<reason>\"".into());
             };
+            let units = list_flag(flags, "unit")?;
             let graph = graph.value();
             let loaded = load_workflow(&root, graph, true)?;
             let Some(state) = loaded.state.clone() else {
                 return Err("No active workflow state".into());
             };
-            request_design_rework(&root, graph, &loaded, state, detail)?
+            request_design_rework(&root, graph, &loaded, state, detail, &units)?
+        }
+        "intent split" => {
+            let (Some(unit), Some(detail)) = (arg, detail) else {
+                return Err("Usage: intent split ID --into ID... --detail \"<reason>\"".into());
+            };
+            let into = list_flag(flags, "into")?;
+            if into.is_empty() {
+                return Err("Usage: intent split ID --into ID... --detail \"<reason>\"".into());
+            }
+            let graph = graph.value();
+            let loaded = load_workflow(&root, graph, true)?;
+            let Some(state) = loaded.state.clone() else {
+                return Err("No active workflow state".into());
+            };
+            request_split(&root, graph, &loaded, state, unit, &into, detail)?
         }
         "intent assign" => {
             let Some(name) = arg else {
@@ -119,6 +141,25 @@ fn string_flag<'a>(flags: &'a BTreeMap<String, FlagValue>, name: &str) -> Option
         Some(FlagValue::String(value)) if !value.is_empty() => Some(value),
         _ => None,
     }
+}
+
+/// A list option's values (`--unit`, `--into`), each also split on `,` and trimmed;
+/// empty items are refused.
+fn list_flag(flags: &BTreeMap<String, FlagValue>, name: &str) -> Result<Vec<String>, String> {
+    let raw = match flags.get(name) {
+        Some(FlagValue::List(values)) => values.clone(),
+        Some(FlagValue::String(value)) => vec![value.clone()],
+        _ => return Ok(Vec::new()),
+    };
+    let mut values = Vec::new();
+    for item in raw.iter().flat_map(|value| value.split(',')) {
+        let item = item.trim();
+        if item.is_empty() {
+            return Err(format!("--{name} has an empty item"));
+        }
+        values.push(item.to_owned());
+    }
+    Ok(values)
 }
 
 /// Node `readGraph()`: the methodology graph from `DTECH_AIDLC_HOME` when it names an
@@ -386,6 +427,7 @@ fn request_design_rework(
     loaded: &LoadedWorkflow,
     mut state: Value,
     detail: &str,
+    units: &[String],
 ) -> Result<Value, String> {
     let detail = crate::identity::js_trim(detail);
     if detail.is_empty() {
@@ -427,11 +469,58 @@ fn request_design_rework(
                         == Some("blocked"))
         })
         .cloned();
+    let now = crate::audit::now_iso();
+    let all_stages: Vec<Value> = ordered_stages(graph, scope, depth_of(&state))
+        .into_iter()
+        .cloned()
+        .collect();
+    // An intent at the repeat span with real work units is driven by its work-unit
+    // ledger (a 1.0.0 state migrates first). When work-units.json cannot be loaded, the
+    // 1.0.0 rework below is the way back to implementation-design, even if nothing is
+    // blocked.
+    let mut ledger_state = state.clone();
+    let ledger = crate::work_units::ensure_ledger(
+        root,
+        graph,
+        &mut ledger_state,
+        &all_stages,
+        &now,
+        loaded.state_bytes.as_deref(),
+    );
+    match ledger {
+        Ok(change) if crate::work_units::has_ledger(&ledger_state) => {
+            return request_ledger_rework(
+                root,
+                graph,
+                loaded,
+                ledger_state,
+                &all_stages,
+                change,
+                blocked,
+                detail,
+                units,
+                &now,
+            );
+        }
+        Ok(_) => {}
+        Err(_) => {}
+    }
+    if !units.is_empty() {
+        return Err("intent rework --unit needs work units: this intent has no work-unit ledger (Develop with work-units.json). Run 'dtech-aidlc intent rework --detail \"<reason>\"' without --unit".into());
+    }
+    let load_failed = ledger.is_err();
+    let span = crate::work_units::span(&all_stages);
+    let blocked = blocked.or_else(|| {
+        load_failed
+            .then(|| span.repeating.first().and_then(|stage| stage.get("id")))
+            .flatten()
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+    });
     let Some(from_stage) = blocked else {
         return Err("Design rework is only available after a blocked Develop stage".into());
     };
 
-    let now = crate::audit::now_iso();
     let stages = state
         .get_mut("stages")
         .and_then(Value::as_object_mut)
@@ -482,6 +571,182 @@ fn request_design_rework(
     Ok(json!({
         "reworkRequested": true,
         "intentId": intent_id,
+        "fromStage": from_stage,
+        "nextStage": "implementation-design",
+    }))
+}
+
+/// `intent rework` on an intent with a work-unit ledger: implementation-design goes back
+/// to in progress and a ledger rework request is recorded. Unit entries are not reset
+/// here and `state.units` is kept; the units are reconciled when implementation-design
+/// is reported complete again.
+#[allow(clippy::too_many_arguments)]
+fn request_ledger_rework(
+    root: &Path,
+    graph: &Value,
+    loaded: &LoadedWorkflow,
+    mut state: Value,
+    stages: &[Value],
+    change: crate::work_units::LedgerChange,
+    legacy_blocked: Option<String>,
+    detail: &str,
+    units: &[String],
+    now: &str,
+) -> Result<Value, String> {
+    if crate::work_units::rework_pending(&state) {
+        return Err(
+            "A design rework is already pending; complete implementation-design first".into(),
+        );
+    }
+    let named = crate::work_units::resolve_named_units(&state, units)?;
+    let source = crate::work_units::rework_source(&state, stages, &named);
+    // Without --unit the 1.0.0 condition (a blocked Develop row or report) also counts.
+    let source = if named.is_empty() {
+        source.or(legacy_blocked)
+    } else {
+        source
+    };
+    let Some(from_stage) = source else {
+        if named.is_empty() {
+            return Err("Design rework is only available after a blocked or parked work unit or a blocked release sweep".into());
+        }
+        return Err(format!(
+            "Design rework of {} is only available when one of the named units is blocked or parked, or after a blocked release sweep",
+            named.join(", ")
+        ));
+    };
+    let stages_map = state
+        .get_mut("stages")
+        .and_then(Value::as_object_mut)
+        .ok_or("stages is not an object")?;
+    let mut design = spread(stages_map.get("implementation-design"));
+    design.insert("status".into(), json!("in_progress"));
+    design.insert("reworkRequestedAt".into(), json!(now));
+    stages_map.insert("implementation-design".into(), Value::Object(design));
+    let map = state.as_object_mut().ok_or("state is not an object")?;
+    map.shift_remove("currentUnit");
+    map.insert("currentStage".into(), Value::Null);
+    map.insert(
+        "designRework".into(),
+        json!({"requestedAt": now, "fromStage": from_stage, "detail": detail, "units": named}),
+    );
+    crate::work_units::request_rework(&mut state, now, &named, None);
+    crate::work_units::sync_mirrors(&mut state, stages, now);
+    crate::audit::preflight_audit(root)?;
+    persist_workflow(root, graph, loaded, &mut state)?;
+    let intent_id = state["intentId"].clone();
+    for (event, details) in change.audit_rows(intent_id.as_str().unwrap_or("")) {
+        crate::audit::audit(root, event, details)?;
+    }
+    crate::audit::audit(
+        root,
+        "design.rework.requested",
+        json!({"intentId": intent_id, "fromStage": from_stage, "detail": detail, "units": named}),
+    )?;
+    Ok(json!({
+        "reworkRequested": true,
+        "intentId": intent_id,
+        "fromStage": from_stage,
+        "nextStage": "implementation-design",
+        "units": named,
+    }))
+}
+
+/// `intent split ID --into ID... --detail TEXT` on an intent with a work-unit ledger:
+/// implementation-design goes back to in progress with a split request. The units are
+/// reconciled when implementation-design is reported complete again: the `--into`
+/// units are reset or added, the split unit is reset when it is kept or marked removed
+/// when it is dropped, and every other unit is kept.
+fn request_split(
+    root: &Path,
+    graph: &Value,
+    loaded: &LoadedWorkflow,
+    mut state: Value,
+    unit: &str,
+    into: &[String],
+    detail: &str,
+) -> Result<Value, String> {
+    let detail = crate::identity::js_trim(detail);
+    if detail.is_empty() {
+        return Err("intent split requires --detail \"<reason>\"".into());
+    }
+    if !js_truthy(state.get("intentId")) || derive_status(&state, graph) != "active" {
+        return Err("Intent split requires an active intent".into());
+    }
+    let scope = state
+        .get("scope")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .to_owned();
+    let stages: Vec<Value> = ordered_stages(graph, &scope, depth_of(&state))
+        .into_iter()
+        .cloned()
+        .collect();
+    let now = crate::audit::now_iso();
+    let change = crate::work_units::ensure_ledger(
+        root,
+        graph,
+        &mut state,
+        &stages,
+        &now,
+        loaded.state_bytes.as_deref(),
+    )?;
+    if !crate::work_units::has_ledger(&state) {
+        return Err("intent split needs work units (Develop with work-units.json); this intent has not reached them or runs Develop as one implicit unit".into());
+    }
+    if crate::work_units::rework_pending(&state) {
+        return Err(
+            "A design rework is already pending; complete implementation-design first".into(),
+        );
+    }
+    let (key, into, from_stage) = crate::work_units::validate_split(&state, &stages, unit, into)?;
+    let stages_map = state
+        .get_mut("stages")
+        .and_then(Value::as_object_mut)
+        .ok_or("stages is not an object")?;
+    let mut design = spread(stages_map.get("implementation-design"));
+    design.insert("status".into(), json!("in_progress"));
+    design.insert("reworkRequestedAt".into(), json!(now));
+    stages_map.insert("implementation-design".into(), Value::Object(design));
+    let map = state.as_object_mut().ok_or("state is not an object")?;
+    map.shift_remove("currentUnit");
+    map.insert("currentStage".into(), Value::Null);
+    map.insert(
+        "designRework".into(),
+        json!({
+            "requestedAt": now,
+            "fromStage": from_stage,
+            "detail": detail,
+            "units": [key],
+            "split": {"unit": key, "into": into},
+        }),
+    );
+    crate::work_units::request_rework(
+        &mut state,
+        &now,
+        std::slice::from_ref(&key),
+        Some(crate::work_units::SplitRequest {
+            unit: &key,
+            into: &into,
+        }),
+    );
+    crate::work_units::sync_mirrors(&mut state, &stages, &now);
+    crate::audit::preflight_audit(root)?;
+    persist_workflow(root, graph, loaded, &mut state)?;
+    let intent_id = state["intentId"].clone();
+    for (event, details) in change.audit_rows(intent_id.as_str().unwrap_or("")) {
+        crate::audit::audit(root, event, details)?;
+    }
+    crate::audit::audit(
+        root,
+        "intent.split.requested",
+        json!({"intentId": intent_id, "unit": key, "into": into, "detail": detail, "fromStage": from_stage}),
+    )?;
+    Ok(json!({
+        "splitRequested": true,
+        "intentId": intent_id,
+        "unit": key,
+        "into": into,
         "fromStage": from_stage,
         "nextStage": "implementation-design",
     }))

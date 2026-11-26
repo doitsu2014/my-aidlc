@@ -26,6 +26,12 @@ fn valid_id(id: &str, prefixes: &[&str], max_digits: usize) -> bool {
     })
 }
 
+/// Whether `id` is a work unit id as `work-units.json` accepts it (`WU-01`, or the
+/// legacy `U-01`).
+pub fn valid_unit_id(id: &str) -> bool {
+    valid_id(id, &["WU", "U"], 5)
+}
+
 /// Legacy work units named U-01 normalize to WU-01.
 pub fn normalize_id(id: &str) -> String {
     if let Some(number) = id.strip_prefix("U-") {
@@ -191,6 +197,17 @@ pub fn work_unit_problems(text: &str) -> Vec<String> {
                 ));
             }
         }
+        if let Some(value) = row.get("tests") {
+            if !value.as_array().is_some_and(|tests| {
+                tests
+                    .iter()
+                    .all(|test| test.as_str().is_some_and(|test| valid_id(test, &["TS"], 5)))
+            }) {
+                problems.push(format!(
+                    "work-units.json {raw_id} tests must be an array of TS- identifiers"
+                ));
+            }
+        }
         ids.insert(id, (raw_id.to_owned(), depends));
     }
     if !problems.is_empty() {
@@ -245,6 +262,54 @@ pub fn work_unit_problems(text: &str) -> Vec<String> {
                 "work-units.json dependsOn forms a cycle: {}",
                 cycle.join(" -> ")
             )];
+        }
+    }
+    problems
+}
+
+/// Cross-checks the `tests` of each work unit against a registry (ids.json text): every
+/// listed TS id must be registered. Returns no problem when either file is unusable
+/// (their own validators report that).
+pub fn work_unit_test_problems(work_units: &str, registry: &str) -> Vec<String> {
+    let (Ok(units), Ok(registry)) = (
+        serde_json::from_str::<Value>(work_units),
+        serde_json::from_str::<Value>(registry),
+    ) else {
+        return Vec::new();
+    };
+    let Some(entries) = registry.get("ids").and_then(Value::as_object) else {
+        return Vec::new();
+    };
+    let registered: HashSet<String> = entries
+        .get("TS")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(|entry| entry.get("id").and_then(Value::as_str))
+        .map(str::to_owned)
+        .collect();
+    let rows = units
+        .get("units")
+        .and_then(Value::as_array)
+        .or_else(|| units.as_array())
+        .cloned()
+        .unwrap_or_default();
+    let mut problems = Vec::new();
+    for row in rows {
+        let id = row.get("id").and_then(Value::as_str).unwrap_or("?");
+        let missing: Vec<&str> = row
+            .get("tests")
+            .and_then(Value::as_array)
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .filter(|test| !registered.contains(*test))
+            .collect();
+        if !missing.is_empty() {
+            problems.push(format!(
+                "work-units.json {id} tests cite unregistered {}",
+                missing.join(", ")
+            ));
         }
     }
     problems

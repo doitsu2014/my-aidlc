@@ -19,6 +19,8 @@
 //! through [`crate::state_migration::migrate_legacy_state`].
 
 use crate::artifacts::{expected_artifacts, verify_artifacts, ExpectedArtifact, VerifiedArtifact};
+use crate::regression;
+use crate::work_units::{self, LedgerChange, Selection};
 use crate::workflow::{
     depth_of, derive_status, free_intent_id, intent_dir_path, intent_ids_on_disk, intent_slug,
     load_intent, load_workflow, mode_of, ordered_stages, read_pointer, save_intent, save_pointer,
@@ -248,6 +250,8 @@ pub struct ReportOptions {
     pub approved_by: Option<String>,
     pub approval_note: Option<String>,
     pub needs: Vec<String>,
+    /// `--unit`: the work unit being reported (must be the current unit).
+    pub unit: Option<String>,
 }
 
 /// What `orchestrate next` produced.
@@ -354,7 +358,7 @@ pub fn normalize_intent_text(value: &str) -> OrchestrateResult<String> {
 
 /// Node's work-unit split threshold: `config.unitSplitThreshold` when it is a positive
 /// integer in the `Number.isInteger` sense (so `1.0` counts as `1`), else the default.
-fn unit_split_threshold(config: &Value) -> f64 {
+pub fn unit_split_threshold(config: &Value) -> f64 {
     config
         .get("unitSplitThreshold")
         .and_then(Value::as_f64)
@@ -512,12 +516,21 @@ fn is_final_unit(state: &Value, stage: &Value) -> bool {
         .all(|unit| unit_id(unit) == current || unit_finished(unit))
 }
 
-/// Node `isPhaseGate`.
+/// Node `isPhaseGate`. On an intent with a work-unit ledger, a repeating stage is a
+/// phase gate only on the final release sweep, never on a per-unit step.
 fn is_phase_gate(graph: &Value, state: &Value, stage: &Value) -> bool {
     let info = gate_info(graph, scope_of(state), stage, depth_of(state));
-    info.final_stage.is_some()
-        && info.final_stage.as_deref() == str_of(stage, "id")
-        && is_final_unit(state, stage)
+    if info.final_stage.is_none() || info.final_stage.as_deref() != str_of(stage, "id") {
+        return false;
+    }
+    if work_units::is_repeating(stage) && work_units::has_ledger(state) {
+        let stages: Vec<Value> = ordered_stages(graph, scope_of(state), depth_of(state))
+            .into_iter()
+            .cloned()
+            .collect();
+        return work_units::is_sweep_step(state, &stages);
+    }
+    is_final_unit(state, stage)
 }
 
 /// Node `lastRepeatOfPhase`.
@@ -603,71 +616,6 @@ fn units_from_data(data: &Value) -> Vec<Value> {
     units.cloned().unwrap_or_default()
 }
 
-/// Node `applyWorkUnits`: read `work-units.json` beside `work-units.md` once.
-fn apply_work_units(root: &Path, graph: &Value, state: &mut Value) {
-    if truthy(state.get("designReworkPending")) {
-        return;
-    }
-    if state
-        .get("units")
-        .and_then(Value::as_array)
-        .is_some_and(|units| !units.is_empty())
-    {
-        return;
-    }
-    let mut lookup = state.clone();
-    remove_key(&mut lookup, "currentUnit");
-    lookup["depth"] = json!(depth_of(state));
-    let design_stage = stage_by_id(graph, "implementation-design")
-        .cloned()
-        .unwrap_or_else(|| json!({"produces": []}));
-    let Ok(design) = expected_artifacts(root, graph, &lookup, &design_stage) else {
-        return;
-    };
-    let Some(path) = design
-        .iter()
-        .find(|item| item.output == "work-units")
-        .map(|item| {
-            let text = item.path.to_string_lossy();
-            PathBuf::from(
-                text.strip_suffix(".md")
-                    .map_or_else(|| text.to_string(), |stem| format!("{stem}.json")),
-            )
-        })
-    else {
-        return;
-    };
-    if !path.exists() {
-        return;
-    }
-    let Ok(bytes) = fs::read(&path) else { return };
-    let Ok(data) = serde_json::from_str::<Value>(&String::from_utf8_lossy(&bytes)) else {
-        return;
-    };
-    let rows = units_from_data(&data);
-    if rows.is_empty() || rows.iter().any(Value::is_null) {
-        return;
-    }
-    let units = rows
-        .iter()
-        .enumerate()
-        .map(|(index, row)| {
-            let id = row
-                .get("id")
-                .filter(|id| truthy(Some(id)))
-                .map(js_string)
-                .unwrap_or_else(|| format!("U-{:02}", index + 1));
-            let depends_on = row
-                .get("dependsOn")
-                .filter(|value| truthy(Some(value)))
-                .cloned()
-                .unwrap_or_else(|| json!([]));
-            json!({"id": id, "status": "in_progress", "dependsOn": depends_on})
-        })
-        .collect::<Vec<_>>();
-    state["units"] = Value::Array(units);
-}
-
 /// Node `progressOf`.
 fn progress_of(state: &Value, graph: &Value) -> (usize, usize) {
     let stages = ordered_stages(graph, scope_of(state), depth_of(state));
@@ -717,6 +665,24 @@ fn complete_payload(state: &Value, graph: &Value, hint: Option<&str>) -> Value {
     payload.insert("approvals".into(), Value::Array(approvals));
     if let Some(hint) = hint {
         payload.insert("hint".into(), json!(hint));
+    }
+    if work_units::has_ledger(state) {
+        let stages: Vec<Value> = ordered_stages(graph, scope_of(state), depth_of(state))
+            .into_iter()
+            .cloned()
+            .collect();
+        payload.insert(
+            "units".into(),
+            work_units::units_summary(state, &stages, false),
+        );
+        payload.insert(
+            "ownerDecisions".into(),
+            Value::Array(work_units::owner_decisions(state)),
+        );
+        payload.insert(
+            "deferredRegressions".into(),
+            Value::Array(regression::deferred_items(state)),
+        );
     }
     Value::Object(payload)
 }
@@ -1072,7 +1038,7 @@ fn build_directive(
     Ok(Value::Object(directive))
 }
 
-fn audit(root: &Path, event: &str, details: Value) -> OrchestrateResult<()> {
+pub(crate) fn audit(root: &Path, event: &str, details: Value) -> OrchestrateResult<()> {
     crate::audit::audit(root, event, details).map(|_| ())
 }
 
@@ -1117,7 +1083,7 @@ fn ensure_unchanged(
 }
 
 /// Write the active intent's state (Node `persistWorkflow`, without rewriting the pointer).
-fn persist_active(
+pub(crate) fn persist_active(
     root: &Path,
     graph: &Value,
     loaded: &LoadedWorkflow,
@@ -1365,13 +1331,124 @@ pub fn orchestrate_next(
         .into_iter()
         .cloned()
         .collect();
-    apply_work_units(root, graph, &mut state);
-    let Some(next) = select_next_stage(&mut state, &stages) else {
+    let now = crate::audit::now_iso();
+    // An intent that reached the repeat span with real work units gets its work-unit
+    // ledger here (or migrates to it from 1.0.0 stage rows). A work-units.json that
+    // cannot be loaded is an error; there is no one-unit placeholder.
+    let ledger_change = if is_new {
+        LedgerChange::None
+    } else {
+        work_units::ensure_ledger(
+            root,
+            graph,
+            &mut state,
+            &stages,
+            &now,
+            loaded.state_bytes.as_deref(),
+        )?
+    };
+    let mut selected_unit: Option<String> = None;
+    let mut sweep = false;
+    let mut revisits: Vec<Value> = Vec::new();
+    let mut held_checks: Vec<Value> = Vec::new();
+    let selected = if work_units::has_ledger(&state) {
+        let (mut selection, made) = work_units::select(&mut state, &stages, &now);
+        revisits = made;
+        // An environment prerequisite named by a unit's blocked report (--needs) holds
+        // that unit only: while its check fails, the next ready unit runs. When no other
+        // unit can run, the held unit is selected and the hold below applies as before.
+        // The owner's --force-resume overrides the hold instead.
+        if !options.force_resume {
+            let original = selection.clone();
+            let mut skip: Vec<String> = Vec::new();
+            let mut held_warnings: Vec<String> = Vec::new();
+            while let Selection::Unit { stage, unit } = &selection {
+                let stage_id = str_of(stage, "id").unwrap_or("").to_owned();
+                let needs = unit_needs(&state, &stage_id, unit);
+                if needs.is_empty() {
+                    break;
+                }
+                let results = crate::prerequisites::run_prerequisites(
+                    &root.to_string_lossy(),
+                    config,
+                    &needs,
+                );
+                let failing: Vec<String> = results
+                    .iter()
+                    .filter(|item| item.get("ok") != Some(&Value::Bool(true)))
+                    .filter_map(|item| item.get("name").map(js_string))
+                    .collect();
+                if failing.is_empty() {
+                    break;
+                }
+                skip.push(unit.clone());
+                let alternative = work_units::peek_skipping(&state, &stages, &skip);
+                let Selection::Unit {
+                    unit: other_unit, ..
+                } = &alternative
+                else {
+                    held_checks.clear();
+                    held_warnings.clear();
+                    selection = original;
+                    break;
+                };
+                held_warnings.push(format!(
+                    "Work unit {unit} is held: its blocked report needs {}, and the check is failing; {other_unit} runs meanwhile. Fix the environment, and the next 'dtech-aidlc orchestrate next' after {other_unit} returns to {unit}.",
+                    failing.join(", ")
+                ));
+                held_checks.push(json!({
+                    "intentId": intent_id,
+                    "stage": stage_id,
+                    "unit": unit,
+                    "results": prerequisite_results(&results),
+                }));
+                selection = alternative;
+            }
+            warnings.extend(held_warnings);
+        }
+        if let Selection::Stalled { parked, waiting } = &selection {
+            // Nothing can run. Revisits made by this call (automatic or drain) are
+            // persisted and audited; otherwise nothing is written. currentStage and
+            // currentUnit are left as they are.
+            let payload = work_units::stalled_payload(&state, &intent_id, parked, waiting);
+            if !revisits.is_empty() || ledger_change != LedgerChange::None {
+                work_units::sync_mirrors(&mut state, &stages, &now);
+                crate::audit::preflight_audit(root)?;
+                persist_active(root, graph, &loaded, &mut state)?;
+                for (event, details) in ledger_change.audit_rows(&intent_id) {
+                    audit(root, event, details)?;
+                }
+                audit_revisits(root, &intent_id, &revisits)?;
+            }
+            return Ok(NextOutcome::Blocked(payload));
+        }
+        work_units::apply_selection(&mut state, &selection, &now);
+        work_units::sync_mirrors(&mut state, &stages, &now);
+        match selection {
+            Selection::Stage(stage) => Some(stage),
+            Selection::Unit { stage, unit } => {
+                selected_unit = Some(unit);
+                Some(stage)
+            }
+            Selection::Sweep(stage) => {
+                sweep = true;
+                Some(stage)
+            }
+            Selection::Done | Selection::Stalled { .. } => None,
+        }
+    } else {
+        select_next_stage(&mut state, &stages)
+    };
+    let Some(next) = selected else {
         if !is_new {
             let mut finished_state = state.clone();
             finished_state["currentStage"] = Value::Null;
             remove_key(&mut finished_state, "currentUnit");
             persist_active(root, graph, &loaded, &mut finished_state)?;
+            for (event, details) in ledger_change.audit_rows(&intent_id) {
+                audit(root, event, details)?;
+            }
+            audit_revisits(root, &intent_id, &revisits)?;
         }
         return Ok(NextOutcome::Complete(complete_payload(&state, graph, None)));
     };
@@ -1388,16 +1465,36 @@ pub fn orchestrate_next(
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
-    let last_report = reports.last().cloned();
-    let was_blocked = str_of(&row, "status") == Some("blocked")
-        || last_report
+    // On a ledger intent "the last report" is the selected unit's (or the sweep's).
+    let last_report = match &selected_unit {
+        Some(unit) => work_units::last_unit_report(&state, &next_id, unit).cloned(),
+        None if sweep => work_units::last_sweep_report(&state, &next_id).cloned(),
+        None => reports.last().cloned(),
+    };
+    let was_blocked = match &selected_unit {
+        Some(unit) => {
+            work_units::unit(&state, unit)
+                .and_then(|unit| unit.get("steps"))
+                .and_then(|steps| steps.get(&next_id))
+                .and_then(Value::as_str)
+                == Some("blocked")
+        }
+        None if sweep => last_report
             .as_ref()
-            .is_some_and(|report| str_of(report, "result") == Some("blocked"));
+            .is_some_and(|report| str_of(report, "result") == Some("blocked")),
+        None => {
+            str_of(&row, "status") == Some("blocked")
+                || last_report
+                    .as_ref()
+                    .is_some_and(|report| str_of(report, "result") == Some("blocked"))
+        }
+    };
 
     // Named prerequisites: those the last blocked report named, plus preflight checks the
     // owner attached to this stage or phase. Nothing is persisted while one still fails.
     let last_needs = last_report
         .as_ref()
+        .filter(|report| selected_unit.is_none() || str_of(report, "result") == Some("blocked"))
         .and_then(|report| report.get("needs"))
         .and_then(Value::as_array)
         .cloned();
@@ -1480,11 +1577,11 @@ pub fn orchestrate_next(
         prerequisites = Some(results);
     }
 
+    if work_units::has_ledger(&state) {
+        warnings.extend(work_units::drift_warnings(root, graph, &state));
+    }
     if str_of(&next, "repeat") == Some("work-unit") {
         let units = state.get("units").and_then(Value::as_array);
-        if !units.is_some_and(|units| !units.is_empty()) && depth_of(&state) != "fast" {
-            warnings.push("No work-units.json was read for this intent, so Develop runs as one implicit work unit. Write it beside work-units.md in implementation-design.".into());
-        }
         let threshold = unit_split_threshold(config);
         let first_repeat = stages
             .iter()
@@ -1499,11 +1596,13 @@ pub fn orchestrate_next(
                     "This intent has {} work units, more than the split threshold of {threshold}. Consider asking the owner to split it into separate intents (for example backend, then API/UI) before building.",
                     units.len()
                 ));
+                if work_units::has_ledger(&state) {
+                    warnings.push(work_units::wave_warning(&state, threshold as usize));
+                }
             }
         }
     }
 
-    let now = crate::audit::now_iso();
     let mut rework: Option<Value> = None;
     if was_blocked {
         let mut resumed = row.as_object().cloned().unwrap_or_default();
@@ -1513,45 +1612,107 @@ pub fn orchestrate_next(
         }
         state["stages"][&next_id] = Value::Object(resumed);
         let mut info = Map::new();
+        let unit_entry = selected_unit.as_ref().and_then(|unit| {
+            row.get("units")
+                .and_then(|units| units.get(unit))
+                .and_then(|entry| entry.get("reportedAt"))
+        });
+        let fallback_at = if selected_unit.is_some() {
+            unit_entry
+        } else {
+            row.get("reportedAt")
+        };
         info.insert(
             "blockedAt".into(),
             coalesce(&[
                 last_report.as_ref().and_then(|report| report.get("at")),
-                row.get("reportedAt"),
+                fallback_at,
             ])
             .cloned()
             .unwrap_or(Value::Null),
         );
+        let fallback_detail = if selected_unit.is_some() || sweep {
+            None
+        } else {
+            row.get("detail")
+        };
         info.insert(
             "detail".into(),
             coalesce(&[
                 last_report.as_ref().and_then(|report| report.get("detail")),
-                row.get("detail"),
+                fallback_detail,
             ])
             .cloned()
             .unwrap_or(Value::Null),
         );
-        info.insert("attempt".into(), json!(reports.len().max(1) + 1));
+        if let Some(unit) = &selected_unit {
+            let entry = work_units::unit(&state, unit)
+                .cloned()
+                .unwrap_or(Value::Null);
+            let attempts = entry
+                .get("attempts")
+                .and_then(|attempts| attempts.get(&next_id))
+                .and_then(Value::as_u64)
+                .unwrap_or(0);
+            info.insert("unit".into(), json!(unit));
+            info.insert("attempt".into(), json!(attempts.max(1) + 1));
+            info.insert(
+                "blockedStreak".into(),
+                json!(entry
+                    .pointer("/blockedStreak/count")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(0)),
+            );
+            info.insert(
+                "autoParkThreshold".into(),
+                json!(work_units::auto_park_threshold(config)),
+            );
+            if let Some(revisit) = work_units::pending_revisit(&state, unit) {
+                info.insert("revisit".into(), revisit);
+            }
+        } else if sweep {
+            let attempts = work_units::ledger(&state)
+                .and_then(|ledger| ledger.pointer("/sweep/attempts"))
+                .and_then(Value::as_u64)
+                .unwrap_or(0);
+            info.insert("sweep".into(), json!(true));
+            info.insert("attempt".into(), json!(attempts.max(1) + 1));
+            if let Some(extra) = regression::sweep_rework(&state) {
+                info.extend(extra);
+            }
+        } else {
+            info.insert("attempt".into(), json!(reports.len().max(1) + 1));
+        }
         if let Some(needs) = last_needs.filter(|needs| !needs.is_empty()) {
             info.insert("needs".into(), Value::Array(needs));
         }
         rework = Some(Value::Object(info));
-    } else {
-        if state["stages"].get(&next_id).is_none_or(Value::is_null) {
-            state["stages"][&next_id] = json!({"status": "in_progress", "startedAt": now});
-        }
-        if next_id == "implementation-design" && truthy(state.get("designRework")) {
-            let request = state["designRework"].clone();
-            let mut info = Map::new();
-            for key in ["requestedAt", "fromStage", "detail"] {
-                if let Some(value) = request.get(key) {
-                    info.insert(key.into(), value.clone());
-                }
+    } else if state["stages"].get(&next_id).is_none_or(Value::is_null) {
+        state["stages"][&next_id] = json!({"status": "in_progress", "startedAt": now});
+    }
+    // A pending design-rework request is consumed whenever implementation-design is
+    // selected, also when that stage was itself last reported blocked (the request's
+    // keys win over the blocked report's).
+    if next_id == "implementation-design" && truthy(state.get("designRework")) {
+        let request = state["designRework"].clone();
+        let mut info = rework
+            .take()
+            .and_then(|info| info.as_object().cloned())
+            .unwrap_or_default();
+        for key in ["requestedAt", "fromStage", "detail", "units", "split"] {
+            if let Some(value) = request.get(key) {
+                info.insert(key.into(), value.clone());
             }
-            rework = Some(Value::Object(info));
-            remove_key(&mut state, "designRework");
-            remove_key(&mut state, "designReworkPending");
         }
+        if let Some(instruction) = work_units::rework_instruction(&request) {
+            info.insert("instruction".into(), json!(instruction));
+        }
+        rework = Some(Value::Object(info));
+        remove_key(&mut state, "designRework");
+        remove_key(&mut state, "designReworkPending");
+    }
+    if work_units::has_ledger(&state) {
+        work_units::sync_mirrors(&mut state, &stages, &now);
     }
     state["currentStage"] = json!(next_id);
 
@@ -1581,6 +1742,27 @@ pub fn orchestrate_next(
     )?;
     if let Some(results) = &prerequisites {
         directive["prerequisites"] = Value::Array(results.clone());
+    }
+    if let Some(unit) = &selected_unit {
+        directive["unit"] = work_units::directive_unit(
+            &state,
+            unit,
+            &next_id,
+            work_units::auto_park_threshold(config),
+        );
+        directive["queue"] = work_units::directive_queue(&state);
+        let last_repeating = work_units::span(&stages)
+            .repeating
+            .last()
+            .is_some_and(|last| str_of(last, "id") == Some(next_id.as_str()));
+        if last_repeating {
+            let location = regression::location(root, graph, &state, &next)?;
+            directive["verification"] = regression::directive_verification(&state, &location);
+        }
+    } else if sweep {
+        let location = regression::location(root, graph, &state, &next)?;
+        directive["sweep"] = regression::directive_sweep(&state, &location);
+        directive["queue"] = work_units::directive_queue(&state);
     }
 
     // Everything below writes. Resolve the depth approver first so an invalid
@@ -1629,6 +1811,13 @@ pub fn orchestrate_next(
     } else {
         persist_active(root, graph, &loaded, &mut state)?;
     }
+    for (event, details) in ledger_change.audit_rows(&intent_id) {
+        audit(root, event, details)?;
+    }
+    audit_revisits(root, &intent_id, &revisits)?;
+    for details in held_checks {
+        audit(root, "prerequisite.checked", details)?;
+    }
     if let Some(results) = &prerequisites {
         audit(
             root,
@@ -1651,12 +1840,48 @@ pub fn orchestrate_next(
             audit(root, "prerequisite.overridden", Value::Object(details))?;
         }
     }
-    audit(
-        root,
-        "stage.selected",
-        json!({"intent": state["intent"], "intentId": intent_id, "stage": next_id, "rework": rework.is_some()}),
-    )?;
+    let mut selected_row = json!({"intent": state["intent"], "intentId": intent_id, "stage": next_id, "rework": rework.is_some()});
+    if let Some(unit) = &selected_unit {
+        selected_row["unit"] = json!(unit);
+    } else if sweep {
+        selected_row["sweep"] = json!(true);
+    }
+    audit(root, "stage.selected", selected_row)?;
     Ok(NextOutcome::Directive(directive))
+}
+
+/// The prerequisites named (`--needs`) by the last report of unit `key` on `stage`,
+/// while that step is blocked; empty otherwise.
+fn unit_needs(state: &Value, stage: &str, key: &str) -> Vec<String> {
+    let blocked = work_units::unit(state, key).and_then(|unit| work_units::step_of(unit, stage))
+        == Some("blocked");
+    if !blocked {
+        return Vec::new();
+    }
+    work_units::last_unit_report(state, stage, key)
+        .filter(|report| str_of(report, "result") == Some("blocked"))
+        .and_then(|report| report.get("needs"))
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .map(js_string)
+        .collect()
+}
+
+/// Append one `unit.revisited` audit row per revisit.
+pub(crate) fn audit_revisits(
+    root: &Path,
+    intent_id: &str,
+    revisits: &[Value],
+) -> OrchestrateResult<()> {
+    for revisit in revisits {
+        let mut row = json!({"intentId": intent_id});
+        if let (Some(row), Some(details)) = (row.as_object_mut(), revisit.as_object()) {
+            row.extend(details.clone());
+        }
+        audit(root, "unit.revisited", row)?;
+    }
+    Ok(())
 }
 
 /// Library entry point kept for existing callers: run `orchestrate next` (no new
@@ -2253,11 +2478,51 @@ pub fn orchestrate_report_with_engine(
 ) -> OrchestrateResult<Value> {
     let loaded = load_workflow(root, graph, true)?;
     let mut state = loaded.state.clone().ok_or("No active workflow state")?;
-    let current = state
+    let no_current = "No current stage; run orchestrate next first";
+    state
+        .get("currentStage")
+        .filter(|stage| truthy(Some(stage)))
+        .ok_or(no_current)?;
+    let now = crate::audit::now_iso();
+    let scope = scope_of(&state).to_owned();
+    let depth = depth_of(&state).to_owned();
+    let stages: Vec<Value> = ordered_stages(graph, &scope, &depth)
+        .into_iter()
+        .cloned()
+        .collect();
+    // A 1.0.0 state at the repeat span migrates to the work-unit ledger first; when its
+    // current step is not the one the unit selector picks, it must be selected again.
+    // So must a step that cannot run any more, such as a parked unit that an older
+    // dtech-aidlc selected by moving only currentStage/currentUnit.
+    let recorded_stage = str_of(&state, "currentStage").map(str::to_owned);
+    let recorded_unit = str_of(&state, "currentUnit").map(str::to_owned);
+    let ledger_change = work_units::ensure_ledger(
+        root,
+        graph,
+        &mut state,
+        &stages,
+        &now,
+        loaded.state_bytes.as_deref(),
+    )?;
+    let current = match state
         .get("currentStage")
         .filter(|stage| truthy(Some(stage)))
         .map(js_string)
-        .ok_or("No current stage; run orchestrate next first")?;
+    {
+        Some(current) => current,
+        None => {
+            let why = match (&recorded_stage, &recorded_unit) {
+                (Some(stage), Some(unit)) if work_units::has_ledger(&state) => {
+                    let key = work_units::resolve_unit(&state, unit).unwrap_or(unit.clone());
+                    let reason = work_units::unit_step_problem(&state, &stages, &key, stage)
+                        .unwrap_or_else(|| "the work-unit queue runs another step now".into());
+                    format!(" (the recorded step, {stage} of {unit}, cannot be reported: {reason})")
+                }
+                _ => String::new(),
+            };
+            return Err(format!("{no_current}{why}"));
+        }
+    };
     let requested_flag = options.stage.as_deref().filter(|stage| !stage.is_empty());
     if let Some(flag) = requested_flag {
         if stage_by_id(graph, flag).is_none() {
@@ -2273,9 +2538,49 @@ pub fn orchestrate_report_with_engine(
             "Only the current stage ({current}) can be reported"
         ));
     }
+    let ledger_step = work_units::has_ledger(&state) && work_units::is_repeating(&stage);
+    let sweep = ledger_step && work_units::is_sweep_step(&state, &stages);
+    let report_unit: Option<String> = if ledger_step && !sweep {
+        let unit = current_unit(&state)
+            .and_then(Value::as_str)
+            .and_then(|unit| work_units::resolve_unit(&state, unit))
+            .ok_or("No current work unit; run orchestrate next")?;
+        Some(unit)
+    } else {
+        None
+    };
+    if let Some(flag) = options
+        .unit
+        .as_deref()
+        .map(str::trim)
+        .filter(|unit| !unit.is_empty())
+    {
+        let Some(current_unit) = &report_unit else {
+            return Err("--unit applies only to a work-unit stage".into());
+        };
+        if crate::ids::normalize_id(flag) != crate::ids::normalize_id(current_unit) {
+            return Err(format!(
+                "Only the current work unit ({current_unit}) can be reported"
+            ));
+        }
+    }
     let result = options.result.as_deref().unwrap_or("");
     if !matches!(result, "complete" | "blocked" | "skipped") {
         return Err("--result must be complete, blocked, or skipped".into());
+    }
+    if sweep && result == "skipped" {
+        return Err(
+            "The release regression sweep cannot be skipped; report complete with regression.json, or blocked".into(),
+        );
+    }
+    // A pending ledger rework or split is reconciled only by a complete design report;
+    // a skipped design would leave the request pending with the design finished, which
+    // nothing selects again.
+    if stage_id == "implementation-design"
+        && result == "skipped"
+        && work_units::rework_pending(&state)
+    {
+        return Err("Stage implementation-design cannot be skipped while a design rework or split is pending; report it complete (units whose design did not change keep their results when their work-units.json row and section stay byte-identical), or blocked".into());
     }
     let detail = options
         .detail
@@ -2306,12 +2611,6 @@ pub fn orchestrate_report_with_engine(
         }
         crate::prerequisites::require_known_prerequisites(config, &needs)?;
     }
-    let scope = scope_of(&state).to_owned();
-    let depth = depth_of(&state).to_owned();
-    let stages: Vec<Value> = ordered_stages(graph, &scope, &depth)
-        .into_iter()
-        .cloned()
-        .collect();
     if !stages
         .iter()
         .any(|item| str_of(item, "id") == Some(stage_id.as_str()))
@@ -2335,7 +2634,9 @@ pub fn orchestrate_report_with_engine(
             .final_stage
             .clone()
             .unwrap_or_else(|| "undefined".into());
-        let place = if Some(stage_id.as_str()) == gate.final_stage.as_deref() {
+        let place = if ledger_step && Some(stage_id.as_str()) == gate.final_stage.as_deref() {
+            format!("on the final regression sweep of {stage_id}, after every work unit is done")
+        } else if Some(stage_id.as_str()) == gate.final_stage.as_deref() {
             format!(
                 "on the last work unit of {stage_id}; work unit {} is not the last",
                 state
@@ -2359,6 +2660,31 @@ pub fn orchestrate_report_with_engine(
     }
     if phase_gate && matches!(result, "complete" | "skipped") && approval != Some("approved") {
         return Err(format!("Phase gate {} after {stage_id} requires explicit --approval approved from the project owner (name them with --approved-by NAME); this also applies when the stage is skipped.", js_string(&gate.id)));
+    }
+    if sweep && result == "complete" {
+        let parked: Vec<String> = work_units::active_units(&state)
+            .into_iter()
+            .filter(|(_, unit)| work_units::is_parked(unit))
+            .map(
+                |(key, unit)| match unit.pointer("/park/kind").and_then(Value::as_str) {
+                    Some(kind) => format!("{key} ({kind})"),
+                    None => key,
+                },
+            )
+            .collect();
+        if !parked.is_empty() {
+            return Err(format!(
+                "The release-candidate gate needs no parked work unit; parked: {}. Revisit or rework them first (dtech-aidlc orchestrate queue lists them).",
+                parked.join(", ")
+            ));
+        }
+        let open = work_units::unsatisfied_units(&state);
+        if !open.is_empty() {
+            return Err(format!(
+                "The release-candidate gate needs every work unit done and none parked; not done: {}",
+                open.join(", ")
+            ));
+        }
     }
     let intent_id = str_of(&state, "intentId").unwrap_or("").to_owned();
     let mut verified: Vec<VerifiedArtifact> = Vec::new();
@@ -2449,7 +2775,103 @@ pub fn orchestrate_report_with_engine(
         }
     }
 
-    let now = crate::audit::now_iso();
+    // Attributed regression (design section 8): a unit's build-and-verify `complete`
+    // and the release sweep need a fresh regression.json; a blocked sweep that brings
+    // one reopens the owning units.
+    let last_repeating = work_units::span(&stages)
+        .repeating
+        .last()
+        .is_some_and(|last| str_of(last, "id") == Some(stage_id.as_str()));
+    let mut regression_run: Option<(regression::Evidence, regression::Attribution)> = None;
+    let mut regression_warning: Option<String> = None;
+    if ledger_step && last_repeating && (result == "complete" || (sweep && result == "blocked")) {
+        let location = regression::location(root, graph, &state, &stage)?;
+        let selected_at = if sweep {
+            work_units::ledger(&state)
+                .and_then(|ledger| ledger.pointer("/sweep/selectedAt"))
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+        } else {
+            report_unit
+                .as_deref()
+                .and_then(|unit| work_units::unit(&state, unit))
+                .and_then(|unit| unit.get("selectedAt"))
+                .and_then(Value::as_str)
+                .map(str::to_owned)
+        };
+        let prefix = if result == "complete" {
+            format!("Stage {stage_id} cannot be completed: regression.json")
+        } else {
+            format!("The release sweep of {stage_id} cannot be reported blocked: regression.json")
+        };
+        match regression::read(root, &location, selected_at.as_deref())
+            .map_err(|problem| format!("{prefix} {problem}"))?
+        {
+            regression::Read::Missing if result == "complete" => {
+                return Err(format!(
+                    "{prefix} is missing ({}); run the regression suites for this step and write it (schemaVersion 1; the directive's {} object names the path)",
+                    location.rel_path,
+                    if sweep { "sweep" } else { "verification" }
+                ));
+            }
+            regression::Read::Stale { written } if result == "complete" => {
+                return Err(format!(
+                    "{prefix} predates this step (written {written}, step selected {}); run the suites again",
+                    selected_at.as_deref().unwrap_or("")
+                ));
+            }
+            regression::Read::Missing => {}
+            regression::Read::Stale { .. } => {
+                regression_warning = Some(format!(
+                    "{} predates this sweep step and was ignored; no work unit was reopened.",
+                    location.rel_path
+                ));
+            }
+            regression::Read::Fresh(text) => {
+                let registered = work_units::registered_tests(root, graph, &state);
+                let evidence =
+                    regression::parse(&text, report_unit.as_deref(), registered.as_ref())
+                        .map_err(|problem| format!("{prefix} {problem}"))?;
+                let attribution = regression::attribute(&evidence, &state, report_unit.as_deref())
+                    .map_err(|problem| format!("{prefix}: {problem}"))?;
+                if result == "complete" {
+                    match &report_unit {
+                        Some(unit) => {
+                            let blocking = attribution.blocking();
+                            if !blocking.is_empty() {
+                                return Err(regression::unit_refusal(&stage_id, unit, &blocking));
+                            }
+                        }
+                        None => {
+                            let failing = attribution.failing();
+                            if !failing.is_empty() {
+                                return Err(regression::sweep_refusal(&failing));
+                            }
+                            let declared: HashSet<String> = work_units::ledger(&state)
+                                .and_then(|ledger| ledger.get("baselineTests"))
+                                .and_then(Value::as_array)
+                                .into_iter()
+                                .flatten()
+                                .filter_map(Value::as_str)
+                                .map(str::to_owned)
+                                .collect();
+                            if let Some(test) = attribution
+                                .baseline_tests()
+                                .into_iter()
+                                .find(|test| !declared.contains(test))
+                            {
+                                return Err(format!(
+                                    "{prefix} marks {test} as baseline, but no earlier unit run did; baseline failures must be declared before the release sweep"
+                                ));
+                            }
+                        }
+                    }
+                }
+                regression_run = Some((evidence, attribution));
+            }
+        }
+    }
+
     let previous = state
         .get("stages")
         .and_then(|rows| rows.get(&stage_id))
@@ -2540,6 +2962,11 @@ pub fn orchestrate_report_with_engine(
     if let Some(record) = &approval_record {
         report.insert("approval".into(), record.clone());
     }
+    if let Some(unit) = &report_unit {
+        report.insert("unit".into(), json!(unit));
+    } else if sweep {
+        report.insert("sweep".into(), json!(true));
+    }
     reports.push(Value::Object(report));
     let repeat = str_of(&stage, "repeat") == Some("work-unit");
     let unit_key = unit_key(current_unit(&state));
@@ -2549,7 +2976,7 @@ pub fn orchestrate_report_with_engine(
         .and_then(Value::as_object)
         .cloned()
         .unwrap_or_default();
-    if repeat {
+    if repeat && !sweep {
         unit_map.insert(
             unit_key.clone(),
             json!({"status": result, "reportedAt": now}),
@@ -2577,6 +3004,7 @@ pub fn orchestrate_report_with_engine(
         result
     };
     if repeat
+        && !ledger_step
         && stage_finished(Some(result))
         && truthy(state.get("units"))
         && last_repeat_of_phase(graph, &state, &stage)
@@ -2607,6 +3035,105 @@ pub fn orchestrate_report_with_engine(
         row.insert("artifacts".into(), Value::Array(artifacts));
     }
     state["stages"][&stage_id] = Value::Object(row);
+    let mut auto_parked: Option<work_units::Parked> = None;
+    if let Some(unit) = &report_unit {
+        let last = work_units::span(&stages)
+            .repeating
+            .last()
+            .is_some_and(|last| str_of(last, "id") == Some(stage_id.as_str()));
+        work_units::record_unit_report(&mut state, &stage_id, unit, result, &needs, last, &now);
+        // The same blocker reported N times in a row parks the unit (owner-decision,
+        // auto), so the next orchestrate next moves on to another ready unit.
+        if result == "blocked" && needs.is_empty() {
+            auto_parked = work_units::auto_park(
+                &mut state,
+                &stage_id,
+                unit,
+                work_units::auto_park_threshold(config),
+                detail.unwrap_or(""),
+                &now,
+            );
+            if auto_parked.is_some() {
+                if let Some(report) = state["stages"][&stage_id]
+                    .get_mut("reports")
+                    .and_then(Value::as_array_mut)
+                    .and_then(|reports| reports.last_mut())
+                {
+                    report["parked"] =
+                        json!({"kind": "owner-decision", "blockedBy": [], "auto": true});
+                }
+            }
+        }
+    } else if sweep {
+        work_units::record_sweep_report(&mut state, result, &now);
+    }
+    let mut attributed: Option<Value> = None;
+    let mut reopened: Vec<(String, Vec<String>)> = Vec::new();
+    if let Some((evidence, attribution)) = &regression_run {
+        match &report_unit {
+            Some(unit) => {
+                attributed = Some(regression::apply_unit_run(
+                    &mut state,
+                    &stage_id,
+                    unit,
+                    evidence,
+                    attribution,
+                    &now,
+                ));
+            }
+            None => {
+                let (details, units) = regression::apply_sweep_run(
+                    &mut state,
+                    &stage_id,
+                    result,
+                    evidence,
+                    attribution,
+                    &now,
+                );
+                attributed = Some(details);
+                reopened = units;
+            }
+        }
+    }
+    // The approved green sweep is the release-candidate gate: the approver's record
+    // carries the owner decisions, the deferred regressions and the sweep evidence.
+    let release_summary = (sweep && approval == Some("approved")).then(|| {
+        let sweep_row = work_units::ledger(&state)
+            .and_then(|ledger| ledger.get("sweep"))
+            .cloned()
+            .unwrap_or(Value::Null);
+        json!({
+            "ownerDecisions": work_units::owner_decisions(&state),
+            "deferredRegressions": regression::deferred_items(&state),
+            "sweepRun": {
+                "commands": sweep_row.get("commands").cloned().unwrap_or_else(|| json!([])),
+                "baselineFailures": sweep_row.get("baselineFailures").cloned().unwrap_or_else(|| json!([])),
+            },
+        })
+    });
+    // implementation-design complete builds the work-unit ledger (or reconciles a
+    // pending ledger rework against the redesigned work-units.json).
+    let mut design_change = LedgerChange::None;
+    let mut reconciled: Option<Value> = None;
+    if stage_id == "implementation-design" && result == "complete" {
+        if work_units::rework_pending(&state) {
+            reconciled = Some(work_units::reconcile_rework(
+                root, graph, &mut state, &stages, &now,
+            )?);
+        } else {
+            design_change = work_units::ensure_ledger(
+                root,
+                graph,
+                &mut state,
+                &stages,
+                &now,
+                loaded.state_bytes.as_deref(),
+            )?;
+        }
+    }
+    if work_units::has_ledger(&state) {
+        work_units::sync_mirrors(&mut state, &stages, &now);
+    }
     let mut skipped_stages = Value::Array(Vec::new());
     if approval_record.is_some() {
         skipped_stages = Value::Array(
@@ -2652,6 +3179,9 @@ pub fn orchestrate_report_with_engine(
     state["currentStage"] = Value::Null;
     crate::audit::preflight_audit(root)?;
     persist_active(root, graph, &loaded, &mut state)?;
+    for (event, details) in ledger_change.audit_rows(&intent_id) {
+        audit(root, event, details)?;
+    }
 
     let mut reported = Map::new();
     reported.insert("intent".into(), state["intent"].clone());
@@ -2677,7 +3207,39 @@ pub fn orchestrate_report_with_engine(
     if !needs.is_empty() {
         reported.insert("needs".into(), json!(needs));
     }
+    if let Some(unit) = &report_unit {
+        reported.insert("unit".into(), json!(unit));
+    } else if sweep {
+        reported.insert("sweep".into(), json!(true));
+    }
     audit(root, "stage.reported", Value::Object(reported))?;
+    if let Some(parked) = &auto_parked {
+        audit(root, "unit.parked", parked.audit_row(&intent_id))?;
+    }
+    if let Some(details) = &attributed {
+        let mut row = json!({"intentId": intent_id});
+        if let (Some(row), Some(details)) = (row.as_object_mut(), details.as_object()) {
+            row.extend(details.clone());
+        }
+        audit(root, "regression.attributed", row)?;
+    }
+    for (unit, tests) in &reopened {
+        audit(
+            root,
+            "unit.reopened",
+            json!({"intentId": intent_id, "unit": unit, "by": regression::SWEEP, "tests": tests}),
+        )?;
+    }
+    for (event, details) in design_change.audit_rows(&intent_id) {
+        audit(root, event, details)?;
+    }
+    if let Some(details) = &reconciled {
+        audit(
+            root,
+            "units.reconciled",
+            work_units::reconciled_row(&intent_id, details),
+        )?;
+    }
     if approval_record.is_some() {
         let mut decided = Map::new();
         decided.insert("intentId".into(), json!(intent_id));
@@ -2699,9 +3261,13 @@ pub fn orchestrate_report_with_engine(
         if let Some(open) = &open_items {
             decided.insert("openItems".into(), open.clone());
         }
+        if let Some(Value::Object(summary)) = &release_summary {
+            decided.extend(summary.clone());
+        }
         audit(root, "gate.decided", Value::Object(decided))?;
     }
     let mut warnings = Vec::new();
+    warnings.extend(regression_warning);
     if result == "complete" && phase_gate && stage_id == "build-and-verify" {
         let uncovered = uncovered_functions(root, graph, &intent_id);
         if !uncovered.is_empty() {
@@ -2726,6 +3292,23 @@ pub fn orchestrate_report_with_engine(
     );
     if !needs.is_empty() {
         output.insert("needs".into(), json!(needs));
+    }
+    if let Some(unit) = &report_unit {
+        output.insert("unit".into(), json!(unit));
+    } else if sweep {
+        output.insert("sweep".into(), json!(true));
+    }
+    if let Some(details) = &attributed {
+        output.insert("regression".into(), details.clone());
+    }
+    if let Some(Value::Object(summary)) = &release_summary {
+        output.extend(summary.clone());
+    }
+    if let Some(parked) = &auto_parked {
+        output.insert(
+            "parked".into(),
+            json!({"kind": parked.kind, "auto": true, "count": parked.count, "detail": parked.detail}),
+        );
     }
     if !warnings.is_empty() {
         output.insert("warnings".into(), json!(warnings));
@@ -3560,6 +4143,128 @@ mod tests {
         );
         assert_eq!(snapshot(&root), before);
         fs::remove_dir_all(root).unwrap();
+    }
+
+    fn unit_fixture(name: &str) -> String {
+        fs::read_to_string(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("tests/fixtures/unit_scheduling")
+                .join(name),
+        )
+        .unwrap()
+    }
+
+    fn develop_stages(graph: &Value) -> Vec<Value> {
+        ordered_stages(graph, "solo", "full")
+            .into_iter()
+            .cloned()
+            .collect()
+    }
+
+    /// Removing `workUnits` from a migrated state is a rollback: the 1.0.0 selector
+    /// drives the mirrors to the same step.
+    #[test]
+    fn migrated_state_without_the_ledger_is_driven_by_the_1_0_0_selector() {
+        let root = temp();
+        let design = root.join(".aidlc/intents/unit-replay/develop/implementation-design");
+        fs::create_dir_all(&design).unwrap();
+        fs::write(
+            design.join("work-units.json"),
+            unit_fixture("work-units.real.json"),
+        )
+        .unwrap();
+        fs::write(design.join("ids.json"), unit_fixture("ids.json")).unwrap();
+        let graph = embedded_graph();
+        let stages = develop_stages(&graph);
+        let mut state: Value = serde_json::from_str(&unit_fixture("state-1.0.0.json")).unwrap();
+        let change =
+            work_units::ensure_ledger(&root, &graph, &mut state, &stages, "now", None).unwrap();
+        assert!(matches!(change, LedgerChange::Migrated { .. }));
+        let selection = work_units::peek(&state, &stages);
+        work_units::apply_selection(&mut state, &selection, "now");
+        work_units::sync_mirrors(&mut state, &stages, "now");
+        let mut rolled_back = state.clone();
+        remove_key(&mut rolled_back, "workUnits");
+        let stage = select_next_stage(&mut rolled_back, &stages).unwrap();
+        assert_eq!(stage["id"], "red-tests");
+        assert_eq!(rolled_back["currentUnit"], "WU-01");
+        assert_eq!(
+            selection,
+            Selection::Unit {
+                stage,
+                unit: "WU-01".into()
+            }
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn rollback_projection_keeps_the_release_gate() {
+        let graph = embedded_graph();
+        let stages = develop_stages(&graph);
+        let mut state = json!({
+            "intentId": "gate", "scope": "solo", "depth": "full", "stages": {}, "currentStage": null,
+        });
+        for stage in &stages[..4] {
+            state["stages"][str_of(stage, "id").unwrap()] = json!({"status": "complete"});
+        }
+        state["stages"]["implementation-design"] = json!({"status": "complete"});
+        state["stages"]["red-tests"] = json!({"status": "in_progress", "units": {}});
+        state["stages"]["build-and-verify"] = json!({"status": "in_progress", "units": {}});
+        let input = work_units::WorkUnitsInput {
+            rel_path: "work-units.json".into(),
+            sha256: "x".into(),
+            registry_sha256: None,
+            registry: None,
+            markdown: None,
+            units: ["WU-01", "WU-02"]
+                .iter()
+                .map(|id| work_units::UnitRow {
+                    id: (*id).into(),
+                    title: Value::Null,
+                    depends_on: Vec::new(),
+                    tests: Vec::new(),
+                    row: json!({"id": id}),
+                })
+                .collect(),
+        };
+        let (ledger, _) = work_units::build_ledger(&input, &state, &stages, "t", false, None);
+        state["workUnits"] = ledger;
+        for unit in ["WU-01", "WU-02"] {
+            for stage in ["red-tests", "build-and-verify"] {
+                state["stages"][stage]["units"][unit] =
+                    json!({"status": "complete", "reportedAt": "t"});
+                work_units::record_unit_report(
+                    &mut state,
+                    stage,
+                    unit,
+                    "complete",
+                    &[],
+                    stage == "build-and-verify",
+                    "t",
+                );
+            }
+        }
+        work_units::sync_mirrors(&mut state, &stages, "t");
+        assert!(matches!(
+            work_units::peek(&state, &stages),
+            Selection::Sweep(_)
+        ));
+        // A 1.0.0 binary (no ledger) stops at the release-candidate gate on the gate
+        // unit instead of falling through to the next phase.
+        let mut rolled_back = state.clone();
+        remove_key(&mut rolled_back, "workUnits");
+        let stage = select_next_stage(&mut rolled_back, &stages).unwrap();
+        assert_eq!(stage["id"], "build-and-verify");
+        assert_eq!(rolled_back["currentUnit"], "WU-02");
+        rolled_back["currentStage"] = json!("build-and-verify");
+        assert!(is_phase_gate(&graph, &rolled_back, &stage));
+        // Without the projection 1.0.0 would have skipped the gate.
+        let mut unprojected = rolled_back.clone();
+        unprojected["units"][1]["status"] = json!("complete");
+        unprojected["stages"]["build-and-verify"]["units"]["WU-02"]["status"] = json!("complete");
+        let skipped = select_next_stage(&mut unprojected, &stages).unwrap();
+        assert_eq!(skipped["id"], "intent-record");
     }
 
     #[test]

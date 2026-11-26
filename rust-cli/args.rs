@@ -162,6 +162,42 @@ const ORCHESTRATE_REPORT_FLAGS: &[OptionSpec] = &[
         name: "needs",
         kind: OptionType::List,
     },
+    OptionSpec {
+        name: "unit",
+        kind: OptionType::List,
+    },
+];
+const ORCHESTRATE_PARK_FLAGS: &[OptionSpec] = &[
+    OptionSpec {
+        name: "unit",
+        kind: OptionType::List,
+    },
+    OptionSpec {
+        name: "kind",
+        kind: OptionType::String,
+    },
+    OptionSpec {
+        name: "blocked-by",
+        kind: OptionType::List,
+    },
+    OptionSpec {
+        name: "detail",
+        kind: OptionType::String,
+    },
+];
+const ORCHESTRATE_REVISIT_FLAGS: &[OptionSpec] = &[
+    OptionSpec {
+        name: "unit",
+        kind: OptionType::List,
+    },
+    OptionSpec {
+        name: "detail",
+        kind: OptionType::String,
+    },
+    OptionSpec {
+        name: "approved-by",
+        kind: OptionType::String,
+    },
 ];
 const IDS_CHECK_FLAGS: &[OptionSpec] = &[OptionSpec {
     name: "stage",
@@ -179,6 +215,26 @@ const INTENT_DETAIL_FLAGS: &[OptionSpec] = &[OptionSpec {
     name: "detail",
     kind: OptionType::String,
 }];
+const INTENT_REWORK_FLAGS: &[OptionSpec] = &[
+    OptionSpec {
+        name: "detail",
+        kind: OptionType::String,
+    },
+    OptionSpec {
+        name: "unit",
+        kind: OptionType::List,
+    },
+];
+const INTENT_SPLIT_FLAGS: &[OptionSpec] = &[
+    OptionSpec {
+        name: "into",
+        kind: OptionType::List,
+    },
+    OptionSpec {
+        name: "detail",
+        kind: OptionType::String,
+    },
+];
 const INTENT_DEPTH_FLAGS: &[OptionSpec] = &[
     OptionSpec {
         name: "approved-by",
@@ -238,15 +294,19 @@ pub fn command_flags(command: &str) -> Option<&'static [OptionSpec]> {
         "init" | "onboard" => INIT_FLAGS,
         "orchestrate next" => ORCHESTRATE_NEXT_FLAGS,
         "orchestrate report" => ORCHESTRATE_REPORT_FLAGS,
+        "orchestrate park" => ORCHESTRATE_PARK_FLAGS,
+        "orchestrate revisit" => ORCHESTRATE_REVISIT_FLAGS,
         "ids check" => IDS_CHECK_FLAGS,
         "scope" => SCOPE_FLAGS,
         "status" => STATUS_FLAGS,
-        "doctor" | "intent list" | "intent resume" | "intent assign" | "config agents"
-        | "config scope" | "config mode" | "config gate-mode" | "harness add" | "repos list"
-        | "repos remove" | "deps add" | "deps list" | "deps pull" | "completion zsh"
-        | "knowledge init" | "knowledge list" | "knowledge show" | "knowledge check"
-        | "knowledge index" | "harness status" => &[],
-        "intent pause" | "intent abandon" | "intent rework" => INTENT_DETAIL_FLAGS,
+        "doctor" | "orchestrate queue" | "intent list" | "intent resume" | "intent assign"
+        | "config agents" | "config scope" | "config mode" | "config gate-mode" | "harness add"
+        | "repos list" | "repos remove" | "deps add" | "deps list" | "deps pull"
+        | "completion zsh" | "knowledge init" | "knowledge list" | "knowledge show"
+        | "knowledge check" | "knowledge index" | "harness status" => &[],
+        "intent pause" | "intent abandon" => INTENT_DETAIL_FLAGS,
+        "intent rework" => INTENT_REWORK_FLAGS,
+        "intent split" => INTENT_SPLIT_FLAGS,
         "intent depth" => INTENT_DEPTH_FLAGS,
         "config prerequisite" => CONFIG_PREREQUISITE_FLAGS,
         "repos add" => REPOS_ADD_FLAGS,
@@ -260,13 +320,32 @@ pub fn command_flags(command: &str) -> Option<&'static [OptionSpec]> {
 /// Returns the positional-argument limit when one is specified for the command.
 pub fn command_max_args(command: &str) -> Option<usize> {
     Some(match command {
-        "init" | "onboard" | "status" | "doctor" | "orchestrate next" | "orchestrate report"
-        | "repos list" | "deps list" | "completion zsh" | "ids check" | "intent list"
-        | "intent pause" | "intent rework" | "knowledge init" | "knowledge list"
-        | "knowledge check" | "knowledge index" | "harness status" => 0,
+        "init"
+        | "onboard"
+        | "status"
+        | "doctor"
+        | "orchestrate next"
+        | "orchestrate report"
+        | "orchestrate park"
+        | "orchestrate queue"
+        | "orchestrate revisit"
+        | "repos list"
+        | "deps list"
+        | "completion zsh"
+        | "ids check"
+        | "intent list"
+        | "intent pause"
+        | "intent rework"
+        | "knowledge init"
+        | "knowledge list"
+        | "knowledge check"
+        | "knowledge index"
+        | "harness status" => 0,
         "scope" | "repos pull" | "repos remove" | "deps pull" | "intent resume"
-        | "intent abandon" | "intent depth" | "intent assign" | "knowledge show"
-        | "harness add" | "harness refresh" | "config scope" | "config mode" => 1,
+        | "intent abandon" | "intent depth" | "intent split" | "intent assign"
+        | "knowledge show" | "harness add" | "harness refresh" | "config scope" | "config mode" => {
+            1
+        }
         "repos add" | "deps add" | "config gate-mode" | "config prerequisite" => 2,
         "config agents" | "knowledge sources" => 3,
         _ => return None,
@@ -393,6 +472,9 @@ const COMMANDS: &[&str] = &[
     "onboard",
     "orchestrate next",
     "orchestrate report",
+    "orchestrate park",
+    "orchestrate queue",
+    "orchestrate revisit",
     "ids check",
     "scope",
     "status",
@@ -403,6 +485,7 @@ const COMMANDS: &[&str] = &[
     "intent abandon",
     "intent depth",
     "intent rework",
+    "intent split",
     "intent assign",
     "config agents",
     "config scope",
@@ -537,8 +620,16 @@ mod tests {
                     "approved-by",
                     "approval-note",
                     "needs",
+                    "unit",
                 ],
             ),
+            (
+                "orchestrate park",
+                0,
+                &["unit", "kind", "blocked-by", "detail"],
+            ),
+            ("orchestrate queue", 0, &[]),
+            ("orchestrate revisit", 0, &["unit", "detail", "approved-by"]),
             ("ids check", 0, &["stage"]),
             ("scope", 1, &["depth"]),
             ("status", 0, &["intent"]),
@@ -548,7 +639,8 @@ mod tests {
             ("intent resume", 1, &[]),
             ("intent abandon", 1, &["detail"]),
             ("intent depth", 1, &["approved-by", "detail"]),
-            ("intent rework", 0, &["detail"]),
+            ("intent rework", 0, &["detail", "unit"]),
+            ("intent split", 1, &["into", "detail"]),
             ("intent assign", 1, &[]),
             ("config agents", 3, &[]),
             ("config scope", 1, &[]),

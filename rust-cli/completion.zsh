@@ -34,12 +34,12 @@ _dtech-aidlc() {
         'scope:Show stages in a scope'
         'status:Show the active intent'
         'doctor:Validate project setup'
-        'orchestrate:Advance or report a stage'
+        'orchestrate:Advance or report a stage, or park and revisit work units'
         'config:Configure agent models, default scope, mode, gate modes or prerequisites'
         'ids:Check cited identifiers against the ID registry'
         'repos:Manage dependency repositories'
         'deps:Manage workflow dependency edges'
-        'intent:List, pause, resume, or abandon intents'
+        'intent:List, pause, resume, abandon, rework or split intents'
         'knowledge:Manage project knowledge and sources'
         'harness:Inspect and refresh projected skill files'
         'completion:Print shell completion'
@@ -74,7 +74,7 @@ _dtech-aidlc() {
           esac
           ;;
         intent)
-          _arguments -C '1:action:(list pause resume abandon depth assign)' '*::arg:->intentrest'
+          _arguments -C '1:action:(list pause resume abandon depth rework split assign)' '*::arg:->intentrest'
           case $state in
             intentrest)
               case ${words[1]} in
@@ -82,6 +82,8 @@ _dtech-aidlc() {
                 resume) _arguments '1:id:' ;;
                 abandon) _arguments '--detail[Reason]:detail:' '1:id:' ;;
                 depth) _arguments '--approved-by[Approver]:name:' '--detail[Reason]:detail:' '1:depth:(full standard fast)' ;;
+                rework) _arguments '--unit[Work unit to send back to design]:unit:' '--detail[Reason]:detail:' ;;
+                split) _arguments '1:unit:' '--into[Work units replacing it]:units:' '--detail[Reason]:detail:' ;;
                 assign) _arguments '1:name:' ;;
               esac
               ;;
@@ -90,7 +92,7 @@ _dtech-aidlc() {
         orchestrate)
           _arguments -C '1:action:->action' '*::arg:->rest'
           case $state in
-            action) _values 'action' next report ;;
+            action) _values 'action' next report park queue revisit ;;
             rest)
               case ${words[1]} in
                 next) _arguments '--intent[Intent text]:intent:' '--scope[Workflow scope]:scope:(solo team enterprise)' '--depth[Depth]:depth:(full standard fast)' '--mode[Orchestration mode]:mode:(human ai)' '--approved-by[Approver]:name:' '--detail[Reason]:detail:' '--force-resume[Override a failing prerequisite check]' ;;
@@ -100,7 +102,21 @@ _dtech-aidlc() {
                     '--result[Stage result]:result:(complete blocked skipped)' \
                     '--approval[Phase approval]:approval:(approved)' \
                     '--needs[Named prerequisite that blocks the stage]:name:' \
+                    '--unit[Work unit being reported (the current unit)]:unit:' \
                     '--detail[Result detail]:detail:'
+                  ;;
+                park)
+                  _arguments \
+                    '--unit[Work unit to park (the current unit)]:unit:' \
+                    '--kind[Why the unit is blocked]:kind:(dep-unit foreign-regression owner-decision design-defect)' \
+                    '--blocked-by[Unit, test or decision it waits for]:id:' \
+                    '--detail[Reason]:detail:'
+                  ;;
+                revisit)
+                  _arguments \
+                    '--unit[Parked work unit to return to the queue]:unit:' \
+                    '--detail[Decision or reason]:detail:' \
+                    '--approved-by[Who decided]:name:'
                   ;;
               esac
               ;;

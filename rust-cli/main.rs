@@ -105,9 +105,15 @@ fn run() -> Result<u8, String> {
             if key == "orchestrate next" || key == "orchestrate report" {
                 return run_orchestrate(&key, &root, flags);
             }
+            if matches!(
+                key.as_str(),
+                "orchestrate park" | "orchestrate queue" | "orchestrate revisit"
+            ) {
+                return run_unit_queue(&key, &root, flags);
+            }
             // Node reads the graph before rejecting the action.
             load_runtime_graph(external_engine().as_deref())?;
-            return Err("Use orchestrate next or orchestrate report".into());
+            return Err("Use orchestrate next, report, park, queue or revisit".into());
         }
         "scope" | "status" => return run_read_only(&key, &root, rest, flags),
         "intent" if key == "intent list" => return run_read_only(&key, &root, rest, flags),
@@ -346,6 +352,24 @@ fn string_flag<'a>(flags: &'a BTreeMap<String, FlagValue>, name: &str) -> Option
     }
 }
 
+/// A list option's values, each also split on `,` and trimmed; empty items are refused.
+fn list_flag(flags: &BTreeMap<String, FlagValue>, name: &str) -> Result<Vec<String>, String> {
+    let raw = match flags.get(name) {
+        Some(FlagValue::List(values)) => values.clone(),
+        Some(FlagValue::String(value)) => vec![value.clone()],
+        _ => return Ok(Vec::new()),
+    };
+    let mut values = Vec::new();
+    for item in raw.iter().flat_map(|value| value.split(',')) {
+        let item = item.trim();
+        if item.is_empty() {
+            return Err(format!("--{name} has an empty item"));
+        }
+        values.push(item.to_owned());
+    }
+    Ok(values)
+}
+
 fn print_json(value: &Value) -> Result<(), String> {
     let text = serde_json::to_string_pretty(value).map_err(|error| error.to_string())?;
     write_stdout(&format!("{text}\n"))
@@ -406,6 +430,10 @@ fn run_orchestrate(
         // Node orchestrateReport reads the configuration with loadConfig: unvalidated,
         // and `{}` when it is missing or malformed.
         let config = dtech_aidlc::scope::load_config_unvalidated(&root);
+        let units = list_flag(flags, "unit")?;
+        if units.len() > 1 {
+            return Err("--unit takes one work unit for orchestrate report".into());
+        }
         let mut result = orchestrate::orchestrate_report_with_engine(
             &root,
             graph,
@@ -423,6 +451,7 @@ fn run_orchestrate(
                     Some(FlagValue::String(value)) => vec![value.clone()],
                     _ => Vec::new(),
                 },
+                unit: units.into_iter().next(),
             },
         )?;
         orchestrate::finish_report(&root, &mut result)?;
@@ -479,6 +508,29 @@ fn run_orchestrate(
             Ok(0)
         }
     }
+}
+
+/// `orchestrate park`, `orchestrate queue` and `orchestrate revisit`, with the same root
+/// resolution, state-directory check and methodology graph as `run_orchestrate`.
+fn run_unit_queue(
+    key: &str,
+    project: &Path,
+    flags: &BTreeMap<String, FlagValue>,
+) -> Result<u8, String> {
+    let root = orchestrate::resolve_like_node(project)?;
+    dtech_aidlc::audit::assert_safe_state_dir(&root)?;
+    let graph = load_runtime_graph(external_engine().as_deref())?;
+    let config = dtech_aidlc::scope::load_config_unvalidated(&root);
+    let options = dtech_aidlc::unit_commands::UnitOptions {
+        units: list_flag(flags, "unit")?,
+        kind: string_flag(flags, "kind").map(str::to_owned),
+        blocked_by: list_flag(flags, "blocked-by")?,
+        detail: string_flag(flags, "detail").map(str::to_owned),
+        approved_by: string_flag(flags, "approved-by").map(str::to_owned),
+    };
+    let output = dtech_aidlc::unit_commands::run(key, &root, graph.value(), &config, &options)?;
+    print_json(&output)?;
+    Ok(0)
 }
 
 /// Node's intent sources for `orchestrate next`: --intent, --description or

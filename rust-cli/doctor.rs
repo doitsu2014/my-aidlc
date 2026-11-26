@@ -346,6 +346,14 @@ fn validate_model_config(root: &Path, graph: Option<&Value>) -> Result<Value, St
             return Err("Invalid unitSplitThreshold: expected a positive integer".into());
         }
     }
+    if let Some(threshold) = config.get("autoParkThreshold") {
+        let integer = threshold
+            .as_f64()
+            .is_some_and(|n| n.is_finite() && n.fract() == 0.0 && n >= 1.0);
+        if !integer {
+            return Err("Invalid autoParkThreshold: expected a positive integer".into());
+        }
+    }
     if let Some(roles) = config.get("roles") {
         let roles = plain_object(Some(roles)).ok_or("Invalid roles: expected an object")?;
         let names = |value: &Value| {
@@ -952,6 +960,14 @@ fn check_workflow(root: &Path, graph: Option<&Value>) -> Result<Vec<Row>, String
             "Project has workflow state but no .aidlc/config.json; run dtech-aidlc onboard --harness <claude|deepseek> --scope <scope>".into(),
         ));
     }
+    // The split threshold for the wave suggestion (an invalid value is reported by the
+    // configuration check and falls back to the default here, as in orchestrate next).
+    let split_threshold = fs::read_to_string(config_path(root))
+        .ok()
+        .and_then(|text| serde_json::from_str::<Value>(&text).ok())
+        .map(|config| crate::orchestrate::unit_split_threshold(&config))
+        .unwrap_or(crate::orchestrate::DEFAULT_UNIT_SPLIT_THRESHOLD as f64)
+        as usize;
     let graph_ids: Vec<&Value> = graph["stages"]
         .as_array()
         .into_iter()
@@ -1021,9 +1037,70 @@ fn check_workflow(root: &Path, graph: Option<&Value>) -> Result<Vec<Row>, String
                 unfinished_seen = true;
             }
         }
+        // Work units: the stored ledger, or the one the next orchestrate command would
+        // build (computed on a copy; doctor never writes).
+        let owned: Vec<Value> = stages.iter().map(|stage| (*stage).clone()).collect();
+        let mut unit_scheduled = false;
+        match crate::work_units::preview_with_change(root, graph, &state, &owned) {
+            Err(error) => rows.push(("fail", format!("Intent {id}: {error}"))),
+            Ok(None) => {}
+            Ok(Some((preview, pending, change))) => {
+                unit_scheduled = true;
+                if !pending {
+                    if let Some(warning) = crate::work_units::stale_warning(&change) {
+                        rows.push(("warn", format!("Intent {id}: {warning}")));
+                    }
+                    for warning in crate::work_units::drift_warnings(root, graph, &preview) {
+                        rows.push(("warn", format!("Intent {id}: {warning}")));
+                    }
+                }
+                let ignored: Vec<String> = preview
+                    .pointer("/workUnits/migration/ignoredKeys")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .filter_map(Value::as_str)
+                    .map(str::to_owned)
+                    .collect();
+                for stage in crate::work_units::span(&owned).repeating {
+                    let sid = stage["id"].as_str().unwrap_or("");
+                    for key in &ignored {
+                        if recorded
+                            .get(sid)
+                            .and_then(|row| row.get("units"))
+                            .and_then(|units| units.get(key))
+                            .is_some()
+                        {
+                            rows.push((
+                                "warn",
+                                format!("Intent {id}: stage {sid} holds a placeholder entry \"{key}\" from an earlier one-unit fallback; it is ignored"),
+                            ));
+                        }
+                    }
+                }
+                for warning in crate::regression::doctor_warnings(&preview) {
+                    rows.push(("warn", format!("Intent {id}: {warning}")));
+                }
+                for warning in
+                    crate::work_units::doctor_warnings(root, graph, &preview, split_threshold)
+                {
+                    rows.push(("warn", format!("Intent {id}: {warning}")));
+                }
+            }
+        }
+        // With unit-level scheduling, red-tests of one unit and build-and-verify of
+        // another interleave: any repeating stage may be current once the stages before
+        // the span are finished.
+        let span = crate::work_units::span(&owned);
+        let unit_step_current = unit_scheduled
+            && span.before.iter().all(|stage| finished(stage))
+            && span
+                .repeating
+                .iter()
+                .any(|stage| state["currentStage"] == stage["id"]);
         let first_unfinished = stages.iter().find(|stage| !finished(stage));
         if let (true, Some(first)) = (js_truthy(&state["currentStage"]), first_unfinished) {
-            if state["currentStage"] != first["id"] {
+            if state["currentStage"] != first["id"] && !unit_step_current {
                 rows.push((
                     "fail",
                     format!(

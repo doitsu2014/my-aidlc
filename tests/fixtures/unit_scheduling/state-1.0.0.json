@@ -1,0 +1,618 @@
+{
+  "version": 2,
+  "intentId": "unit-replay",
+  "intent": "Replay of a sixteen-unit Develop run",
+  "scope": "solo",
+  "scopeSource": "config",
+  "projectScope": "solo",
+  "depth": "full",
+  "mode": "ai",
+  "status": "active",
+  "currentStage": "red-tests",
+  "stages": {
+    "problem-framing": {
+      "status": "complete",
+      "startedAt": "2026-11-21T12:42:56.823Z",
+      "detail": null,
+      "reportedAt": "2026-11-21T13:28:37.659Z",
+      "reports": [
+        {
+          "at": "2026-11-21T13:28:37.659Z",
+          "result": "complete",
+          "detail": null
+        }
+      ],
+      "units": {},
+      "artifacts": []
+    },
+    "context-and-risk": {
+      "status": "complete",
+      "startedAt": "2026-11-21T13:28:45.658Z",
+      "detail": null,
+      "reportedAt": "2026-11-21T14:01:57.783Z",
+      "reports": [
+        {
+          "at": "2026-11-21T14:01:57.783Z",
+          "result": "complete",
+          "detail": null,
+          "approval": {
+            "decision": "approved",
+            "by": "AI Orchestrator",
+            "bySource": "flag",
+            "mode": "ai",
+            "note": null
+          }
+        }
+      ],
+      "units": {},
+      "artifacts": []
+    },
+    "option-generation": {
+      "status": "complete",
+      "startedAt": "2026-11-21T14:02:07.704Z",
+      "detail": null,
+      "reportedAt": "2026-11-21T14:07:05.151Z",
+      "reports": [
+        {
+          "at": "2026-11-21T14:07:05.151Z",
+          "result": "complete",
+          "detail": null
+        }
+      ],
+      "units": {},
+      "artifacts": []
+    },
+    "direction-selection": {
+      "status": "complete",
+      "startedAt": "2026-11-21T14:07:16.515Z",
+      "detail": null,
+      "reportedAt": "2026-11-21T14:19:48.986Z",
+      "reports": [
+        {
+          "at": "2026-11-21T14:19:48.986Z",
+          "result": "complete",
+          "detail": null,
+          "approval": {
+            "decision": "approved",
+            "by": "AI Orchestrator",
+            "bySource": "flag",
+            "mode": "ai",
+            "note": null
+          }
+        }
+      ],
+      "units": {},
+      "artifacts": []
+    },
+    "implementation-design": {
+      "status": "complete",
+      "startedAt": "2026-11-21T14:20:38.859Z",
+      "detail": null,
+      "reportedAt": "2026-11-26T02:17:34.127Z",
+      "reports": [
+        {
+          "at": "2026-11-22T06:56:17.464Z",
+          "result": "complete",
+          "detail": null
+        },
+        {
+          "at": "2026-11-24T06:20:48.403Z",
+          "result": "complete",
+          "detail": null
+        },
+        {
+          "at": "2026-11-25T04:12:31.501Z",
+          "result": "complete",
+          "detail": null
+        },
+        {
+          "at": "2026-11-25T06:56:01.982Z",
+          "result": "blocked",
+          "detail": "Recorded detail 1"
+        },
+        {
+          "at": "2026-11-25T06:58:20.399Z",
+          "result": "complete",
+          "detail": null
+        },
+        {
+          "at": "2026-11-25T07:24:15.061Z",
+          "result": "complete",
+          "detail": null
+        },
+        {
+          "at": "2026-11-26T02:17:34.127Z",
+          "result": "complete",
+          "detail": null
+        }
+      ],
+      "units": {},
+      "artifacts": [],
+      "reworkRequestedAt": "2026-11-26T02:17:13.909Z",
+      "resumedAt": "2026-11-25T06:56:52.214Z"
+    },
+    "red-tests": {
+      "status": "in_progress",
+      "startedAt": "2026-11-22T06:56:17.617Z",
+      "detail": "Recorded detail",
+      "reportedAt": "2026-11-25T07:26:22.307Z",
+      "reports": [
+        {
+          "at": "2026-11-22T07:12:29.787Z",
+          "result": "complete",
+          "detail": "Recorded detail 2"
+        },
+        {
+          "at": "2026-11-22T07:13:33.443Z",
+          "result": "complete",
+          "detail": "Recorded detail 3"
+        },
+        {
+          "at": "2026-11-22T07:26:58.378Z",
+          "result": "blocked",
+          "detail": "Recorded detail 4"
+        },
+        {
+          "at": "2026-11-22T11:00:36.583Z",
+          "result": "complete",
+          "detail": "Recorded detail 5"
+        },
+        {
+          "at": "2026-11-22T13:50:07.210Z",
+          "result": "complete",
+          "detail": "Recorded detail 6"
+        },
+        {
+          "at": "2026-11-22T15:58:51.998Z",
+          "result": "complete",
+          "detail": "Recorded detail 7"
+        },
+        {
+          "at": "2026-11-23T01:04:47.056Z",
+          "result": "complete",
+          "detail": "Recorded detail 8"
+        },
+        {
+          "at": "2026-11-23T04:11:51.000Z",
+          "result": "blocked",
+          "detail": "Recorded detail 9"
+        },
+        {
+          "at": "2026-11-23T04:36:40.389Z",
+          "result": "blocked",
+          "detail": "Recorded detail 10"
+        },
+        {
+          "at": "2026-11-23T05:09:24.026Z",
+          "result": "blocked",
+          "detail": "Recorded detail 11"
+        },
+        {
+          "at": "2026-11-23T07:28:28.575Z",
+          "result": "blocked",
+          "detail": "Recorded detail 12"
+        },
+        {
+          "at": "2026-11-23T07:31:07.761Z",
+          "result": "blocked",
+          "detail": "Recorded detail 13"
+        },
+        {
+          "at": "2026-11-23T08:06:10.433Z",
+          "result": "blocked",
+          "detail": "Recorded detail 14"
+        },
+        {
+          "at": "2026-11-23T08:25:35.238Z",
+          "result": "blocked",
+          "detail": "Recorded detail 15"
+        },
+        {
+          "at": "2026-11-23T08:26:40.786Z",
+          "result": "blocked",
+          "detail": "Recorded detail 16"
+        },
+        {
+          "at": "2026-11-23T08:51:06.096Z",
+          "result": "blocked",
+          "detail": "Recorded detail 17"
+        },
+        {
+          "at": "2026-11-23T09:15:03.636Z",
+          "result": "blocked",
+          "detail": "Recorded detail 18"
+        },
+        {
+          "at": "2026-11-23T10:09:07.234Z",
+          "result": "blocked",
+          "detail": "Recorded detail 19"
+        },
+        {
+          "at": "2026-11-23T10:37:19.159Z",
+          "result": "blocked",
+          "detail": "Recorded detail 20"
+        },
+        {
+          "at": "2026-11-23T10:40:30.014Z",
+          "result": "blocked",
+          "detail": "Recorded detail 21"
+        },
+        {
+          "at": "2026-11-24T02:01:30.035Z",
+          "result": "blocked",
+          "detail": "Recorded detail 22"
+        },
+        {
+          "at": "2026-11-24T06:36:56.500Z",
+          "result": "blocked",
+          "detail": "Recorded detail 23"
+        },
+        {
+          "at": "2026-11-24T06:56:56.350Z",
+          "result": "skipped",
+          "detail": "Recorded detail 24"
+        },
+        {
+          "at": "2026-11-24T09:58:42.653Z",
+          "result": "skipped",
+          "detail": "Recorded detail 25"
+        },
+        {
+          "at": "2026-11-24T10:29:38.404Z",
+          "result": "skipped",
+          "detail": "Recorded detail 26"
+        },
+        {
+          "at": "2026-11-24T11:36:22.596Z",
+          "result": "skipped",
+          "detail": "Recorded detail 27"
+        },
+        {
+          "at": "2026-11-24T13:44:53.779Z",
+          "result": "skipped",
+          "detail": "Recorded detail 28"
+        },
+        {
+          "at": "2026-11-24T16:40:50.235Z",
+          "result": "blocked",
+          "detail": "Recorded detail 29"
+        },
+        {
+          "at": "2026-11-24T17:02:50.801Z",
+          "result": "blocked",
+          "detail": "Recorded detail 30"
+        },
+        {
+          "at": "2026-11-24T17:06:28.829Z",
+          "result": "complete",
+          "detail": "Recorded detail 31"
+        },
+        {
+          "at": "2026-11-25T04:28:42.280Z",
+          "result": "blocked",
+          "detail": "Recorded detail 32"
+        },
+        {
+          "at": "2026-11-25T07:16:17.519Z",
+          "result": "blocked",
+          "detail": "Recorded detail 33"
+        },
+        {
+          "at": "2026-11-25T07:26:22.307Z",
+          "result": "skipped",
+          "detail": "Recorded detail 34"
+        }
+      ],
+      "units": {
+        "_": {
+          "status": "pending",
+          "reportedAt": "2026-11-25T07:16:17.519Z"
+        },
+        "WU-01": {
+          "status": "pending",
+          "reportedAt": "2026-11-25T07:26:22.307Z"
+        },
+        "WU-02": {
+          "status": "pending",
+          "reportedAt": "2026-11-24T09:58:42.653Z"
+        },
+        "WU-03": {
+          "status": "pending",
+          "reportedAt": "2026-11-24T10:29:38.404Z"
+        },
+        "WU-04": {
+          "status": "pending",
+          "reportedAt": "2026-11-24T11:36:22.596Z"
+        },
+        "WU-05": {
+          "status": "pending",
+          "reportedAt": "2026-11-24T13:44:53.779Z"
+        },
+        "WU-06": {
+          "status": "pending",
+          "reportedAt": "2026-11-24T17:06:28.829Z"
+        }
+      },
+      "artifacts": [],
+      "resumedAt": "2026-11-22T09:30:17.226Z",
+      "reworkResetAt": "2026-11-26T02:17:13.909Z"
+    },
+    "build-and-verify": {
+      "status": "in_progress",
+      "startedAt": "2026-11-22T07:12:29.973Z",
+      "detail": "Recorded detail",
+      "reportedAt": "2026-11-26T02:17:13.868Z",
+      "reports": [
+        {
+          "at": "2026-11-22T07:26:43.015Z",
+          "result": "complete",
+          "detail": "Recorded detail 35"
+        },
+        {
+          "at": "2026-11-22T11:38:28.619Z",
+          "result": "complete",
+          "detail": "Recorded detail 36"
+        },
+        {
+          "at": "2026-11-22T14:33:51.468Z",
+          "result": "complete",
+          "detail": "Recorded detail 37"
+        },
+        {
+          "at": "2026-11-22T16:44:29.969Z",
+          "result": "complete",
+          "detail": "Recorded detail 38"
+        },
+        {
+          "at": "2026-11-23T03:36:29.249Z",
+          "result": "complete",
+          "detail": "Recorded detail 39"
+        },
+        {
+          "at": "2026-11-24T07:19:32.032Z",
+          "result": "blocked",
+          "detail": "Recorded detail 40"
+        },
+        {
+          "at": "2026-11-24T09:50:16.005Z",
+          "result": "skipped",
+          "detail": "Recorded detail 41"
+        },
+        {
+          "at": "2026-11-24T10:14:49.249Z",
+          "result": "complete",
+          "detail": "Recorded detail 42"
+        },
+        {
+          "at": "2026-11-24T10:57:56.190Z",
+          "result": "blocked",
+          "detail": "Recorded detail 43"
+        },
+        {
+          "at": "2026-11-24T11:11:30.779Z",
+          "result": "blocked",
+          "detail": "Recorded detail 44"
+        },
+        {
+          "at": "2026-11-24T11:24:15.300Z",
+          "result": "blocked",
+          "detail": "Recorded detail 45"
+        },
+        {
+          "at": "2026-11-24T11:27:09.070Z",
+          "result": "complete",
+          "detail": "Recorded detail 46"
+        },
+        {
+          "at": "2026-11-24T11:59:34.073Z",
+          "result": "blocked",
+          "detail": "Recorded detail 47"
+        },
+        {
+          "at": "2026-11-24T12:16:26.184Z",
+          "result": "complete",
+          "detail": "Recorded detail 48"
+        },
+        {
+          "at": "2026-11-24T14:26:22.785Z",
+          "result": "complete",
+          "detail": "Recorded detail 49"
+        },
+        {
+          "at": "2026-11-25T02:25:18.022Z",
+          "result": "blocked",
+          "detail": "Recorded detail 50"
+        },
+        {
+          "at": "2026-11-26T02:17:13.868Z",
+          "result": "blocked",
+          "detail": "Recorded detail 51"
+        }
+      ],
+      "units": {
+        "WU-01": {
+          "status": "pending",
+          "reportedAt": "2026-11-26T02:17:13.868Z"
+        },
+        "WU-02": {
+          "status": "pending",
+          "reportedAt": "2026-11-24T10:14:49.249Z"
+        },
+        "WU-03": {
+          "status": "pending",
+          "reportedAt": "2026-11-24T11:27:09.070Z"
+        },
+        "WU-04": {
+          "status": "pending",
+          "reportedAt": "2026-11-24T12:16:26.184Z"
+        },
+        "WU-05": {
+          "status": "pending",
+          "reportedAt": "2026-11-24T14:26:22.785Z"
+        },
+        "WU-06": {
+          "status": "pending",
+          "reportedAt": "2026-11-25T02:25:18.022Z"
+        }
+      },
+      "artifacts": [],
+      "reworkResetAt": "2026-11-26T02:17:13.909Z",
+      "resumedAt": "2026-11-24T07:20:05.366Z"
+    }
+  },
+  "dependencies": {},
+  "createdAt": "2026-11-21T12:42:56.822Z",
+  "modeSource": "config",
+  "updatedAt": "2026-11-26T02:17:34.449Z",
+  "gates": {
+    "analysis-baseline": {
+      "phase": "analyze",
+      "stage": "context-and-risk",
+      "decision": "approved",
+      "result": "complete",
+      "by": "AI Orchestrator",
+      "bySource": "flag",
+      "mode": "ai",
+      "at": "2026-11-21T14:01:57.783Z",
+      "note": null,
+      "detail": null,
+      "skippedStages": [],
+      "artifacts": []
+    },
+    "solution-direction": {
+      "phase": "ideate",
+      "stage": "direction-selection",
+      "decision": "approved",
+      "result": "complete",
+      "by": "AI Orchestrator",
+      "bySource": "flag",
+      "mode": "ai",
+      "at": "2026-11-21T14:19:48.986Z",
+      "note": null,
+      "detail": null,
+      "skippedStages": [],
+      "artifacts": []
+    }
+  },
+  "units": [
+    {
+      "id": "WU-01",
+      "status": "in_progress",
+      "dependsOn": []
+    },
+    {
+      "id": "WU-02",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-01"
+      ]
+    },
+    {
+      "id": "WU-03",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-02"
+      ]
+    },
+    {
+      "id": "WU-04",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-02",
+        "WU-03"
+      ]
+    },
+    {
+      "id": "WU-05",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-03",
+        "WU-04"
+      ]
+    },
+    {
+      "id": "WU-16",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-05"
+      ]
+    },
+    {
+      "id": "WU-06",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-03",
+        "WU-04",
+        "WU-16"
+      ]
+    },
+    {
+      "id": "WU-07",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-03"
+      ]
+    },
+    {
+      "id": "WU-08",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-06",
+        "WU-16",
+        "WU-07"
+      ]
+    },
+    {
+      "id": "WU-09",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-08"
+      ]
+    },
+    {
+      "id": "WU-10",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-09"
+      ]
+    },
+    {
+      "id": "WU-11",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-01"
+      ]
+    },
+    {
+      "id": "WU-12",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-08"
+      ]
+    },
+    {
+      "id": "WU-13",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-12"
+      ]
+    },
+    {
+      "id": "WU-14",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-13"
+      ]
+    },
+    {
+      "id": "WU-15",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-10",
+        "WU-11",
+        "WU-14"
+      ]
+    }
+  ],
+  "currentUnit": "WU-01"
+}

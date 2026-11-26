@@ -957,6 +957,11 @@ fn validate_config(c: &Value, g: &Value) -> Result<(), String> {
             return Err("Invalid unitSplitThreshold: expected a positive integer".into());
         }
     }
+    if let Some(n) = c.get("autoParkThreshold") {
+        if !integer_valued_number(n) || n.as_f64().is_none_or(|x| x < 1.0) {
+            return Err("Invalid autoParkThreshold: expected a positive integer".into());
+        }
+    }
     if let Some(roles) = c.get("roles") {
         if !roles.is_object() {
             return Err("Invalid roles: expected an object".into());
@@ -1115,6 +1120,13 @@ mod tests {
         assert!(validate_config(&json!({"agentModels":{"missing":"opus"}}), &g).is_err());
         assert!(validate_config(&json!({"gateModes":{"g":"ai"}}), &g).is_err());
         assert!(validate_config(&json!({"unitSplitThreshold":1.0}), &g).is_ok());
+        assert!(validate_config(&json!({"autoParkThreshold":5}), &g).is_ok());
+        for bad in [json!(0), json!(-2), json!(2.5), json!("3"), json!(null)] {
+            assert_eq!(
+                validate_config(&json!({ "autoParkThreshold": bad }), &g).unwrap_err(),
+                "Invalid autoParkThreshold: expected a positive integer"
+            );
+        }
         assert!(validate_config(&json!({"unitSplitThreshold":1.5}), &g).is_err());
         assert!(validate_config(&json!({"gateModes":{"unknown":"human"}}), &g).is_err());
         assert!(

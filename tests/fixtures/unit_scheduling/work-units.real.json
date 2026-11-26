@@ -1,0 +1,239 @@
+{
+  "units": [
+    {
+      "id": "WU-01",
+      "title": "Work unit WU-01",
+      "dependsOn": [],
+      "tests": [
+        "TS-01",
+        "TS-02",
+        "TS-08",
+        "TS-11"
+      ]
+    },
+    {
+      "id": "WU-02",
+      "title": "Work unit WU-02",
+      "dependsOn": [
+        "WU-01"
+      ],
+      "tests": [
+        "TS-11",
+        "TS-34",
+        "TS-66"
+      ]
+    },
+    {
+      "id": "WU-03",
+      "title": "Work unit WU-03",
+      "dependsOn": [
+        "WU-02"
+      ],
+      "tests": [
+        "TS-14",
+        "TS-69"
+      ]
+    },
+    {
+      "id": "WU-04",
+      "title": "Work unit WU-04",
+      "dependsOn": [
+        "WU-02",
+        "WU-03"
+      ],
+      "tests": [
+        "TS-19",
+        "TS-30",
+        "TS-31",
+        "TS-32",
+        "TS-56"
+      ]
+    },
+    {
+      "id": "WU-05",
+      "title": "Work unit WU-05",
+      "dependsOn": [
+        "WU-03",
+        "WU-04"
+      ],
+      "tests": [
+        "TS-05",
+        "TS-44",
+        "TS-47",
+        "TS-48",
+        "TS-67",
+        "TS-68"
+      ]
+    },
+    {
+      "id": "WU-16",
+      "title": "Work unit WU-16",
+      "dependsOn": [
+        "WU-05"
+      ],
+      "tests": [
+        "TS-20",
+        "TS-21",
+        "TS-22",
+        "TS-23",
+        "TS-24",
+        "TS-25",
+        "TS-26",
+        "TS-27",
+        "TS-28",
+        "TS-29",
+        "TS-30",
+        "TS-32",
+        "TS-42",
+        "TS-44",
+        "TS-56",
+        "TS-65"
+      ]
+    },
+    {
+      "id": "WU-06",
+      "title": "Work unit WU-06",
+      "dependsOn": [
+        "WU-03",
+        "WU-04",
+        "WU-16"
+      ],
+      "tests": [
+        "TS-42",
+        "TS-44",
+        "TS-56",
+        "TS-65"
+      ]
+    },
+    {
+      "id": "WU-07",
+      "title": "Work unit WU-07",
+      "dependsOn": [
+        "WU-03"
+      ],
+      "tests": [
+        "TS-13",
+        "TS-14",
+        "TS-15",
+        "TS-16",
+        "TS-44"
+      ]
+    },
+    {
+      "id": "WU-08",
+      "title": "Work unit WU-08",
+      "dependsOn": [
+        "WU-06",
+        "WU-16",
+        "WU-07"
+      ],
+      "tests": [
+        "TS-04",
+        "TS-05",
+        "TS-06",
+        "TS-12",
+        "TS-17",
+        "TS-27",
+        "TS-45",
+        "TS-49",
+        "TS-57",
+        "TS-59",
+        "TS-60",
+        "TS-61",
+        "TS-62",
+        "TS-63"
+      ]
+    },
+    {
+      "id": "WU-09",
+      "title": "Work unit WU-09",
+      "dependsOn": [
+        "WU-08"
+      ],
+      "tests": [
+        "TS-09",
+        "TS-10",
+        "TS-43",
+        "TS-53",
+        "TS-64"
+      ]
+    },
+    {
+      "id": "WU-10",
+      "title": "Work unit WU-10",
+      "dependsOn": [
+        "WU-09"
+      ],
+      "tests": [
+        "TS-03",
+        "TS-07",
+        "TS-08",
+        "TS-55"
+      ]
+    },
+    {
+      "id": "WU-11",
+      "title": "Work unit WU-11",
+      "dependsOn": [
+        "WU-01"
+      ],
+      "tests": [
+        "TS-33"
+      ]
+    },
+    {
+      "id": "WU-12",
+      "title": "Work unit WU-12",
+      "dependsOn": [
+        "WU-08"
+      ],
+      "tests": [
+        "TS-52"
+      ]
+    },
+    {
+      "id": "WU-13",
+      "title": "Work unit WU-13",
+      "dependsOn": [
+        "WU-12"
+      ],
+      "tests": [
+        "TS-35",
+        "TS-38",
+        "TS-46",
+        "TS-52"
+      ]
+    },
+    {
+      "id": "WU-14",
+      "title": "Work unit WU-14",
+      "dependsOn": [
+        "WU-13"
+      ],
+      "tests": [
+        "TS-12",
+        "TS-18",
+        "TS-36",
+        "TS-37",
+        "TS-50",
+        "TS-51"
+      ]
+    },
+    {
+      "id": "WU-15",
+      "title": "Work unit WU-15",
+      "dependsOn": [
+        "WU-10",
+        "WU-11",
+        "WU-14"
+      ],
+      "tests": [
+        "TS-17",
+        "TS-39",
+        "TS-40",
+        "TS-41",
+        "TS-58"
+      ]
+    }
+  ]
+}

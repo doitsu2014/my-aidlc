@@ -1,0 +1,379 @@
+{
+  "schemaVersion": 1,
+  "ids": {
+    "FN": [
+      {
+        "id": "FN-01",
+        "title": "Function 1"
+      },
+      {
+        "id": "FN-02",
+        "title": "Function 2"
+      },
+      {
+        "id": "FN-03",
+        "title": "Function 3"
+      }
+    ],
+    "IF": [
+      {
+        "id": "IF-01",
+        "title": "Interface 1"
+      }
+    ],
+    "TS": [
+      {
+        "id": "TS-01",
+        "title": "Test TS-01"
+      },
+      {
+        "id": "TS-02",
+        "title": "Test TS-02"
+      },
+      {
+        "id": "TS-03",
+        "title": "Test TS-03"
+      },
+      {
+        "id": "TS-04",
+        "title": "Test TS-04"
+      },
+      {
+        "id": "TS-05",
+        "title": "Test TS-05"
+      },
+      {
+        "id": "TS-06",
+        "title": "Test TS-06"
+      },
+      {
+        "id": "TS-07",
+        "title": "Test TS-07"
+      },
+      {
+        "id": "TS-08",
+        "title": "Test TS-08"
+      },
+      {
+        "id": "TS-09",
+        "title": "Test TS-09"
+      },
+      {
+        "id": "TS-10",
+        "title": "Test TS-10"
+      },
+      {
+        "id": "TS-11",
+        "title": "Test TS-11"
+      },
+      {
+        "id": "TS-12",
+        "title": "Test TS-12"
+      },
+      {
+        "id": "TS-13",
+        "title": "Test TS-13"
+      },
+      {
+        "id": "TS-14",
+        "title": "Test TS-14"
+      },
+      {
+        "id": "TS-15",
+        "title": "Test TS-15"
+      },
+      {
+        "id": "TS-16",
+        "title": "Test TS-16"
+      },
+      {
+        "id": "TS-17",
+        "title": "Test TS-17"
+      },
+      {
+        "id": "TS-18",
+        "title": "Test TS-18"
+      },
+      {
+        "id": "TS-19",
+        "title": "Test TS-19"
+      },
+      {
+        "id": "TS-20",
+        "title": "Test TS-20"
+      },
+      {
+        "id": "TS-21",
+        "title": "Test TS-21"
+      },
+      {
+        "id": "TS-22",
+        "title": "Test TS-22"
+      },
+      {
+        "id": "TS-23",
+        "title": "Test TS-23"
+      },
+      {
+        "id": "TS-24",
+        "title": "Test TS-24"
+      },
+      {
+        "id": "TS-25",
+        "title": "Test TS-25"
+      },
+      {
+        "id": "TS-26",
+        "title": "Test TS-26"
+      },
+      {
+        "id": "TS-27",
+        "title": "Test TS-27"
+      },
+      {
+        "id": "TS-28",
+        "title": "Test TS-28"
+      },
+      {
+        "id": "TS-29",
+        "title": "Test TS-29"
+      },
+      {
+        "id": "TS-30",
+        "title": "Test TS-30"
+      },
+      {
+        "id": "TS-31",
+        "title": "Test TS-31"
+      },
+      {
+        "id": "TS-32",
+        "title": "Test TS-32"
+      },
+      {
+        "id": "TS-33",
+        "title": "Test TS-33"
+      },
+      {
+        "id": "TS-34",
+        "title": "Test TS-34"
+      },
+      {
+        "id": "TS-35",
+        "title": "Test TS-35"
+      },
+      {
+        "id": "TS-36",
+        "title": "Test TS-36"
+      },
+      {
+        "id": "TS-37",
+        "title": "Test TS-37"
+      },
+      {
+        "id": "TS-38",
+        "title": "Test TS-38"
+      },
+      {
+        "id": "TS-39",
+        "title": "Test TS-39"
+      },
+      {
+        "id": "TS-40",
+        "title": "Test TS-40"
+      },
+      {
+        "id": "TS-41",
+        "title": "Test TS-41"
+      },
+      {
+        "id": "TS-42",
+        "title": "Test TS-42"
+      },
+      {
+        "id": "TS-43",
+        "title": "Test TS-43"
+      },
+      {
+        "id": "TS-44",
+        "title": "Test TS-44"
+      },
+      {
+        "id": "TS-45",
+        "title": "Test TS-45"
+      },
+      {
+        "id": "TS-46",
+        "title": "Test TS-46"
+      },
+      {
+        "id": "TS-47",
+        "title": "Test TS-47"
+      },
+      {
+        "id": "TS-48",
+        "title": "Test TS-48"
+      },
+      {
+        "id": "TS-49",
+        "title": "Test TS-49"
+      },
+      {
+        "id": "TS-50",
+        "title": "Test TS-50"
+      },
+      {
+        "id": "TS-51",
+        "title": "Test TS-51"
+      },
+      {
+        "id": "TS-52",
+        "title": "Test TS-52"
+      },
+      {
+        "id": "TS-53",
+        "title": "Test TS-53"
+      },
+      {
+        "id": "TS-54",
+        "title": "Test TS-54"
+      },
+      {
+        "id": "TS-55",
+        "title": "Test TS-55"
+      },
+      {
+        "id": "TS-56",
+        "title": "Test TS-56"
+      },
+      {
+        "id": "TS-57",
+        "title": "Test TS-57"
+      },
+      {
+        "id": "TS-58",
+        "title": "Test TS-58"
+      },
+      {
+        "id": "TS-59",
+        "title": "Test TS-59"
+      },
+      {
+        "id": "TS-60",
+        "title": "Test TS-60"
+      },
+      {
+        "id": "TS-61",
+        "title": "Test TS-61"
+      },
+      {
+        "id": "TS-62",
+        "title": "Test TS-62"
+      },
+      {
+        "id": "TS-63",
+        "title": "Test TS-63"
+      },
+      {
+        "id": "TS-64",
+        "title": "Test TS-64"
+      },
+      {
+        "id": "TS-65",
+        "title": "Test TS-65"
+      },
+      {
+        "id": "TS-66",
+        "title": "Test TS-66"
+      },
+      {
+        "id": "TS-67",
+        "title": "Test TS-67"
+      },
+      {
+        "id": "TS-68",
+        "title": "Test TS-68"
+      },
+      {
+        "id": "TS-69",
+        "title": "Test TS-69"
+      }
+    ],
+    "WU": [
+      {
+        "id": "WU-01",
+        "title": "Work unit WU-01"
+      },
+      {
+        "id": "WU-02",
+        "title": "Work unit WU-02"
+      },
+      {
+        "id": "WU-03",
+        "title": "Work unit WU-03"
+      },
+      {
+        "id": "WU-04",
+        "title": "Work unit WU-04"
+      },
+      {
+        "id": "WU-05",
+        "title": "Work unit WU-05"
+      },
+      {
+        "id": "WU-06",
+        "title": "Work unit WU-06"
+      },
+      {
+        "id": "WU-16",
+        "title": "Work unit WU-16"
+      },
+      {
+        "id": "WU-07",
+        "title": "Work unit WU-07"
+      },
+      {
+        "id": "WU-08",
+        "title": "Work unit WU-08"
+      },
+      {
+        "id": "WU-09",
+        "title": "Work unit WU-09"
+      },
+      {
+        "id": "WU-10",
+        "title": "Work unit WU-10"
+      },
+      {
+        "id": "WU-11",
+        "title": "Work unit WU-11"
+      },
+      {
+        "id": "WU-12",
+        "title": "Work unit WU-12"
+      },
+      {
+        "id": "WU-13",
+        "title": "Work unit WU-13"
+      },
+      {
+        "id": "WU-14",
+        "title": "Work unit WU-14"
+      },
+      {
+        "id": "WU-15",
+        "title": "Work unit WU-15"
+      }
+    ],
+    "CFG": [
+      {
+        "id": "CFG-17",
+        "title": "Setting 17"
+      },
+      {
+        "id": "CFG-18",
+        "title": "Setting 18"
+      }
+    ]
+  }
+}

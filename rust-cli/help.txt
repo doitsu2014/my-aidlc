@@ -14,8 +14,14 @@ Commands:
   orchestrate next [--intent TEXT] [--description TEXT] [--intent-file PATH|-] [--scope NAME] [--depth NAME] [--mode ai|human] [--approved-by NAME] [--detail TEXT] [--force-resume]
                           Use --intent-file to avoid shell quoting; - reads standard input
                           --force-resume --detail TEXT selects a stage whose prerequisite check still fails (owner only)
-  orchestrate report --result complete|blocked|skipped [--approval approved] [--approved-by NAME] [--approval-note TEXT] [--detail TEXT] [--stage ID] [--needs NAME]...
+  orchestrate report --result complete|blocked|skipped [--approval approved] [--approved-by NAME] [--approval-note TEXT] [--detail TEXT] [--stage ID] [--unit ID] [--needs NAME]...
                           --needs names a declared prerequisite; the stage resumes once its check passes
+                          --unit names the work unit being reported (default: the current unit)
+  orchestrate park [--unit ID] --kind dep-unit|foreign-regression|owner-decision|design-defect [--blocked-by ID]... --detail TEXT
+                          Set a blocked work unit aside; orchestrate next continues with the next ready unit
+  orchestrate queue       List ready, waiting, blocked, parked and done work units
+  orchestrate revisit [--unit ID]... [--detail TEXT] [--approved-by NAME]
+                          Return parked units to the queue (without --unit: those whose blockers are done)
   ids check [--stage ID]   List cited identifiers that are not in the intent's ID registry
   config agents            List effective agent models
   config scope [NAME]     Show or set the default scope for new intents
@@ -38,7 +44,8 @@ Commands:
   intent resume <id>
   intent abandon [<id>] --detail TEXT
   intent depth NAME --approved-by NAME --detail TEXT
-  intent rework --detail TEXT  Return blocked Develop work to implementation-design
+  intent rework [--unit ID]... --detail TEXT  Return blocked Develop work to implementation-design (only the named units with --unit)
+  intent split ID --into ID... --detail TEXT  Replace a work unit with several units through implementation-design
   intent assign NAME     Assign the active intent
   knowledge init          Create PROJECT.md and .aidlc/knowledge/ if missing
   knowledge sources [--kind KIND] [--description TEXT]

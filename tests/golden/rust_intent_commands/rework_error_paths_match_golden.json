@@ -6,7 +6,7 @@
       "rework"
     ],
     "outcome": {
-      "error": "Usage: intent rework --detail \"<reason>\"",
+      "error": "Usage: intent rework [--unit ID]... --detail \"<reason>\"",
       "code": 1
     },
     "aidlc": {
@@ -293,6 +293,15 @@
     "aidlc": {
       "intents/": null,
       "intents/alpha/": null,
+      "intents/alpha/develop/": null,
+      "intents/alpha/develop/implementation-design/": null,
+      "intents/alpha/develop/implementation-design/work-units.json": {
+        "json": {
+          "status": "not-applicable",
+          "reason": "one implicit unit"
+        },
+        "raw-trailing-newline": true
+      },
       "intents/alpha/intent.md": "# alpha\n\nDo alpha\n",
       "intents/alpha/state.json": {
         "json": {

@@ -283,7 +283,25 @@ pub fn verify_artifacts(
         }
         let mut extra = Vec::new();
         if item.output == "work-units-json" {
-            extra.extend(crate::ids::work_unit_problems(&text));
+            let problems = crate::ids::work_unit_problems(&text);
+            if problems.is_empty() {
+                if let (Some(graph), Some(state)) = (graph, state) {
+                    let registry = artifact_path_for(
+                        root,
+                        graph,
+                        str_field(state, "intentId").unwrap_or(""),
+                        "id-registry",
+                    )
+                    .ok()
+                    .flatten()
+                    .filter(|path| fs::symlink_metadata(path).is_ok_and(|meta| meta.is_file()))
+                    .and_then(|path| fs::read_to_string(path).ok());
+                    if let Some(registry) = registry {
+                        extra.extend(crate::ids::work_unit_test_problems(&text, &registry));
+                    }
+                }
+            }
+            extra.extend(problems);
         }
         if item.output == "id-registry" {
             let units = if let (Some(graph), Some(state)) = (graph, state) {

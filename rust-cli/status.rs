@@ -141,15 +141,50 @@ fn list_row(state: &Value, graph: &Value, current: bool) -> Value {
     if let Some(units) = state.get("units").filter(|units| units.is_array()) {
         row.insert("units".into(), units.clone());
     }
+    if crate::work_units::has_ledger(state) {
+        row.insert(
+            "workUnits".into(),
+            crate::work_units::units_summary(state, &intent_stages(state, graph), false),
+        );
+    }
     row.insert("createdAt".into(), or_null(state, "createdAt"));
     row.insert("updatedAt".into(), or_null(state, "updatedAt"));
     Value::Object(row)
 }
 
+fn intent_stages(state: &Value, graph: &Value) -> Vec<Value> {
+    ordered_stages(
+        graph,
+        state.get("scope").and_then(Value::as_str).unwrap_or(""),
+        depth_of(state),
+    )
+    .into_iter()
+    .cloned()
+    .collect()
+}
+
+/// The per-unit view of `status`: the stored work-unit ledger, or a read-only preview
+/// of the ledger the next orchestrate command would build (`"migration": "pending"`).
+/// A `work-units.json` that cannot be loaded is shown as `{"error": ...}`.
+fn units_view(root: &Path, graph: &Value, state: &Value) -> Option<Value> {
+    let stages = intent_stages(state, graph);
+    match crate::work_units::preview(root, graph, state, &stages) {
+        Ok(Some((preview, pending))) => {
+            let mut summary = crate::work_units::units_summary(&preview, &stages, true);
+            if pending {
+                summary["migration"] = json!("pending");
+            }
+            Some(summary)
+        }
+        Ok(None) => None,
+        Err(error) => Some(json!({"error": error})),
+    }
+}
+
 /// The `status` payload for a loaded intent state (Node's `out({...})` in the `status`
 /// branch). `currentStage` is left out when the state has no such key, as
 /// `JSON.stringify` drops `undefined`.
-fn status_payload(root: &Path, state: &Value, status: Value, legacy: bool) -> Value {
+fn status_payload(root: &Path, graph: &Value, state: &Value, status: Value, legacy: bool) -> Value {
     let id = state.get("intentId").filter(|id| !id.is_null()).cloned();
     let dir = match &id {
         Some(Value::String(text)) if !text.is_empty() => json!(root
@@ -179,6 +214,11 @@ fn status_payload(root: &Path, state: &Value, status: Value, legacy: bool) -> Va
         "stages".into(),
         state.get("stages").cloned().unwrap_or(Value::Null),
     );
+    if !legacy {
+        if let Some(units) = units_view(root, graph, state) {
+            out.insert("units".into(), units);
+        }
+    }
     if legacy {
         out.insert("migration".into(), json!("pending"));
     }
@@ -205,7 +245,7 @@ pub fn status(
         intent_state_path(root, id)?;
         let (state, _) = load_intent(root, graph_value, id).map_err(|_| unknown())?;
         let status = state.get("status").cloned().unwrap_or(Value::Null);
-        return Ok(status_payload(root, &state, status, false));
+        return Ok(status_payload(root, graph_value, &state, status, false));
     }
     state_path(root)?;
     if let (Pointer::Active(Some(id)), _) = read_pointer(root) {
@@ -237,7 +277,7 @@ pub fn status(
         .filter(|status| !status.is_null())
         .cloned()
         .unwrap_or_else(|| json!("active"));
-    Ok(status_payload(root, &state, status, legacy))
+    Ok(status_payload(root, graph_value, &state, status, legacy))
 }
 
 /// Node-compatible `intent list` output (Node `listIntents`), sorted by creation time

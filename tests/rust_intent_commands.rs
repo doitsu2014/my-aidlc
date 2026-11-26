@@ -1100,7 +1100,7 @@ fn rework_error_paths_match_golden() {
             |p| blocked_develop(p, "blocked", None),
             &["intent", "rework"],
         ),
-        "Usage: intent rework --detail \"<reason>\"",
+        "Usage: intent rework [--unit ID]... --detail \"<reason>\"",
     );
     assert_err(
         &compare(
@@ -1133,7 +1133,16 @@ fn rework_error_paths_match_golden() {
         &compare(
             &golden,
             "rework-reset-after-report",
-            |p| blocked_develop(p, "in_progress", Some("2026-01-02T04:00:00.000Z")),
+            |p| {
+                blocked_develop(p, "in_progress", Some("2026-01-02T04:00:00.000Z"));
+                // Develop runs as one implicit unit (no work-unit ledger). Without this
+                // file, a work-units.json that cannot be loaded makes rework available
+                // (tested in rust_unit_scheduling.rs).
+                write_json(
+                    &p.join(".aidlc/intents/alpha/develop/implementation-design/work-units.json"),
+                    &json!({"status": "not-applicable", "reason": "one implicit unit"}),
+                );
+            },
             &["intent", "rework", "--detail", "x"],
         ),
         "Design rework is only available after a blocked Develop stage",
