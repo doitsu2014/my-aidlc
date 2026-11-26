@@ -1,6 +1,6 @@
 //! Parser, version, configuration-query and doctor results of the binary, run in an
 //! empty directory, against goldens recorded from the former JavaScript reference CLI
-//! (`tests/golden/rust_parity/`). Set `DTECH_AIDLC_BLESS=1` to re-record them.
+//! (`tests/golden/cli_golden/`). Set `DTECH_AIDLC_BLESS=1` to re-record them.
 
 #[path = "common/golden.rs"]
 mod golden;
@@ -10,7 +10,7 @@ use std::path::Path;
 use std::process::{Command, Output};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-const SUITE: &str = "rust_parity";
+const SUITE: &str = "cli_golden";
 
 static NEXT_CASE: AtomicUsize = AtomicUsize::new(0);
 

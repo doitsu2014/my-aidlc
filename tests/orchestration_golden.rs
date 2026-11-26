@@ -4,7 +4,7 @@
 //! project. Each step records the exit code, normalized stdout/stderr,
 //! `.aidlc/state.json`, every intent `state.json` and the audit rows written after
 //! onboarding; the transcript must equal the golden file
-//! `tests/golden/rust_orchestration_parity/<scenario>.json`, which was recorded from the
+//! `tests/golden/orchestration_golden/<scenario>.json`, which was recorded from the
 //! reference implementation running the same sequence. The scenario's own expectations
 //! (exit codes, stage ids, gate records) are checked on every run as well.
 //!
@@ -1144,14 +1144,14 @@ fn intent_slug_folding_and_nfc_match_golden_for_sequences() {
 }
 
 // ---------------------------------------------------------------------------
-// Golden files: tests/golden/rust_orchestration_parity/. The transcripts, engine paths
+// Golden files: tests/golden/orchestration_golden/. The transcripts, engine paths
 // and Unicode digests were recorded from the reference implementation; set
 // DTECH_AIDLC_BLESS=1 to rewrite them from the native CLI after an intentional change.
 // ---------------------------------------------------------------------------
 
 fn golden_path(name: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/golden/rust_orchestration_parity")
+        .join("tests/golden/orchestration_golden")
         .join(name)
 }
 

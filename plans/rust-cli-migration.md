@@ -28,7 +28,7 @@ Replace the Node.js CLI in one production cutover with a native Rust executable,
 
 **Routing.** `rust-cli/main.rs` routes every command of the former `core/tools/dtech-aidlc.mjs` to a native handler; there is no Node fallback and no "not yet implemented" refusal. The router follows Node's order: version/help, unknown-option check (reporting the first disallowed option in the order given), positional-argument limits (`args.rs` now matches `COMMAND_FLAGS` and `COMMAND_MAX_ARGS` of `cli-spec.mjs`, checked by a unit test; `repos remove` and `knowledge index` limits were missing before), `--project` resolution like `path.resolve`, the `.aidlc` safety check for every command except `completion`, then dispatch. Unknown commands and actions print Node's messages. Output follows Node `out()` (strings raw, values as two-space JSON plus newline) and handler exit codes are kept (1 for failing `doctor`, `ids check`, `config prerequisite check` and refused `harness refresh` reports, 3 for prerequisite-blocked `orchestrate next`).
 
-| Command | Handler | Binary-level Node parity (`tests/rust_routing_parity.rs`) |
+| Command | Handler | Binary-level Node parity (`tests/routing_golden.rs`) |
 | --- | --- | --- |
 | `onboard`, `init` (incl. `--rescan`) | `onboarding` + router validation | Validation errors: exact. Success: output and files match Node except `methodology` (embedded engine path) |
 | `scope`, `status`, `intent list` | `scope`, `status` | Exact, incl. new, missing and broken-config projects |
@@ -47,7 +47,7 @@ Until the cutover, each parity step ran the built binary and `node core/tools/dt
 
 **Known gaps.**
 
-- **Onboarding reports a different `methodology` path.** Without `DTECH_AIDLC_HOME`, Rust reports the embedded engine path `<project>/.aidlc/engine/methodology` instead of a Node checkout. Output and written files otherwise matched Node (checked by direct comparison on Windows). Rust onboarding output does not match Node byte for byte, so the routing parity fixtures for other commands restore Node's recorded onboarded files (`tests/golden/rust_routing_parity/fixture-onboarded-*.json`).
+- **Onboarding reports a different `methodology` path.** Without `DTECH_AIDLC_HOME`, Rust reports the embedded engine path `<project>/.aidlc/engine/methodology` instead of a Node checkout. Output and written files otherwise matched Node (checked by direct comparison on Windows). Rust onboarding output does not match Node byte for byte, so the routing parity fixtures for other commands restore Node's recorded onboarded files (`tests/golden/routing_golden/fixture-onboarded-*.json`).
 - **Deliberate differences, safer than Node:** state and the audit log are checked before any write (`orchestrate`, `intent depth`), symlinked or dangling state files are refused where Node writes through them, and changed state is re-read before writing. These have module-level tests, not Node comparisons.
 - **Engine assets:** `DTECH_AIDLC_HOME` is honoured for the graph and methodology, but harness manifests and skill sources always come from the copies embedded in the binary.
 - **Not tested here:** POSIX platforms, real symlinks (they need privileges on this Windows machine), installer upgrades from a real Node installation, the Git timeout, legacy v1 state through `deps add`, and `--intent-file -` at binary level. Some suites that used Node to onboard a project and then ran Rust on it (onboard rerun/rescan, status/intent list) now build the fixture with Rust, so Rust on a Node-made project is covered only by the routing fixtures.

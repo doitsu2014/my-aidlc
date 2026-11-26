@@ -1,7 +1,7 @@
 //! Regression tests for review findings in the native CLI: commands that wrote state and
 //! then failed (non-UTF-8 `.aidlc/.gitignore`, an audit log that cannot be appended to),
 //! `status` / `intent list` for unusual state pointers, malformed prerequisites,
-//! onboarding parity (every configured harness re-projected, projection stamp, output
+//! onboarding output (every configured harness re-projected, projection stamp, output
 //! and generated-file shapes, audit fields) and the malformed-graph message.
 
 #[path = "common/golden.rs"]

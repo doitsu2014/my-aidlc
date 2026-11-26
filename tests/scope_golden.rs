@@ -1,5 +1,5 @@
 //! `scope` output of the library and the binary against goldens recorded from the former
-//! JavaScript reference CLI (`tests/golden/rust_scope_parity/`). Set
+//! JavaScript reference CLI (`tests/golden/scope_golden/`). Set
 //! `DTECH_AIDLC_BLESS=1` to re-record them.
 
 #[path = "common/golden.rs"]
@@ -10,7 +10,7 @@ use serde_json::Value;
 use std::path::Path;
 use std::process::Command;
 
-const SUITE: &str = "rust_scope_parity";
+const SUITE: &str = "scope_golden";
 
 /// The CLI under test.
 fn cli() -> Command {

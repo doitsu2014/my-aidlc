@@ -397,7 +397,7 @@ cargo fmt --check
 cargo clippy --all-targets -- -D warnings
 ```
 
-The tests drive the built binary on isolated project fixtures and compare its output, exit codes and written files with golden snapshots under `tests/golden/`. The snapshots were recorded from the last Node.js CLI, so they guard behaviour parity with earlier releases. When a change to the output is intended, set `DTECH_AIDLC_BLESS=1` while running the affected tests to rewrite their snapshots, and review the diff. `tests/repo_content.rs` checks the methodology graph, the methodology README, harness skills, this README and the changelog. Run all three commands after changing the engine or its documentation.
+The tests drive the built binary on isolated project fixtures and compare its output, exit codes and written files with golden snapshots under `tests/golden/`. The snapshots were first recorded from the last Node.js CLI and now guard the CLI's behaviour against unintended changes. When a change to the output is intended, set `DTECH_AIDLC_BLESS=1` while running the affected tests to rewrite their snapshots, and review the diff. `tests/repo_content.rs` checks the methodology graph, the methodology README, harness skills, this README and the changelog. Run all three commands after changing the engine or its documentation.
 
 ## Repository layout
 

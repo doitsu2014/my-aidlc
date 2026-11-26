@@ -1,5 +1,5 @@
 //! Engine fallback, help and completion output of the binary against goldens recorded
-//! from the former JavaScript reference CLI (`tests/golden/rust_utility_parity/`). Set
+//! from the former JavaScript reference CLI (`tests/golden/utility_golden/`). Set
 //! `DTECH_AIDLC_BLESS=1` to re-record them.
 
 #[path = "common/golden.rs"]
@@ -8,7 +8,7 @@ mod golden;
 use serde_json::{json, Value};
 use std::process::Command;
 
-const SUITE: &str = "rust_utility_parity";
+const SUITE: &str = "utility_golden";
 
 /// The CLI under test.
 fn cli() -> Command {

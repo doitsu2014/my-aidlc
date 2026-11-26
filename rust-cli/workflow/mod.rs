@@ -4,7 +4,7 @@
 //! it can be tested independently and can consume the installed graph without codegen.
 //!
 //! Two layers live here:
-//! - The free functions under "Node-parity state primitives" (pointer reading, intent
+//! - The free functions under "State primitives" (pointer reading, intent
 //!   loading/normalisation, status derivation, intent ids, Node's on-disk JSON format).
 //!   `crate::orchestrate` builds the native `orchestrate next/report` on them.
 //! - The older [`Workflow`] type (`create`/`next`/`report`/`persist`). It does not follow
@@ -893,7 +893,7 @@ fn is_final_unit(state: &Value) -> bool {
 }
 
 // ---------------------------------------------------------------------------
-// Node-parity state primitives (`core/tools/workflow.mjs` / `lib.mjs`).
+// State primitives (ported from the former Node CLI's `workflow.mjs` / `lib.mjs`).
 //
 // These free functions reproduce Node's pointer reading, intent loading and
 // normalisation, status derivation, intent id derivation and on-disk JSON format
@@ -1421,8 +1421,8 @@ fn slug_fold_into(c: char, out: &mut String) -> usize {
 
 /// The values Node `intentSlug` decides on: `(base, kept, letters)`, where `base` is the
 /// folded text as `[a-z0-9]` words joined by `-` (at most 48 bytes), `kept` counts
-/// `[a-z0-9]` and `letters` counts `\p{L}\p{N}` in the folded text. Exposed for the Node
-/// parity tests.
+/// `[a-z0-9]` and `letters` counts `\p{L}\p{N}` in the folded text. Exposed for the golden
+/// tests.
 #[doc(hidden)]
 pub fn intent_slug_parts(text: &str) -> (String, usize, usize) {
     let mut folded = String::with_capacity(text.len());
@@ -1509,7 +1509,7 @@ fn compose_pair(first: char, second: char) -> Option<char> {
 
 /// `String.prototype.normalize('NFC')` (canonical decomposition, canonical ordering,
 /// canonical composition) with the Unicode data in `unicode_tables.rs`. Exposed for the
-/// Node parity tests of [`intent_slug`]'s fallback hash.
+/// golden tests of [`intent_slug`]'s fallback hash.
 #[doc(hidden)]
 pub fn nfc(text: &str) -> String {
     let mut chars = Vec::with_capacity(text.len());

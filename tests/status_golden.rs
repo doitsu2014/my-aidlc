@@ -1,6 +1,6 @@
 //! `status` and `intent list` of the library and the binary, for a fresh, an initialized
 //! and an active project, against goldens recorded from the former JavaScript reference
-//! CLI (`tests/golden/rust_status_parity/`). Set `DTECH_AIDLC_BLESS=1` to re-record them.
+//! CLI (`tests/golden/status_golden/`). Set `DTECH_AIDLC_BLESS=1` to re-record them.
 
 #[path = "common/golden.rs"]
 mod golden;
@@ -14,7 +14,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-const SUITE: &str = "rust_status_parity";
+const SUITE: &str = "status_golden";
 
 /// The CLI under test.
 fn cli() -> Command {

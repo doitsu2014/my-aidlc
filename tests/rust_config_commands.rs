@@ -686,8 +686,8 @@ mod golden {
 } // mod golden
 
 #[test]
-fn config_scope_parity() {
-    let golden = Golden::new(STEM, "config_scope_parity");
+fn config_scope_matches_golden() {
+    let golden = Golden::new(STEM, "config_scope_matches_golden");
     let template = onboarded("claude");
     let pair = Pair::from(&golden, &template.0);
     expect_ok(&pair.step(&["config", "scope"]));
@@ -712,8 +712,8 @@ fn config_scope_parity() {
 }
 
 #[test]
-fn config_mode_parity() {
-    let golden = Golden::new(STEM, "config_mode_parity");
+fn config_mode_matches_golden() {
+    let golden = Golden::new(STEM, "config_mode_matches_golden");
     let template = onboarded("claude");
     let pair = Pair::from(&golden, &template.0);
     expect_ok(&pair.step(&["config", "mode"]));
@@ -738,8 +738,8 @@ fn config_mode_parity() {
 }
 
 #[test]
-fn config_gate_mode_parity() {
-    let golden = Golden::new(STEM, "config_gate_mode_parity");
+fn config_gate_mode_matches_golden() {
+    let golden = Golden::new(STEM, "config_gate_mode_matches_golden");
     let gates: Vec<String> = graph()["phases"]
         .as_array()
         .unwrap()
@@ -771,8 +771,8 @@ fn config_gate_mode_parity() {
 }
 
 #[test]
-fn config_prerequisite_parity() {
-    let golden = Golden::new(STEM, "config_prerequisite_parity");
+fn config_prerequisite_matches_golden() {
+    let golden = Golden::new(STEM, "config_prerequisite_matches_golden");
     let graph = graph();
     let stage = graph["stages"][0]["id"].as_str().unwrap().to_owned();
     let phase = graph["phases"][1]["id"].as_str().unwrap().to_owned();
@@ -859,8 +859,8 @@ fn config_prerequisite_parity() {
 }
 
 #[test]
-fn config_agents_parity() {
-    let golden = Golden::new(STEM, "config_agents_parity");
+fn config_agents_matches_golden() {
+    let golden = Golden::new(STEM, "config_agents_matches_golden");
     let agent = graph()["agents"][0]["id"].as_str().unwrap().to_owned();
     let other = graph()["agents"][2]["id"].as_str().unwrap().to_owned();
     let template = onboarded("claude");
@@ -912,8 +912,8 @@ fn config_agents_parity() {
 }
 
 #[test]
-fn config_unknown_section_parity() {
-    let golden = Golden::new(STEM, "config_unknown_section_parity");
+fn config_unknown_section_matches_golden() {
+    let golden = Golden::new(STEM, "config_unknown_section_matches_golden");
     let pair = Pair::empty(&golden);
     expect_err(&pair.step(&["config"]));
     expect_err(&pair.step(&["config", "colour"]));

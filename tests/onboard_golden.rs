@@ -187,14 +187,14 @@ fn rescan_summary(output: &Value) -> Value {
 }
 
 // ---------------------------------------------------------------------------
-// Golden files: tests/golden/rust_onboard_parity/<case>.json. The expectations were
+// Golden files: tests/golden/onboard_golden/<case>.json. The expectations were
 // recorded from the reference implementation; set DTECH_AIDLC_BLESS=1 to rewrite them
 // from the native CLI after an intentional change.
 // ---------------------------------------------------------------------------
 
 fn golden_path(case: &str) -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests/golden/rust_onboard_parity")
+        .join("tests/golden/onboard_golden")
         .join(format!("{case}.json"))
 }
 

@@ -1,4 +1,4 @@
-//! Golden snapshot helpers shared by the binary-level parity tests.
+//! Golden snapshot helpers shared by the binary-level golden tests.
 //!
 //! A golden file holds the expected, normalised result of a scenario as JSON under
 //! `tests/golden/<suite>/<case>.json`. The initial goldens were recorded from the former

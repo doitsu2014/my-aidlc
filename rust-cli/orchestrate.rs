@@ -3536,7 +3536,7 @@ mod tests {
     }
 
     #[test]
-    fn next_includes_node_parity_stage_gate_and_artifact_metadata() {
+    fn next_includes_stage_gate_and_artifact_metadata() {
         let root = temp();
         write_config(
             &root,

@@ -1,10 +1,10 @@
-//! Binary-level routing parity: the built `dtech-aidlc` executable against golden
+//! Binary-level routing tests: the built `dtech-aidlc` executable against golden
 //! snapshots recorded from the former JavaScript reference CLI.
 //!
 //! Every scenario builds a fixture project (`<base>/proj`), runs the binary on it and,
 //! after each step, compares stdout, stderr, the exit code and every file and directory
 //! of the project (`.git` directories and the embedded engine excepted) with the step
-//! recorded in `tests/golden/rust_routing_parity/<scenario>.json`. The files a step
+//! recorded in `tests/golden/routing_golden/<scenario>.json`. The files a step
 //! changes are stored as a delta (new normalised content, or `null` for a removed
 //! entry). Only the project root, the engine and repository directories, the shared git
 //! remote, ISO-8601 timestamps and `mtimeMs` values are normalised (path separators
@@ -34,7 +34,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-const SUITE: &str = "rust_routing_parity";
+const SUITE: &str = "routing_golden";
 
 struct TempDir(PathBuf);
 
@@ -401,7 +401,7 @@ impl Pair {
     }
 
     /// Runs a command that must exit 0 and compares only the listed files (used where a
-    /// command is not yet at full parity).
+    /// command's other output is pinned elsewhere).
     fn partial(&self, argv: &[&str], files: &[&str]) {
         let run = run_cli(&self.root, argv, self.engine);
         assert_eq!(run.code, 0, "{argv:?} (rust): {run:?}");
@@ -783,11 +783,8 @@ fn onboarding_validation_matches_the_golden() {
     pair.fails(&["onboard", "--harness", "claude"]);
 }
 
-/// Known gap: Rust onboarding (`dtech_aidlc::onboarding`) is not at byte parity with
-/// the recorded reference onboarding. Its stdout (`\\?\` paths, shorter `projections`, missing `notes`/`skipped`
-/// detail), its audit details, the project profile files and the projection stamp
-/// differ. This test pins down only what does match: the exit code and the
-/// configuration, knowledge manifest, PROJECT.md scaffold and projected skill files.
+/// Pins the exit code and the configuration, knowledge manifest, PROJECT.md scaffold
+/// and projected skill files that a successful onboarding writes.
 #[test]
 fn onboarding_success_writes_the_same_configuration_and_knowledge_files_as_the_golden() {
     let pair = Pair::new("onboard", true, seed_project);

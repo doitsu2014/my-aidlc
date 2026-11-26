@@ -732,8 +732,8 @@ fn text(bytes: &[u8]) -> &str {
 }
 
 #[test]
-fn harness_add_parity() {
-    let golden = Golden::new(STEM, "harness_add_parity");
+fn harness_add_matches_golden() {
+    let golden = Golden::new(STEM, "harness_add_matches_golden");
     let template = onboarded("claude");
     let pair = Pair::from(&golden, &template.0);
     expect_err(&pair.step(&["harness", "add", "bogus"]));
@@ -776,8 +776,8 @@ fn harness_add_parity() {
 }
 
 #[test]
-fn harness_status_parity() {
-    let golden = Golden::new(STEM, "harness_status_parity");
+fn harness_status_matches_golden() {
+    let golden = Golden::new(STEM, "harness_status_matches_golden");
     let fresh = Pair::empty(&golden);
     let empty = fresh.step(&["harness", "status"]);
     assert_eq!(result_of(&empty).0["harnesses"], json!([]));
@@ -817,8 +817,8 @@ fn harness_status_parity() {
 }
 
 #[test]
-fn harness_refresh_parity() {
-    let golden = Golden::new(STEM, "harness_refresh_parity");
+fn harness_refresh_matches_golden() {
+    let golden = Golden::new(STEM, "harness_refresh_matches_golden");
     let fresh = Pair::empty(&golden);
     expect_err(&fresh.step(&["harness", "refresh"]));
     expect_err(&fresh.step(&["harness"]));
@@ -912,8 +912,8 @@ fn harness_refresh_parity() {
 }
 
 #[test]
-fn harness_refresh_multiple_harnesses_parity() {
-    let golden = Golden::new(STEM, "harness_refresh_multiple_harnesses_parity");
+fn harness_refresh_multiple_harnesses_matches_golden() {
+    let golden = Golden::new(STEM, "harness_refresh_multiple_harnesses_matches_golden");
     let template = onboarded("deepseek");
     let pair = Pair::from(&golden, &template.0);
     expect_ok(&pair.step(&["harness", "add", "claude"]));
