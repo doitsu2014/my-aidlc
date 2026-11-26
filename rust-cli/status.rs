@@ -1,12 +1,17 @@
 //! Read-only Node-compatible `status` and `intent list` projection.
 //!
 //! This module intentionally does not migrate legacy state or quarantine corrupt
-//! pointers. Unsafe paths and malformed state fail closed for status; listing
-//! reports individual unreadable intents without following symlinks.
+//! pointers. State is read through `crate::workflow` (Node `loadWorkflow`,
+//! `loadIntent`, `readPointer`), so errors carry Node's text. Symbolic links in state
+//! paths fail closed for status; listing reports individual unreadable intents
+//! without following symlinks.
 
 use crate::scope::Graph;
+use crate::workflow::{
+    depth_of, derive_status, intent_ids_on_disk, load_intent, load_workflow, normalise_state,
+    ordered_stages, read_pointer, stage_finished, Pointer,
+};
 use serde_json::{json, Map, Value};
-use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
 
@@ -49,16 +54,6 @@ fn safe_file(root: &Path, relative: &str, label: &str) -> Result<PathBuf, String
     Ok(path)
 }
 
-fn read_json(path: &Path) -> Result<Option<Value>, String> {
-    match fs::read(path) {
-        Ok(bytes) => serde_json::from_slice(&bytes)
-            .map(Some)
-            .map_err(|e| format!("{} cannot be parsed: {e}", path.display())),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
-        Err(e) => Err(format!("Cannot read {}: {e}", path.display())),
-    }
-}
-
 fn state_path(root: &Path) -> Result<PathBuf, String> {
     safe_file(root, ".aidlc/state.json", ".aidlc state")
 }
@@ -73,236 +68,151 @@ fn intent_state_path(root: &Path, id: &str) -> Result<PathBuf, String> {
     )
 }
 
-fn ordered(graph: &Graph, scope: &str, depth: &str) -> Result<Vec<Value>, String> {
-    let stages = graph.ordered_stages(scope, depth);
-    if stages.is_empty() || graph.value()["scopes"].get(scope).is_none() {
-        return Err(format!("Invalid intent scope '{scope}'"));
-    }
-    Ok(stages)
-}
-
-fn normalized_state(raw: Value, graph: &Graph, folder_id: Option<&str>) -> Result<Value, String> {
-    let mut state = raw.as_object().cloned().ok_or("state is not an object")?;
-    let id = state.get("intentId").and_then(Value::as_str);
-    if folder_id.is_some_and(|folder| id != Some(folder))
-        || id.is_some_and(|value| !valid_id(value))
-    {
-        return Err("intentId does not match folder".into());
-    }
-    if !state
-        .get("intent")
-        .and_then(Value::as_str)
-        .is_some_and(|s| !s.trim().is_empty())
-    {
-        return Err("intent is not a non-empty string".into());
-    }
-    let scope = state
-        .get("scope")
-        .and_then(Value::as_str)
-        .ok_or("scope is invalid")?;
-    let _ = ordered(
-        graph,
-        scope,
-        state.get("depth").and_then(Value::as_str).unwrap_or("full"),
-    )?;
-    if let Some(current) = state.get("currentStage").filter(|value| !value.is_null()) {
-        if !current.as_str().is_some_and(|id| {
-            graph
-                .ordered_stages(scope, "full")
-                .iter()
-                .any(|stage| stage["id"].as_str() == Some(id))
-        }) {
-            return Err("currentStage is not a stage of the scope".into());
-        }
-    }
-    if let Some(deps) = state.get("dependencies") {
-        if !deps.as_object().is_some_and(|map| {
-            map.values().all(|value| {
-                value
-                    .as_array()
-                    .is_some_and(|items| items.iter().all(Value::is_string))
-            })
-        }) {
-            return Err("dependencies is not an object of string arrays".into());
-        }
-    }
-    if state
-        .get("mode")
-        .is_some_and(|m| !matches!(m.as_str(), Some("human" | "ai")))
-    {
-        return Err("mode is not ai or human".into());
-    }
-    let stages = state
-        .get("stages")
-        .and_then(Value::as_object)
-        .ok_or("stages is not an object")?;
-    for (name, row) in stages {
-        if !matches!(
-            row.get("status").and_then(Value::as_str),
-            Some("in_progress" | "complete" | "blocked" | "skipped")
-        ) {
-            return Err(format!("stage {name} has an invalid status"));
-        }
-    }
-    if let Some(stages) = state.get_mut("stages").and_then(Value::as_object_mut) {
-        for row in stages.values_mut().filter_map(Value::as_object_mut) {
-            if !row.get("detail").is_some_and(Value::is_string) {
-                row.insert("detail".into(), Value::Null);
-            }
-        }
-    }
-    Ok(Value::Object(state))
-}
-
-fn derived_status(state: &Value, graph: &Graph) -> Result<&'static str, String> {
-    if state["closed"]["kind"] == "abandoned" {
-        return Ok("abandoned");
-    }
-    let stages = ordered(
-        graph,
-        state["scope"].as_str().unwrap_or(""),
-        state["depth"].as_str().unwrap_or("full"),
-    )?;
-    if stages.iter().all(|stage| {
-        matches!(
-            state["stages"][stage["id"].as_str().unwrap_or("")]["status"].as_str(),
-            Some("complete" | "skipped")
-        )
-    }) {
-        Ok("complete")
-    } else {
-        Ok("active")
-    }
-}
-
-fn current_pointer(root: &Path) -> Result<(Option<String>, bool, Option<Value>), String> {
-    let path = state_path(root)?;
-    let Some(pointer) = read_json(&path)? else {
-        return Ok((None, false, None));
+/// Node `titleOf(intent)`: the first line, trimmed, at most 80 characters.
+fn title(state: &Value) -> String {
+    let text = match state.get("intent") {
+        None | Some(Value::Null) => String::new(),
+        Some(Value::String(text)) => text.clone(),
+        Some(other) => other.to_string(),
     };
-    if pointer.is_object() && pointer["version"] == 2 {
-        let active = pointer
-            .get("activeIntentId")
-            .ok_or(".aidlc/state.json is not a recognised state file")?;
-        if active.is_null() {
-            return Ok((None, false, None));
-        }
-        if let Some(id) = active.as_str().filter(|id| valid_id(id)) {
-            return Ok((Some(id.to_owned()), false, None));
-        }
-        return Err(".aidlc/state.json is not a recognised state file".into());
-    }
-    if pointer.is_object() && pointer["stages"].is_object() {
-        let id = pointer["intentId"].as_str().map(str::to_owned);
-        return Ok((id, true, Some(pointer)));
-    }
-    Err(".aidlc/state.json is not a recognised state file".into())
+    let first = text.split('\n').next().unwrap_or("");
+    let first = first.strip_suffix('\r').unwrap_or(first);
+    crate::identity::js_trim(first).chars().take(80).collect()
 }
 
-fn progress(state: &Value, graph: &Graph) -> Result<Value, String> {
-    let stages = ordered(
+/// `state[key] ?? null`.
+fn or_null(state: &Value, key: &str) -> Value {
+    state
+        .get(key)
+        .filter(|value| !value.is_null())
+        .cloned()
+        .unwrap_or(Value::Null)
+}
+
+/// `state.mode ?? 'human'` (the stored value is echoed as is).
+fn mode_or_human(state: &Value) -> Value {
+    match state.get("mode") {
+        None | Some(Value::Null) => json!("human"),
+        Some(mode) => mode.clone(),
+    }
+}
+
+/// Node `progressOf(state, graph)`.
+fn progress(state: &Value, graph: &Value) -> Value {
+    let stages = ordered_stages(
         graph,
-        state["scope"].as_str().unwrap_or(""),
-        state["depth"].as_str().unwrap_or("full"),
-    )?;
+        state.get("scope").and_then(Value::as_str).unwrap_or(""),
+        depth_of(state),
+    );
     let done = stages
         .iter()
-        .filter(|s| {
-            matches!(
-                state["stages"][s["id"].as_str().unwrap_or("")]["status"].as_str(),
-                Some("complete" | "skipped")
+        .filter(|stage| {
+            let id = stage.get("id").and_then(Value::as_str).unwrap_or("");
+            stage_finished(
+                state
+                    .get("stages")
+                    .and_then(|rows| rows.get(id))
+                    .and_then(|row| row.get("status"))
+                    .and_then(Value::as_str),
             )
         })
         .count();
-    Ok(json!({"done":done,"total":stages.len()}))
+    json!({"done": done, "total": stages.len()})
 }
-fn title(state: &Value) -> String {
-    state["intent"]
-        .as_str()
-        .unwrap_or("")
-        .lines()
-        .next()
-        .unwrap_or("")
-        .trim()
-        .chars()
-        .take(80)
-        .collect()
-}
-fn list_row(state: &Value, graph: &Graph, current: bool) -> Result<Value, String> {
-    let status = derived_status(state, graph)?;
-    let display_status = if status == "complete" || status == "abandoned" {
-        status
-    } else if current {
-        "active"
-    } else {
-        "paused"
+
+/// Node `listRow(state, graph, current)`.
+fn list_row(state: &Value, graph: &Value, current: bool) -> Value {
+    let derived = derive_status(state, graph);
+    let display_status = match derived {
+        "complete" | "abandoned" => derived,
+        _ if current => "active",
+        _ => "paused",
     };
     let mut row = Map::new();
-    row.insert("intentId".into(), state["intentId"].clone());
+    row.insert("intentId".into(), or_null(state, "intentId"));
     row.insert("title".into(), json!(title(state)));
-    row.insert("scope".into(), state["scope"].clone());
-    row.insert(
-        "mode".into(),
-        json!(state["mode"].as_str().unwrap_or("human")),
-    );
+    row.insert("scope".into(), or_null(state, "scope"));
+    row.insert("mode".into(), mode_or_human(state));
     row.insert("status".into(), json!(display_status));
-    row.insert("current".into(), json!(current && status == "active"));
-    row.insert(
-        "currentStage".into(),
-        state
-            .get("currentStage")
-            .filter(|v| !v.is_null())
-            .cloned()
-            .unwrap_or(Value::Null),
-    );
-    row.insert(
-        "assignee".into(),
-        state
-            .get("assignee")
-            .filter(|v| !v.is_null())
-            .cloned()
-            .unwrap_or(Value::Null),
-    );
-    row.insert("progress".into(), progress(state, graph)?);
-    if state["units"].is_array() {
-        row.insert("units".into(), state["units"].clone());
+    row.insert("current".into(), json!(current && derived == "active"));
+    row.insert("currentStage".into(), or_null(state, "currentStage"));
+    row.insert("assignee".into(), or_null(state, "assignee"));
+    row.insert("progress".into(), progress(state, graph));
+    if let Some(units) = state.get("units").filter(|units| units.is_array()) {
+        row.insert("units".into(), units.clone());
     }
-    row.insert(
-        "createdAt".into(),
-        state
-            .get("createdAt")
-            .filter(|v| !v.is_null())
-            .cloned()
-            .unwrap_or(Value::Null),
+    row.insert("createdAt".into(), or_null(state, "createdAt"));
+    row.insert("updatedAt".into(), or_null(state, "updatedAt"));
+    Value::Object(row)
+}
+
+/// The `status` payload for a loaded intent state (Node's `out({...})` in the `status`
+/// branch). `currentStage` is left out when the state has no such key, as
+/// `JSON.stringify` drops `undefined`.
+fn status_payload(root: &Path, state: &Value, status: Value, legacy: bool) -> Value {
+    let id = state.get("intentId").filter(|id| !id.is_null()).cloned();
+    let dir = match &id {
+        Some(Value::String(text)) if !text.is_empty() => json!(root
+            .join(".aidlc")
+            .join("intents")
+            .join(text)
+            .to_string_lossy()),
+        _ => Value::Null,
+    };
+    let mut out = Map::new();
+    out.insert(
+        "intent".into(),
+        state.get("intent").cloned().unwrap_or(Value::Null),
     );
-    row.insert(
-        "updatedAt".into(),
-        state
-            .get("updatedAt")
-            .filter(|v| !v.is_null())
-            .cloned()
-            .unwrap_or(Value::Null),
+    out.insert("intentId".into(), id.unwrap_or(Value::Null));
+    out.insert("intentDir".into(), dir);
+    out.insert(
+        "scope".into(),
+        state.get("scope").cloned().unwrap_or(Value::Null),
     );
-    Ok(Value::Object(row))
+    out.insert("mode".into(), mode_or_human(state));
+    out.insert("status".into(), status);
+    if let Some(stage) = state.get("currentStage") {
+        out.insert("currentStage".into(), stage.clone());
+    }
+    out.insert(
+        "stages".into(),
+        state.get("stages").cloned().unwrap_or(Value::Null),
+    );
+    if legacy {
+        out.insert("migration".into(), json!("pending"));
+    }
+    Value::Object(out)
 }
 
 /// Node-compatible `status [--intent ID]` output. Never migrates legacy state.
+///
+/// The state is read with [`crate::workflow::load_workflow`] (no migration), so every
+/// error carries Node's text. Unlike Node, a symbolic link in the pointer or intent
+/// state path is refused rather than followed.
 pub fn status(
     root: impl AsRef<Path>,
     graph: &Graph,
     intent_id: Option<&str>,
 ) -> Result<Value, String> {
     let root = root.as_ref();
+    let graph_value = graph.value();
     if let Some(id) = intent_id {
-        let path = intent_state_path(root, id)?;
-        let raw = read_json(&path)?
-            .ok_or_else(|| format!("Unknown intent '{id}'. Run 'dtech-aidlc intent list'."))?;
-        let state = normalized_state(raw, graph, Some(id))
-            .map_err(|e| format!(".aidlc/intents/{id}/state.json is invalid: {e}"))?;
-        return status_row(&state, graph, root, false);
+        let unknown = || format!("Unknown intent '{id}'. Run 'dtech-aidlc intent list'.");
+        if !valid_id(id) {
+            return Err(unknown());
+        }
+        intent_state_path(root, id)?;
+        let (state, _) = load_intent(root, graph_value, id).map_err(|_| unknown())?;
+        let status = state.get("status").cloned().unwrap_or(Value::Null);
+        return Ok(status_payload(root, &state, status, false));
     }
-    let (id, legacy, legacy_state) = current_pointer(root)?;
-    let Some(id) = id else {
+    state_path(root)?;
+    if let (Pointer::Active(Some(id)), _) = read_pointer(root) {
+        intent_state_path(root, &id)?;
+    }
+    let loaded = load_workflow(root, graph_value, false)?;
+    let Some(state) = loaded.state else {
         let initialized = safe_file(root, ".aidlc/config.json", "config")?.exists();
         let rows = list_intents(root, graph)?;
         let paused: Vec<Value> = rows
@@ -318,85 +228,83 @@ pub fn status(
         }
         return Ok(out);
     };
-    let raw = if legacy {
-        legacy_state.unwrap()
-    } else {
-        read_json(&intent_state_path(root, &id)?)?
-            .ok_or_else(|| format!("Active intent '{id}' has no state file"))?
-    };
-    let state = normalized_state(raw, graph, if legacy { None } else { Some(&id) })?;
-    status_row(&state, graph, root, legacy)
+    // A loaded v2 intent always carries the bytes it was read from; an unmigrated v1
+    // state (read straight from the pointer file) does not.
+    let legacy = loaded.state_bytes.is_none();
+    // `state.status ?? 'active'`
+    let status = state
+        .get("status")
+        .filter(|status| !status.is_null())
+        .cloned()
+        .unwrap_or_else(|| json!("active"));
+    Ok(status_payload(root, &state, status, legacy))
 }
 
-fn status_row(state: &Value, graph: &Graph, root: &Path, legacy: bool) -> Result<Value, String> {
-    let mut out = json!({"intent":state["intent"],"intentId":state.get("intentId").cloned().unwrap_or(Value::Null),"intentDir":state.get("intentId").and_then(Value::as_str).map(|id| root.join(".aidlc").join("intents").join(id).to_string_lossy().into_owned()),"scope":state["scope"],"mode":state["mode"].as_str().unwrap_or("human"),"status":derived_status(state, graph)?,"currentStage":state.get("currentStage").filter(|v| !v.is_null()).cloned().unwrap_or(Value::Null),"stages":state["stages"]});
-    if legacy {
-        out["migration"] = json!("pending");
-    }
-    Ok(out)
-}
-
-/// Node-compatible `intent list` output, sorted by creation time then ID.
+/// Node-compatible `intent list` output (Node `listIntents`), sorted by creation time
+/// then ID. An unmigrated v1 `.aidlc/state.json` is listed as the current intent (its
+/// `intentId`, or `legacy`). Unlike Node, an intent whose state path holds a symbolic
+/// link is reported as unreadable instead of being followed, and a symlinked pointer
+/// is treated as corrupt.
 pub fn list_intents(root: impl AsRef<Path>, graph: &Graph) -> Result<Value, String> {
     let root = root.as_ref();
-    let (current_id, corrupt, legacy) = match current_pointer(root) {
-        Ok((id, is_legacy, state)) => (id, false, if is_legacy { state } else { None }),
-        Err(_) => (None, true, None),
+    let graph_value = graph.value();
+    let pointer = if state_path(root).is_ok() {
+        read_pointer(root).0
+    } else {
+        Pointer::Corrupt("is not a recognised state file")
     };
-    let dir = safe_file(root, ".aidlc/intents", "intents directory")?;
-    let entries = match fs::read_dir(&dir) {
-        Ok(entries) => entries,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(json!([])),
-        Err(e) => return Err(format!("Cannot list intents: {e}")),
+    let corrupt = matches!(pointer, Pointer::Corrupt(_));
+    let current_id: Option<String> = match &pointer {
+        Pointer::Active(id) => id.clone(),
+        Pointer::Legacy(state) => state
+            .get("intentId")
+            .and_then(Value::as_str)
+            .map(str::to_owned),
+        _ => None,
     };
-    let mut rows: BTreeMap<String, Value> = BTreeMap::new();
-    for entry in entries {
-        let entry = entry.map_err(|e| format!("Cannot inspect intent entry: {e}"))?;
-        if !entry.file_type().map_err(|e| e.to_string())?.is_dir() {
-            continue;
-        }
-        let id = entry.file_name().to_string_lossy().into_owned();
-        if !valid_id(&id) {
-            continue;
-        }
-        let path = intent_state_path(root, &id)?;
-        let row = match read_json(&path)
-            .and_then(|raw| raw.ok_or_else(|| "state file is missing".to_owned()))
-            .and_then(|raw| normalized_state(raw, graph, Some(&id)))
-        {
-            Ok(state) => list_row(
-                &state,
-                graph,
-                !corrupt && current_id.as_deref() == Some(&id),
-            )
-            .unwrap_or_else(|e| json!({"intentId":id,"status":"unreadable","error":e})),
-            Err(error) => {
-                json!({"intentId":id,"status":"unreadable","error":format!(".aidlc/intents/{id}/state.json: {error}")})
+    safe_file(root, ".aidlc/intents", "intents directory")?;
+    let mut rows: Map<String, Value> = Map::new();
+    for id in intent_ids_on_disk(root)
+        .into_iter()
+        .filter(|id| valid_id(id))
+    {
+        let loaded = intent_state_path(root, &id).and_then(|_| load_intent(root, graph_value, &id));
+        let row = match loaded {
+            Ok((state, _)) => {
+                let current = !corrupt
+                    && current_id.as_deref() == Some(id.as_str())
+                    && derive_status(&state, graph_value) != "abandoned";
+                list_row(&state, graph_value, current)
             }
+            Err(error) => json!({"intentId": id, "status": "unreadable", "error": error}),
         };
         rows.insert(id, row);
     }
-    if let Some(raw) = legacy {
-        if let Ok(state) = normalized_state(raw, graph, None) {
-            let id = state["intentId"].as_str().unwrap_or("legacy").to_owned();
-            let mut row = list_row(&state, graph, true)?;
-            row["intentId"] = json!(id);
-            row["current"] = json!(true);
-            rows.insert(id, row);
-        }
+    if let Pointer::Legacy(raw) = pointer {
+        let mut state = normalise_state(raw);
+        let id = match state.get("intentId") {
+            None | Some(Value::Null) => json!("legacy"),
+            Some(id) => id.clone(),
+        };
+        state["intentId"] = id.clone();
+        let mut row = list_row(&state, graph_value, true);
+        row["current"] = json!(true);
+        let key = match &id {
+            Value::String(text) => text.clone(),
+            other => other.to_string(),
+        };
+        rows.insert(key, row);
     }
-    let mut result: Vec<Value> = rows.into_values().collect();
+    let mut result: Vec<Value> = rows.into_iter().map(|(_, row)| row).collect();
+    let text = |value: &Value| match value {
+        Value::Null => String::new(),
+        Value::String(text) => text.clone(),
+        other => other.to_string(),
+    };
     result.sort_by(|a, b| {
-        a["createdAt"]
-            .as_str()
-            .unwrap_or("")
-            .cmp(b["createdAt"].as_str().unwrap_or(""))
-            .then_with(|| {
-                a["intentId"]
-                    .as_str()
-                    .unwrap_or("")
-                    .cmp(b["intentId"].as_str().unwrap_or(""))
-            })
+        text(&a["createdAt"])
+            .cmp(&text(&b["createdAt"]))
+            .then_with(|| text(&a["intentId"]).cmp(&text(&b["intentId"])))
     });
     Ok(Value::Array(result))
 }
@@ -417,7 +325,11 @@ mod tests {
             std::env::temp_dir().join(format!("aidlc-status-pointer-{}", std::process::id()));
         fs::create_dir_all(root.join(".aidlc")).unwrap();
         fs::write(root.join(".aidlc/state.json"), r#"{"version":2}"#).unwrap();
-        assert!(current_pointer(&root).is_err());
+        assert!(matches!(read_pointer(&root).0, Pointer::Corrupt(_)));
+        let graph = crate::scope::read_graph(None).unwrap();
+        assert!(status(&root, &graph, None).unwrap_err().starts_with(
+            ".aidlc/state.json is not a recognised state file. No changes were made."
+        ));
         fs::remove_dir_all(root).unwrap();
     }
 

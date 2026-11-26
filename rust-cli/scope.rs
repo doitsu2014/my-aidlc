@@ -13,6 +13,22 @@ mod embedded {
     include!(concat!(env!("OUT_DIR"), "/embedded_assets.rs"));
 }
 
+/// Return an immutable build-time asset by its engine-relative name.
+pub fn embedded_asset(name: &str) -> Option<&'static [u8]> {
+    embedded::ASSETS
+        .iter()
+        .find(|(path, _)| *path == name)
+        .map(|(_, bytes)| *bytes)
+}
+
+/// Iterate the build-time embedded methodology assets for safe projection by callers.
+pub fn embedded_methodology_assets() -> impl Iterator<Item = (&'static str, &'static [u8])> {
+    embedded::ASSETS
+        .iter()
+        .filter(|(path, _)| path.starts_with("methodology/"))
+        .map(|(path, bytes)| (*path, *bytes))
+}
+
 pub const GRAPH_SCHEMA_VERSION: &str = "1.5.0";
 pub const MODEL_ALIASES: &[&str] = &["opus", "sonnet", "haiku", "fable"];
 pub const SCOPES: &[&str] = &["solo", "team", "enterprise"];
@@ -231,32 +247,77 @@ pub fn load_graph(
     engine_root: impl AsRef<Path>,
     project_root: impl AsRef<Path>,
 ) -> Result<(Graph, Value), String> {
-    let root = engine_root.as_ref();
-    let graph_path = root.join("data/phase-graph.json");
-    reject_symlink(&graph_path, "phase-graph.json")?;
-    let bytes = fs::read(&graph_path)
-        .map_err(|e| format!("Missing methodology graph: {} ({e})", graph_path.display()))?;
-    let value: Value = serde_json::from_slice(&bytes)
-        .map_err(|e| format!("Invalid phase-graph.json: malformed JSON ({e})"))?;
-    validate_graph(Some(root), &value)?;
-    let config = load_config(project_root.as_ref())?;
-    validate_config(&config, &value)?;
-    Ok((Graph { raw: value }, config))
+    let graph = read_graph(Some(engine_root.as_ref()))?;
+    let config = validate_model_config(project_root.as_ref(), graph.value())?;
+    Ok((graph, config))
 }
 
 /// Load the graph and methodology packaged in this executable.
 pub fn load_embedded_graph(project_root: impl AsRef<Path>) -> Result<(Graph, Value), String> {
-    let bytes = embedded::ASSETS
-        .iter()
-        .find(|(name, _)| *name == "data/phase-graph.json")
-        .map(|(_, bytes)| *bytes)
-        .ok_or("Missing embedded methodology graph")?;
-    let value: Value = serde_json::from_slice(bytes)
-        .map_err(|e| format!("Invalid embedded phase-graph.json: {e}"))?;
-    validate_graph(None, &value)?;
-    let config = load_config(project_root.as_ref())?;
-    validate_config(&config, &value)?;
-    Ok((Graph { raw: value }, config))
+    let graph = read_graph(None)?;
+    let config = validate_model_config(project_root.as_ref(), graph.value())?;
+    Ok((graph, config))
+}
+
+/// Node `readGraph()`: load and validate the methodology graph only, without reading
+/// any project configuration. `engine_root` names an installed engine (the directory
+/// holding `data/phase-graph.json`); `None` uses the graph packaged in this executable.
+pub fn read_graph(engine_root: Option<&Path>) -> Result<Graph, String> {
+    let value: Value = match engine_root {
+        Some(root) => {
+            // Node `join(resolve(home), 'data', 'phase-graph.json')`: an absolute,
+            // normalised path with native separators, as shown in the messages.
+            let root = crate::orchestrate::resolve_like_node(root)?;
+            let graph_path = root.join("data").join("phase-graph.json");
+            reject_symlink(&graph_path, "phase-graph.json")?;
+            if !graph_path.exists() {
+                return Err(format!(
+                    "Missing methodology graph: {}",
+                    graph_path.display()
+                ));
+            }
+            // Node reads the file and parses it in one `try`: an unreadable file and
+            // malformed JSON both report the graph path.
+            let malformed = || {
+                format!(
+                    "Invalid phase-graph.json: malformed JSON ({})",
+                    graph_path.display()
+                )
+            };
+            let bytes = fs::read(&graph_path).map_err(|_| malformed())?;
+            serde_json::from_str(&String::from_utf8_lossy(&bytes)).map_err(|_| malformed())?
+        }
+        None => {
+            let bytes = embedded::ASSETS
+                .iter()
+                .find(|(name, _)| *name == "data/phase-graph.json")
+                .map(|(_, bytes)| *bytes)
+                .ok_or("Missing embedded methodology graph")?;
+            serde_json::from_slice(bytes)
+                .map_err(|e| format!("Invalid embedded phase-graph.json: {e}"))?
+        }
+    };
+    validate_graph(engine_root, &value)?;
+    Ok(Graph { raw: value })
+}
+
+/// Node `validateModelConfig(root, graph)`: load `.aidlc/config.json` (missing is `{}`)
+/// and validate it against `graph`.
+pub fn validate_model_config(project_root: &Path, graph: &Value) -> Result<Value, String> {
+    let config = load_config(project_root)?;
+    validate_config(&config, graph)?;
+    Ok(config)
+}
+
+/// Node `loadConfig(root)` (`readJson(configPath(root), {})`): the parsed
+/// `.aidlc/config.json`, or `{}` when it is missing, unreadable or malformed. Nothing is
+/// validated (Node `orchestrate report` reads its configuration this way); callers that
+/// need a checked configuration use [`validate_model_config`].
+pub fn load_config_unvalidated(project_root: &Path) -> Value {
+    fs::read(project_root.join(".aidlc").join("config.json"))
+        .ok()
+        .and_then(|bytes| serde_json::from_str(&String::from_utf8_lossy(&bytes)).ok())
+        .unwrap_or_else(|| json!({}))
 }
 
 /// Loads `.aidlc/config.json`; missing config is equivalent to `{}`.
@@ -809,6 +870,31 @@ fn valid_output(s: &str) -> bool {
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }
 
+/// JavaScript `String(value)` for a JSON value (strings unquoted, arrays joined with
+/// commas, objects as `[object Object]`, integral numbers without a fraction).
+fn js_string(value: &Value) -> String {
+    match value {
+        Value::String(text) => text.clone(),
+        Value::Null => "null".into(),
+        Value::Array(items) => items
+            .iter()
+            .map(|item| match item {
+                Value::Null => String::new(),
+                other => js_string(other),
+            })
+            .collect::<Vec<_>>()
+            .join(","),
+        Value::Object(_) => "[object Object]".into(),
+        Value::Number(number) => match number.as_f64() {
+            Some(x) if number.is_f64() && x.fract() == 0.0 && x.abs() < 1e21 => {
+                format!("{x:.0}")
+            }
+            _ => number.to_string(),
+        },
+        Value::Bool(flag) => flag.to_string(),
+    }
+}
+
 fn validate_config(c: &Value, g: &Value) -> Result<(), String> {
     if let Some(mode) = c.get("mode") {
         if !matches!(mode.as_str(), Some("human" | "ai")) {
@@ -831,7 +917,8 @@ fn validate_config(c: &Value, g: &Value) -> Result<(), String> {
             }
             if !v.as_str().is_some_and(|x| MODEL_ALIASES.contains(&x)) {
                 return Err(format!(
-                    "Invalid model alias for {id}: {v}; choose opus, sonnet, haiku, or fable"
+                    "Invalid model alias for {id}: {}; choose opus, sonnet, haiku, or fable",
+                    js_string(v)
                 ));
             }
         }
@@ -839,7 +926,7 @@ fn validate_config(c: &Value, g: &Value) -> Result<(), String> {
     if let Some(gates) = c.get("gateModes") {
         let gm = gates
             .as_object()
-            .ok_or("Invalid gateModes: expected an object mapping gate ids to human")?;
+            .ok_or("Invalid gateModes: expected an object mapping gate ids to \"human\"")?;
         let known: HashSet<_> = g["phases"]
             .as_array()
             .into_iter()
@@ -911,6 +998,34 @@ mod tests {
         ));
         fs::create_dir_all(p.join("core/data")).unwrap();
         p
+    }
+    #[test]
+    fn graph_errors_name_the_graph_file_like_node() {
+        let engine = temp().join("core");
+        let graph_path = engine.join("data").join("phase-graph.json");
+        assert_eq!(
+            read_graph(Some(&engine)).unwrap_err(),
+            format!("Missing methodology graph: {}", graph_path.display())
+        );
+        fs::write(&graph_path, "{bad").unwrap();
+        assert_eq!(
+            read_graph(Some(&engine)).unwrap_err(),
+            format!(
+                "Invalid phase-graph.json: malformed JSON ({})",
+                graph_path.display()
+            )
+        );
+        // A root written with `/` separators is reported with native ones, like
+        // Node's `path.resolve`.
+        let posix = engine.to_string_lossy().replace('\\', "/");
+        assert_eq!(
+            read_graph(Some(Path::new(&posix))).unwrap_err(),
+            format!(
+                "Invalid phase-graph.json: malformed JSON ({})",
+                graph_path.display()
+            )
+        );
+        let _ = fs::remove_dir_all(engine.parent().unwrap());
     }
     #[test]
     fn resolves_depth_and_error_lists_known_names() {
@@ -1005,5 +1120,44 @@ mod tests {
         assert!(
             validate_config(&json!({"gateModes":{"g":"human"}}), &json!({"phases":[]})).is_ok()
         );
+    }
+    #[test]
+    fn config_error_messages_match_node_string_formatting() {
+        let g = json!({"agents":[{"id":"brief-analyst"}],"phases":[{"gate":"g"}]});
+        assert_eq!(
+            validate_config(&json!({"agentModels":{"brief-analyst":"gpt4"}}), &g).unwrap_err(),
+            "Invalid model alias for brief-analyst: gpt4; choose opus, sonnet, haiku, or fable"
+        );
+        assert_eq!(
+            validate_config(&json!({"agentModels":{"brief-analyst":2.0}}), &g).unwrap_err(),
+            "Invalid model alias for brief-analyst: 2; choose opus, sonnet, haiku, or fable"
+        );
+        assert_eq!(
+            validate_config(&json!({"agentModels":{"brief-analyst":["a",null,"b"]}}), &g)
+                .unwrap_err(),
+            "Invalid model alias for brief-analyst: a,,b; choose opus, sonnet, haiku, or fable"
+        );
+        assert_eq!(
+            validate_config(&json!({"gateModes":["human"]}), &g).unwrap_err(),
+            "Invalid gateModes: expected an object mapping gate ids to \"human\""
+        );
+    }
+    #[test]
+    fn unvalidated_config_falls_back_to_empty_object_like_node_load_config() {
+        let root = temp();
+        assert_eq!(load_config_unvalidated(&root), json!({}));
+        fs::create_dir_all(root.join(".aidlc")).unwrap();
+        fs::write(root.join(".aidlc/config.json"), "{bad").unwrap();
+        assert_eq!(load_config_unvalidated(&root), json!({}));
+        fs::write(
+            root.join(".aidlc/config.json"),
+            r#"{"gateModes":{"old-gate":"human"}}"#,
+        )
+        .unwrap();
+        assert_eq!(
+            load_config_unvalidated(&root),
+            json!({"gateModes":{"old-gate":"human"}})
+        );
+        let _ = fs::remove_dir_all(root);
     }
 }

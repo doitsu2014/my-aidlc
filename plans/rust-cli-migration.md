@@ -2,7 +2,7 @@
 
 ## Goal and release boundary
 
-Replace the Node.js CLI in one production cutover with a native Rust executable, while retaining compatibility with existing commands, project state, artifacts, harness projections, and installations. The Node CLI remains authoritative and the production entry point until parity and installer upgrade tests pass. The current Rust preview binary `dtech-aidlc-rs` supports version, help, completion and read-only scope inspection; it rejects stateful project commands without changing state. It can be installed separately with Cargo, but must not replace the production executable.
+Replace the Node.js CLI in one production cutover with a native Rust executable, while retaining compatibility with existing commands, project state, artifacts, harness projections, and installations. The Node CLI remains authoritative and the production entry point until parity and installer upgrade tests pass. The current Rust binary `dtech-aidlc` routes every Node command to a native handler (see the status below); onboarding matches Node apart from the reported methodology path (the embedded engine under `.aidlc/engine/`). Cargo installation uses the production command name and can shadow a Node installation; full replacement remains incomplete.
 
 ## Compatibility requirements
 
@@ -24,7 +24,32 @@ Replace the Node.js CLI in one production cutover with a native Rust executable,
 
 ## Current implementation status
 
-The Rust binary implements version, help, zsh completion and read-only `scope`; other project commands fail without changing state. Scope has Node comparison coverage for scope/depth combinations and selected configurations, but its graph/config validation and asset discovery still need full parity. Draft library modules compile and have unit tests, but their stateful operations are not connected to commands and are not parity-validated. An independent review identified workflow blockers including repeat/unit tracking, gate validation and intent-path checks: the draft has since been revised, and malformed v2 pointers are now rejected without rewriting them. Standalone AI-gate, artifact-validation and legacy-state migration modules are now present but remain disconnected and have not achieved full parity. Gate whitespace bypasses have a regression test; Windows legacy migration deliberately fails before writes until atomic replacement is implemented. Audit logging, complete filesystem safeguards and workflow integration remain incomplete. Onboarding/projection still lacks full existing-stamp/history semantics and source registration; its hash now uses normalized SHA-256, and a repeated-refresh test protects user-modified obsolete files. Dependency pulls have a preliminary implementation, but Git timeouts, lock validation and error handling need parity; knowledge and complete command routing are not finished. Prototype installers are experimental and are not the shipped installers. Never use draft stateful modules to operate on real project state or switch installation until the requirements below pass.
+**Routing.** `rust-cli/main.rs` routes every command of `core/tools/dtech-aidlc.mjs` to a native handler; there is no Node fallback and no "not yet implemented" refusal. The router follows Node's order: version/help, unknown-option check (reporting the first disallowed option in the order given), positional-argument limits (`args.rs` now matches `COMMAND_FLAGS` and `COMMAND_MAX_ARGS` of `cli-spec.mjs`, checked by a unit test; `repos remove` and `knowledge index` limits were missing before), `--project` resolution like `path.resolve`, the `.aidlc` safety check for every command except `completion`, then dispatch. Unknown commands and actions print Node's messages. Output follows Node `out()` (strings raw, values as two-space JSON plus newline) and handler exit codes are kept (1 for failing `doctor`, `ids check`, `config prerequisite check` and refused `harness refresh` reports, 3 for prerequisite-blocked `orchestrate next`).
+
+| Command | Handler | Binary-level Node parity (`tests/rust_routing_parity.rs`) |
+| --- | --- | --- |
+| `onboard`, `init` (incl. `--rescan`) | `onboarding` + router validation | Validation errors: exact. Success: output and files match Node except `methodology` (embedded engine path) |
+| `scope`, `status`, `intent list` | `scope`, `status` | Exact, incl. new, missing and broken-config projects |
+| `orchestrate next`, `orchestrate report` | `orchestrate` | Exact through a gate, block, rework and second intent |
+| `intent pause/resume/abandon/depth/rework/assign` | `intent_commands` | Exact (success and error cases) |
+| `config` (`scope`, `mode`, `gate-mode`, `prerequisite`, `agents`) | `config_commands` | Exact (claude and deepseek) |
+| `harness add/status/refresh` | `harness_commands` | Exact, incl. kept-modified and `--force` backups |
+| `knowledge init/sources/list/show/check/index` | `knowledge_commands` | Exact |
+| `repos add/list/pull/remove` | `dependencies::run_repos` | Exact, incl. a local clone, the stderr note and a dirty checkout |
+| `deps add/list/pull` | `dependencies::run_deps` | Exact |
+| `ids check` | `ids::run` | Exact |
+| `doctor` | `doctor` | Exact (healthy and failing reports) |
+| `help`, `version`, `completion zsh` | router | Exact |
+
+Each parity step runs the built binary and `node core/tools/dtech-aidlc.mjs` on identical fresh fixtures and compares stdout, stderr, exit code and every project file (`.git` excepted); only the project root, ISO timestamps and `mtimeMs` are normalised. Every command key also has its unknown-option and extra-argument errors compared, and an unsafe `.aidlc` is refused by every command but `completion`. The end-to-end lifecycle (onboard, orchestrate next/report through the Analyze gate, a blocked Develop stage and design rework, deps, pause/resume/abandon, knowledge index, doctor) runs twice: with `DTECH_AIDLC_HOME` naming this repository, and with the embedded engine (engine paths compared from the engine directory on; `.aidlc/engine/` not compared). Per-module parity suites (`rust_config_commands`, `rust_harness_commands`, `rust_intent_commands`, `rust_knowledge_commands`, `rust_repos_deps_ids`, `rust_doctor`, `rust_orchestration_*`) cover more edge cases in-process. All of this ran on Windows only.
+
+**Known gaps.**
+
+- **Onboarding reports a different `methodology` path.** Without `DTECH_AIDLC_HOME`, Rust reports the embedded engine path `<project>/.aidlc/engine/methodology` instead of a Node checkout. Output and written files otherwise match Node (checked by direct comparison on Windows); the routing parity fixtures for other commands are still onboarded by Node.
+- **Deliberate differences, safer than Node:** state and the audit log are checked before any write (`orchestrate`, `intent depth`), symlinked or dangling state files are refused where Node writes through them, and changed state is re-read before writing. These have module-level tests, not Node comparisons.
+- **Engine assets:** `DTECH_AIDLC_HOME` is honoured for the graph and methodology, but harness manifests and skill sources always come from the copies embedded in the binary.
+- **Not tested here:** POSIX platforms, real symlinks (they need privileges on this Windows machine), installer upgrades, the Git timeout, legacy v1 state through `deps add`, and `--intent-file -` against Node at binary level.
+- **Packaging:** prototype installers are experimental and not the shipped installers. The Node CLI remains authoritative; do not switch installations until the release criteria below pass.
 
 ## Verification and release criteria
 

@@ -22,7 +22,7 @@ fn run_pair(args: &[&str]) -> (Output, Output) {
         .current_dir(&node_dir)
         .output()
         .expect("Node CLI must be available for parity tests");
-    let rust = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc-rs"))
+    let rust = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
         .args(args)
         .current_dir(&rust_dir)
         .output()
@@ -79,10 +79,24 @@ fn parser_validation_matches_existing_cli() {
 }
 
 #[test]
-fn unsupported_commands_are_not_parity() {
-    // Onboarding is not implemented in Rust yet; this remains an explicit gap.
-    let (node, rust) = run_pair(&["config", "scope"]);
-    assert!(node.status.success());
-    assert!(!rust.status.success());
-    assert_ne!(node.stdout, rust.stdout);
+fn configuration_queries_match_existing_cli() {
+    for args in [
+        &["config", "scope"][..],
+        &["config", "mode"][..],
+        &["config", "gate-mode"][..],
+        &["config", "gate-mode", "release-candidate"][..],
+    ] {
+        let (node, rust) = run_pair(args);
+        assert_eq!(node.status.code(), rust.status.code(), "{args:?}");
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&node.stdout).unwrap(),
+            serde_json::from_slice::<serde_json::Value>(&rust.stdout).unwrap(),
+            "{args:?}"
+        );
+    }
+}
+
+#[test]
+fn doctor_matches_node() {
+    assert_same_result(&["doctor"]);
 }

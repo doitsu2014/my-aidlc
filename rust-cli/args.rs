@@ -23,6 +23,9 @@ pub struct ParsedArgs {
     pub positional: Vec<String>,
     pub flags: BTreeMap<String, FlagValue>,
     pub unknown: Vec<String>,
+    /// Flag names in the order they were first given (Node `Object.keys(flags)` order),
+    /// so routing reports the same disallowed option as Node when several are given.
+    pub flag_order: Vec<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -260,13 +263,12 @@ pub fn command_max_args(command: &str) -> Option<usize> {
         "init" | "onboard" | "status" | "doctor" | "orchestrate next" | "orchestrate report"
         | "repos list" | "deps list" | "completion zsh" | "ids check" | "intent list"
         | "intent pause" | "intent rework" | "knowledge init" | "knowledge list"
-        | "knowledge check" | "harness status" => 0,
-        "scope" | "repos pull" | "deps pull" | "intent resume" | "intent abandon"
-        | "intent depth" | "intent assign" | "knowledge show" | "harness add"
-        | "harness refresh" | "config scope" | "config mode" => 1,
+        | "knowledge check" | "knowledge index" | "harness status" => 0,
+        "scope" | "repos pull" | "repos remove" | "deps pull" | "intent resume"
+        | "intent abandon" | "intent depth" | "intent assign" | "knowledge show"
+        | "harness add" | "harness refresh" | "config scope" | "config mode" => 1,
         "repos add" | "deps add" | "config gate-mode" | "config prerequisite" => 2,
-        "config agents" => 3,
-        "knowledge sources" => 3,
+        "config agents" | "knowledge sources" => 3,
         _ => return None,
     })
 }
@@ -330,6 +332,9 @@ pub fn parse_args_with_types(
                 if eq.is_some() {
                     return Err(ArgsError(format!("Option --{name} does not take a value")));
                 }
+                if !parsed.flags.contains_key(name) {
+                    parsed.flag_order.push(name.to_owned());
+                }
                 parsed
                     .flags
                     .insert(name.to_owned(), FlagValue::Boolean(true));
@@ -345,6 +350,9 @@ pub fn parse_args_with_types(
                     return Err(ArgsError(format!(
                         "Option --{name} requires a non-empty value"
                     )));
+                }
+                if !parsed.flags.contains_key(name) {
+                    parsed.flag_order.push(name.to_owned());
                 }
                 match kind {
                     OptionType::String => {
@@ -487,5 +495,111 @@ mod tests {
         assert_eq!(command_max_args("orchestrate next"), Some(0));
         assert_eq!(command_max_args("not-a-command"), None);
         assert_eq!(command_flags("orchestrate next").unwrap().len(), 9);
+    }
+
+    /// `COMMAND_MAX_ARGS` and the per-command option names of `core/tools/cli-spec.mjs`.
+    #[test]
+    fn command_table_matches_node_cli_spec() {
+        let spec: &[(&str, usize, &[&str])] = &[
+            (
+                "init",
+                0,
+                &["harness", "scope", "docs", "no-detect", "rescan"],
+            ),
+            (
+                "onboard",
+                0,
+                &["harness", "scope", "docs", "no-detect", "rescan"],
+            ),
+            (
+                "orchestrate next",
+                0,
+                &[
+                    "intent",
+                    "description",
+                    "scope",
+                    "intent-file",
+                    "depth",
+                    "mode",
+                    "approved-by",
+                    "detail",
+                    "force-resume",
+                ],
+            ),
+            (
+                "orchestrate report",
+                0,
+                &[
+                    "result",
+                    "approval",
+                    "detail",
+                    "stage",
+                    "approved-by",
+                    "approval-note",
+                    "needs",
+                ],
+            ),
+            ("ids check", 0, &["stage"]),
+            ("scope", 1, &["depth"]),
+            ("status", 0, &["intent"]),
+            ("doctor", 0, &[]),
+            ("intent list", 0, &[]),
+            ("intent pause", 0, &["detail"]),
+            ("intent resume", 1, &[]),
+            ("intent abandon", 1, &["detail"]),
+            ("intent depth", 1, &["approved-by", "detail"]),
+            ("intent rework", 0, &["detail"]),
+            ("intent assign", 1, &[]),
+            ("config agents", 3, &[]),
+            ("config scope", 1, &[]),
+            ("config mode", 1, &[]),
+            ("config gate-mode", 2, &[]),
+            ("config prerequisite", 2, &["check", "hint", "applies-to"]),
+            ("harness add", 1, &[]),
+            ("repos add", 2, &["ref"]),
+            ("repos pull", 1, &["file"]),
+            ("repos list", 0, &[]),
+            ("repos remove", 1, &[]),
+            ("deps add", 2, &[]),
+            ("deps list", 0, &[]),
+            ("deps pull", 1, &[]),
+            ("completion zsh", 0, &[]),
+            ("knowledge init", 0, &[]),
+            ("knowledge sources", 3, &["kind", "description"]),
+            ("knowledge list", 0, &[]),
+            ("knowledge show", 1, &[]),
+            ("knowledge check", 0, &[]),
+            ("knowledge index", 0, &[]),
+            ("harness status", 0, &[]),
+            ("harness refresh", 1, &["dry-run", "force"]),
+        ];
+        assert_eq!(spec.len(), COMMANDS.len());
+        for (key, max, flags) in spec {
+            assert!(COMMANDS.contains(key), "{key}");
+            assert_eq!(command_max_args(key), Some(*max), "{key}");
+            let names: Vec<&str> = command_flags(key)
+                .unwrap_or_else(|| panic!("{key} has no option table"))
+                .iter()
+                .map(|flag| flag.name)
+                .collect();
+            assert_eq!(&names, flags, "{key}");
+        }
+        for key in ["config", "harness", "knowledge sync", "frobnicate"] {
+            assert_eq!(command_flags(key), None, "{key}");
+            assert_eq!(command_max_args(key), None, "{key}");
+        }
+    }
+
+    #[test]
+    fn records_flags_in_the_order_given() {
+        let parsed = parse_args(&strings(&[
+            "status", "--scope", "solo", "--depth", "fast", "--scope", "team",
+        ]));
+        assert!(parsed.is_err(), "a string option given twice is rejected");
+        let parsed = parse_args(&strings(&[
+            "--needs", "a", "--depth", "fast", "--needs", "b", "--rescan",
+        ]))
+        .unwrap();
+        assert_eq!(parsed.flag_order, ["needs", "depth", "rescan"]);
     }
 }

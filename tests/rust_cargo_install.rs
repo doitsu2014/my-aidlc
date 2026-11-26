@@ -6,7 +6,7 @@ use std::{
 };
 
 #[test]
-fn cargo_install_and_update_keep_preview_separate_and_self_contained() {
+fn cargo_install_and_update_produce_self_contained_cli() {
     let unique = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
@@ -16,12 +16,8 @@ fn cargo_install_and_update_keep_preview_separate_and_self_contained() {
         std::process::id()
     ));
     fs::create_dir_all(root.join("bin")).unwrap();
-    let production = root.join("bin").join(if cfg!(windows) {
-        "dtech-aidlc.cmd"
-    } else {
-        "dtech-aidlc"
-    });
-    fs::write(&production, b"existing production launcher").unwrap();
+    let unrelated = root.join("bin").join("unrelated-tool");
+    fs::write(&unrelated, b"existing unrelated file").unwrap();
     let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
     let install = |update: bool| {
         let mut command = Command::new("cargo");
@@ -31,7 +27,7 @@ fn cargo_install_and_update_keep_preview_separate_and_self_contained() {
             .arg("--root")
             .arg(&root)
             .arg("--bin")
-            .arg("dtech-aidlc-rs");
+            .arg("dtech-aidlc");
         if update {
             command.arg("--force");
         }
@@ -44,14 +40,11 @@ fn cargo_install_and_update_keep_preview_separate_and_self_contained() {
     };
     install(false);
     install(true);
-    assert_eq!(
-        fs::read(&production).unwrap(),
-        b"existing production launcher"
-    );
+    assert_eq!(fs::read(&unrelated).unwrap(), b"existing unrelated file");
     let exe = root.join("bin").join(if cfg!(windows) {
-        "dtech-aidlc-rs.exe"
+        "dtech-aidlc.exe"
     } else {
-        "dtech-aidlc-rs"
+        "dtech-aidlc"
     });
     let project = root.join("project");
     fs::create_dir(&project).unwrap();
@@ -68,13 +61,20 @@ fn cargo_install_and_update_keep_preview_separate_and_self_contained() {
     );
     let json: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(json["scope"], "solo");
-    let unsupported = Command::new(&exe)
+    let onboard = Command::new(&exe)
         .args(["onboard", "--harness", "claude"])
         .current_dir(&project)
+        .env_remove("DTECH_AIDLC_HOME")
         .output()
         .unwrap();
-    assert!(!unsupported.status.success());
-    assert!(!project.join(".aidlc").exists());
+    assert!(
+        onboard.status.success(),
+        "{}",
+        String::from_utf8_lossy(&onboard.stderr)
+    );
+    assert!(project
+        .join(".claude/skills/dtech-aidlc/SKILL.md")
+        .is_file());
     let uninstall = Command::new("cargo")
         .args(["uninstall", "dtech-aidlc", "--root"])
         .arg(&root)
@@ -85,9 +85,6 @@ fn cargo_install_and_update_keep_preview_separate_and_self_contained() {
         "{}",
         String::from_utf8_lossy(&uninstall.stderr)
     );
-    assert_eq!(
-        fs::read(&production).unwrap(),
-        b"existing production launcher"
-    );
+    assert_eq!(fs::read(&unrelated).unwrap(), b"existing unrelated file");
     fs::remove_dir_all(root).unwrap();
 }

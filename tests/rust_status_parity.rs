@@ -45,6 +45,24 @@ fn status_matches_node_for_fresh_and_active_projects() {
         run(&["status"])
     );
     run(&["orchestrate", "next", "--intent", "parity status"]);
+    for args in [&["status"][..], &["intent", "list"][..]] {
+        let expected = run(args);
+        let output = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
+            .args(args)
+            .arg("--project")
+            .arg(&project)
+            .output()
+            .unwrap();
+        assert!(
+            output.status.success(),
+            "{}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        assert_eq!(
+            serde_json::from_slice::<serde_json::Value>(&output.stdout).unwrap(),
+            expected
+        );
+    }
     assert_eq!(
         status::status(&project, &graph, None).unwrap(),
         run(&["status"])

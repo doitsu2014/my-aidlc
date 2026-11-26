@@ -1,14 +1,28 @@
-//! Experimental migration code. Project-mutating modules are incomplete and must
-//! not be used on real project state until compatibility and safety are verified.
+//! Native Rust port of the dtech-aidlc CLI (migration preview). Every command of the
+//! Node CLI is routed to a module here; all but onboarding have binary-level Node parity
+//! tests. The Node CLI stays authoritative until the cutover criteria in
+//! `plans/rust-cli-migration.md` are met.
 
 pub mod args;
 pub mod artifacts;
+pub mod audit;
+pub mod config_commands;
 pub mod config_read;
 pub mod dependencies;
+pub mod doctor;
 pub mod gate;
+pub mod harness_commands;
+pub mod identity;
 pub mod ids;
+pub mod intent_commands;
 pub mod knowledge;
+pub mod knowledge_commands;
 pub mod onboarding;
+pub mod orchestrate;
+pub mod orchestration_assets;
+pub mod orchestration_context;
+pub mod orchestration_policy;
+pub mod orchestration_report_validation;
 pub mod prerequisites;
 pub mod scope;
 pub mod state_migration;

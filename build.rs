@@ -28,12 +28,23 @@ fn collect(root: &Path, dir: &Path, out: &mut Vec<(String, PathBuf)>) {
 fn main() {
     println!("cargo:rerun-if-changed=core/data/phase-graph.json");
     println!("cargo:rerun-if-changed=core/methodology");
+    println!("cargo:rerun-if-changed=core/data/scaffold");
+    println!("cargo:rerun-if-changed=harness");
     let root = Path::new("core");
     let mut files = vec![(
         "data/phase-graph.json".to_owned(),
         root.join("data/phase-graph.json"),
     )];
     collect(root, &root.join("methodology"), &mut files);
+    collect(root, &root.join("data/scaffold"), &mut files);
+    let harness = Path::new("harness");
+    let mut harness_files = Vec::new();
+    collect(harness, harness, &mut harness_files);
+    files.extend(
+        harness_files
+            .into_iter()
+            .map(|(name, path)| (format!("harness/{name}"), path)),
+    );
     let mut generated = String::from("pub static ASSETS: &[(&str, &[u8])] = &[\n");
     for (rel, path) in files {
         let absolute = fs::canonicalize(path).expect("asset must exist");

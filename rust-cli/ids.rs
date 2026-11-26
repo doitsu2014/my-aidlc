@@ -1,5 +1,8 @@
+use crate::args::FlagValue;
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::fs;
+use std::path::{Path, PathBuf};
 
 pub const REGISTRY_PREFIXES: &[&str] = &["FN", "IF", "TS", "WU", "CFG"];
 pub const ANALYZE_PREFIXES: &[&str] = &["AC", "US"];
@@ -40,11 +43,17 @@ pub fn prefix_of(id: &str) -> Option<&str> {
 
 /// Finds registry and Analyze identifiers in text, normalizing legacy U-n identifiers.
 pub fn cited_ids(text: &str) -> HashSet<String> {
+    cited_ids_ordered(text).into_iter().collect()
+}
+
+/// Node `citedIds(text)` as an insertion-ordered set: each normalized identifier once,
+/// in the order of its first citation (`/\b(FN|IF|TS|WU|U|CFG|AC|US)-(\d{1,5})\b/g`).
+pub fn cited_ids_ordered(text: &str) -> Vec<String> {
     let bytes = text.as_bytes();
-    let mut found = HashSet::new();
+    let mut found: Vec<String> = Vec::new();
     let mut i = 0;
     while i < bytes.len() {
-        if !is_boundary_before(bytes, i) {
+        if !bytes[i].is_ascii_uppercase() || !is_boundary_before(bytes, i) {
             i += 1;
             continue;
         }
@@ -52,7 +61,8 @@ pub fn cited_ids(text: &str) -> HashSet<String> {
         while i < bytes.len() && bytes[i].is_ascii_uppercase() {
             i += 1;
         }
-        let prefix = &text[start..i];
+        // Only ASCII bytes were consumed, so these slices are valid UTF-8.
+        let prefix = std::str::from_utf8(&bytes[start..i]).unwrap_or("");
         if !["FN", "IF", "TS", "WU", "U", "CFG", "AC", "US"].contains(&prefix)
             || bytes.get(i) != Some(&b'-')
         {
@@ -68,7 +78,10 @@ pub fn cited_ids(text: &str) -> HashSet<String> {
         if digits == 0 || digits > 5 || !is_boundary_after(bytes, i) {
             continue;
         }
-        found.insert(normalize_id(&text[start..i]));
+        let id = normalize_id(std::str::from_utf8(&bytes[start..i]).unwrap_or(""));
+        if !found.contains(&id) {
+            found.push(id);
+        }
     }
     found
 }
@@ -439,7 +452,7 @@ pub fn citation_report(
             continue;
         }
         checked.push(path.clone());
-        for id in cited_ids(content) {
+        for id in cited_ids_ordered(content) {
             let prefix = prefix_of(&id).unwrap_or("");
             if REGISTRY_PREFIXES.contains(&prefix) {
                 if !registered.contains(&id) {
@@ -476,9 +489,450 @@ pub fn citation_report(
     }
 }
 
+// ---------------------------------------------------------------------------
+// `dtech-aidlc ids check` (Node router plus `loadRegistry`, `analyzeDefinitions`,
+// `citationReport`, `markdownFilesUnder` and `uncoveredFunctions` in ids.mjs).
+// ---------------------------------------------------------------------------
+
+/// The methodology graph exactly as the CLI selects it: the engine named by
+/// `DTECH_AIDLC_HOME` when it holds one (Node `engineRoot()`), otherwise the graph
+/// embedded in this executable. Shared by the `ids` and `deps` commands.
+#[doc(hidden)]
+pub fn load_runtime_graph(project: &Path) -> Result<Value, String> {
+    let engine = std::env::var_os("DTECH_AIDLC_HOME")
+        .map(PathBuf::from)
+        .and_then(|home| {
+            [home.join("core"), home].into_iter().find(|candidate| {
+                candidate.join("data/phase-graph.json").exists()
+                    || candidate.join("methodology").exists()
+            })
+        });
+    let (graph, _) = match engine {
+        Some(engine) => crate::scope::load_graph(engine, project)?,
+        None => crate::scope::load_embedded_graph(project)?,
+    };
+    Ok(graph.value().clone())
+}
+
+/// Node `readText(path)`: the file as (lossy) UTF-8, or `None` when unreadable.
+fn read_text(path: &Path) -> Option<String> {
+    fs::read(path)
+        .ok()
+        .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+}
+
+/// Node `relative(root, path).split(sep).join('/')` for a path built under `root`.
+fn rel(root: &Path, path: &Path) -> String {
+    let relative = path.strip_prefix(root).unwrap_or(path);
+    relative
+        .components()
+        .map(|part| part.as_os_str().to_string_lossy().into_owned())
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
+/// `Object.entries(value)` for a JSON object or array, in JavaScript property order
+/// (array-index keys first, ascending, then the remaining keys in insertion order).
+fn js_entries(value: &Value) -> Vec<(String, &Value)> {
+    match value {
+        Value::Array(items) => items
+            .iter()
+            .enumerate()
+            .map(|(index, item)| (index.to_string(), item))
+            .collect(),
+        Value::Object(map) => {
+            let index_of = |key: &str| -> Option<u32> {
+                let n: u32 = key.parse().ok()?;
+                (n != u32::MAX && n.to_string() == key).then_some(n)
+            };
+            let mut indexed: Vec<(u32, String, &Value)> = map
+                .iter()
+                .filter_map(|(key, item)| index_of(key).map(|n| (n, key.clone(), item)))
+                .collect();
+            indexed.sort_by_key(|(n, _, _)| *n);
+            indexed
+                .into_iter()
+                .map(|(_, key, item)| (key, item))
+                .chain(
+                    map.iter()
+                        .filter(|(key, _)| index_of(key).is_none())
+                        .map(|(key, item)| (key.clone(), item)),
+                )
+                .collect()
+        }
+        _ => Vec::new(),
+    }
+}
+
+/// Node `artifactPathFor(root, graph, intentId, outputId)`, joined onto `root` as
+/// given (Node `join(root, ...relPath.split('/'))`), never in the canonical
+/// verbatim `\\?\` form that `artifacts::artifact_path_for` returns on Windows.
+fn artifact_path(
+    root: &Path,
+    graph: &Value,
+    intent_id: &str,
+    output: &str,
+) -> Result<Option<PathBuf>, String> {
+    let Some(stage) = graph
+        .get("stages")
+        .and_then(Value::as_array)
+        .and_then(|stages| {
+            stages.iter().find(|stage| {
+                stage
+                    .get("produces")
+                    .and_then(Value::as_array)
+                    .is_some_and(|items| items.iter().any(|item| item.as_str() == Some(output)))
+            })
+        })
+    else {
+        return Ok(None);
+    };
+    let state = serde_json::json!({ "intentId": intent_id });
+    Ok(
+        crate::artifacts::expected_artifacts(root, graph, &state, stage)?
+            .into_iter()
+            .find(|item| item.output == output)
+            .map(|item| {
+                item.rel_path
+                    .split('/')
+                    .fold(root.to_path_buf(), |path, part| path.join(part))
+            }),
+    )
+}
+
+/// Node `unitsFromData(data)`.
+fn units_from_data(data: &Value) -> Vec<&Value> {
+    if not_applicable(data) {
+        return Vec::new();
+    }
+    let units = match data.get("units") {
+        Some(Value::Array(units)) => Some(units),
+        _ => data.as_array(),
+    };
+    units
+        .map(|units| units.iter().collect())
+        .unwrap_or_default()
+}
+
+/// Node `unitIdsFromFile(path)`.
+fn unit_ids_from_file(path: Option<&Path>) -> Option<Vec<String>> {
+    let text = read_text(path?)?;
+    let data: Value = serde_json::from_str(&text).ok()?;
+    Some(
+        units_from_data(&data)
+            .into_iter()
+            .filter_map(|row| row.get("id").and_then(Value::as_str))
+            .map(normalize_id)
+            .collect(),
+    )
+}
+
+/// Node `loadRegistry(root, graph, intentId)`.
+struct Registry {
+    path: Option<String>,
+    exists: bool,
+    not_applicable: bool,
+    ids: HashSet<String>,
+    by_prefix: Vec<(String, Vec<String>)>,
+    error: Option<String>,
+}
+
+impl Registry {
+    fn applies(&self) -> bool {
+        self.exists && !self.not_applicable && self.error.is_none()
+    }
+}
+
+fn load_registry(root: &Path, graph: &Value, intent_id: &str) -> Result<Registry, String> {
+    let path = artifact_path(root, graph, intent_id, "id-registry")?;
+    let units_path = artifact_path(root, graph, intent_id, "work-units-json")?;
+    let mut registry = Registry {
+        path: path.as_deref().map(|path| rel(root, path)),
+        exists: false,
+        not_applicable: false,
+        ids: HashSet::new(),
+        by_prefix: Vec::new(),
+        error: None,
+    };
+    let Some(text) = path.as_deref().and_then(read_text) else {
+        return Ok(registry);
+    };
+    registry.exists = true;
+    let Ok(data) = serde_json::from_str::<Value>(&text) else {
+        registry.error = Some("ids.json is not valid JSON".into());
+        return Ok(registry);
+    };
+    if not_applicable(&data) {
+        registry.not_applicable = true;
+        return Ok(registry);
+    }
+    let ids = data.get("ids").cloned().unwrap_or(Value::Null);
+    for (prefix, entries) in js_entries(&ids) {
+        let Some(entries) = entries.as_array() else {
+            continue;
+        };
+        for entry in entries {
+            let Some(id) = entry.get("id").and_then(Value::as_str) else {
+                continue;
+            };
+            let id = normalize_id(id);
+            registry.ids.insert(id.clone());
+            match registry
+                .by_prefix
+                .iter_mut()
+                .find(|(name, _)| *name == prefix)
+            {
+                Some((_, list)) => list.push(id),
+                None => registry.by_prefix.push((prefix.clone(), vec![id])),
+            }
+        }
+    }
+    for id in unit_ids_from_file(units_path.as_deref()).unwrap_or_default() {
+        registry.ids.insert(id);
+    }
+    Ok(registry)
+}
+
+/// Node `analyzeDefinitions(root, graph, intentId)`.
+fn analyze_definitions(
+    root: &Path,
+    graph: &Value,
+    intent_id: &str,
+) -> Result<HashMap<&'static str, Option<HashSet<String>>>, String> {
+    let mut defined = HashMap::new();
+    for (output, prefix) in [("acceptance-criteria", "AC"), ("user-stories", "US")] {
+        let path = artifact_path(root, graph, intent_id, output)?;
+        let ids = path.as_deref().and_then(read_text).map(|text| {
+            cited_ids_ordered(&text)
+                .into_iter()
+                .filter(|id| prefix_of(id) == Some(prefix))
+                .collect::<HashSet<_>>()
+        });
+        defined.insert(prefix, ids);
+    }
+    Ok(defined)
+}
+
+/// Node `markdownFilesUnder(dir)`: every regular `.md` file below `dir` (symbolic
+/// links are neither followed nor listed), sorted by full path.
+pub fn markdown_files_under(dir: &Path) -> Vec<PathBuf> {
+    fn walk(current: &Path, files: &mut Vec<PathBuf>) {
+        let Ok(entries) = fs::read_dir(current) else {
+            return;
+        };
+        for entry in entries.flatten() {
+            let path = current.join(entry.file_name());
+            let Ok(kind) = entry.file_type() else {
+                continue;
+            };
+            if kind.is_dir() {
+                walk(&path, files);
+            } else if kind.is_file() && entry.file_name().to_string_lossy().ends_with(".md") {
+                files.push(path);
+            }
+        }
+    }
+    let mut files = Vec::new();
+    walk(dir, &mut files);
+    files.sort_by(|a, b| {
+        let (a, b) = (a.to_string_lossy(), b.to_string_lossy());
+        a.encode_utf16().cmp(b.encode_utf16())
+    });
+    files
+}
+
+/// Node `citationReport(root, graph, intentId, files)` restricted to the fields the
+/// `ids check` command prints: `(checked, unregistered)`.
+fn stage_citations(
+    root: &Path,
+    graph: &Value,
+    intent_id: &str,
+    files: &[PathBuf],
+) -> Result<(Vec<String>, Vec<Value>), String> {
+    let registry = load_registry(root, graph, intent_id)?;
+    if !registry.applies() {
+        return Ok((Vec::new(), Vec::new()));
+    }
+    let defined = analyze_definitions(root, graph, intent_id)?;
+    let mut checked = Vec::new();
+    let mut unregistered = Vec::new();
+    for path in files {
+        if !path.to_string_lossy().ends_with(".md") {
+            continue;
+        }
+        let Some(text) = read_text(path) else {
+            continue;
+        };
+        let file = rel(root, path);
+        checked.push(file.clone());
+        for id in cited_ids_ordered(&text) {
+            let prefix = prefix_of(&id).unwrap_or("");
+            if REGISTRY_PREFIXES.contains(&prefix) {
+                if !registry.ids.contains(&id) {
+                    unregistered
+                        .push(serde_json::json!({"id": id, "file": file, "source": "ids.json"}));
+                }
+            } else if let Some(Some(known)) = defined.get(prefix) {
+                if !known.contains(&id) {
+                    let source = if prefix == "AC" {
+                        "acceptance-criteria"
+                    } else {
+                        "user-stories"
+                    };
+                    unregistered
+                        .push(serde_json::json!({"id": id, "file": file, "source": source}));
+                }
+            }
+        }
+    }
+    Ok((checked, unregistered))
+}
+
+/// Node `uncoveredFunctions(root, graph, intentId, intentDirectory)`.
+fn uncovered_functions(
+    root: &Path,
+    graph: &Value,
+    intent_id: &str,
+    intent_dir: &Path,
+) -> Result<Vec<String>, String> {
+    let registry = load_registry(root, graph, intent_id)?;
+    if !registry.applies() {
+        return Ok(Vec::new());
+    }
+    let functions = registry
+        .by_prefix
+        .iter()
+        .find(|(prefix, _)| prefix == "FN")
+        .map(|(_, ids)| ids.clone())
+        .unwrap_or_default();
+    if functions.is_empty() {
+        return Ok(Vec::new());
+    }
+    let mut cited = HashSet::new();
+    for path in markdown_files_under(&intent_dir.join("develop").join("build-and-verify")) {
+        let shown = path.to_string_lossy();
+        if shown.ends_with(&format!(
+            "{}green-verification-report.md",
+            std::path::MAIN_SEPARATOR
+        )) || shown.ends_with("/green-verification-report.md")
+        {
+            cited.extend(cited_ids_ordered(&read_text(&path).unwrap_or_default()));
+        }
+    }
+    Ok(functions
+        .into_iter()
+        .filter(|id| !cited.contains(id))
+        .collect())
+}
+
+/// Node `dtech-aidlc ids check [--stage ID]`.
+///
+/// `key` is `"ids check"` (any other `"ids ..."` key fails with Node's
+/// `Use ids check`). Returns the report JSON with exit code 0 when every cited
+/// identifier is registered, or the same JSON with exit code 1 when `ok` is false
+/// (Node prints the report to stdout and sets `process.exitCode = 1`).
+pub fn run(
+    key: &str,
+    project: &Path,
+    _args: &[String],
+    flags: &BTreeMap<String, FlagValue>,
+) -> Result<(Value, i32), String> {
+    let root = std::path::absolute(project).map_err(|error| error.to_string())?;
+    crate::audit::assert_safe_state_dir(&root)?;
+    let graph = load_runtime_graph(&root)?;
+    if key != "ids check" {
+        return Err("Use ids check".into());
+    }
+    let loaded = crate::workflow::load_workflow(&root, &graph, false)?;
+    let Some(state) = loaded.state.filter(|state| {
+        !matches!(
+            state.get("intentId"),
+            None | Some(Value::Null) | Some(Value::Bool(false))
+        ) && state.get("intentId") != Some(&Value::String(String::new()))
+    }) else {
+        return Err("No active intent".into());
+    };
+    let intent_id = state
+        .get("intentId")
+        .and_then(Value::as_str)
+        .ok_or("No active intent")?
+        .to_owned();
+    let scope = state.get("scope").and_then(Value::as_str).unwrap_or("");
+    let in_scope =
+        crate::workflow::ordered_stages(&graph, scope, crate::workflow::depth_of(&state));
+    let wanted = match flags.get("stage") {
+        Some(FlagValue::String(stage)) => Some(stage.as_str()),
+        _ => None,
+    };
+    let stage_id = |stage: &Value| stage.get("id").and_then(Value::as_str).map(str::to_owned);
+    if let Some(wanted) = wanted {
+        if !in_scope
+            .iter()
+            .any(|stage| stage_id(stage).as_deref() == Some(wanted))
+        {
+            return Err(format!(
+                "Stage {wanted} is not in the active intent's scope"
+            ));
+        }
+    }
+    let selected: Vec<&Value> = in_scope
+        .into_iter()
+        .filter(|stage| match wanted {
+            Some(wanted) => stage_id(stage).as_deref() == Some(wanted),
+            None => {
+                CITATION_PHASES.contains(&stage.get("phase").and_then(Value::as_str).unwrap_or(""))
+            }
+        })
+        .collect();
+    let dir = crate::workflow::intent_dir_path(&root, &intent_id);
+    let registry = load_registry(&root, &graph, &intent_id)?;
+    let mut stages = Vec::new();
+    let mut unregistered_total = 0;
+    for stage in selected {
+        let phase = stage.get("phase").and_then(Value::as_str).unwrap_or("");
+        let id = stage.get("id").and_then(Value::as_str).unwrap_or("");
+        let files = markdown_files_under(&dir.join(phase).join(id));
+        let (checked, unregistered) = stage_citations(&root, &graph, &intent_id, &files)?;
+        unregistered_total += unregistered.len();
+        stages.push(
+            serde_json::json!({"stage": id, "checked": checked, "unregistered": unregistered}),
+        );
+    }
+    let mut registry_row = serde_json::Map::new();
+    registry_row.insert("path".into(), serde_json::json!(registry.path));
+    registry_row.insert("exists".into(), Value::Bool(registry.exists));
+    if let Some(error) = &registry.error {
+        registry_row.insert("error".into(), Value::String(error.clone()));
+    }
+    let counts: serde_json::Map<String, Value> = registry
+        .by_prefix
+        .iter()
+        .map(|(prefix, ids)| (prefix.clone(), Value::from(ids.len())))
+        .collect();
+    registry_row.insert("counts".into(), Value::Object(counts));
+    let ok = unregistered_total == 0 && registry.error.is_none();
+    let result = serde_json::json!({
+        "intentId": intent_id,
+        "registry": registry_row,
+        "applies": registry.applies(),
+        "ok": ok,
+        "stages": stages,
+        "uncoveredFunctions": uncovered_functions(&root, &graph, &intent_id, &dir)?,
+    });
+    Ok((result, if ok { 0 } else { 1 }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn cited_ids_keep_first_citation_order_and_survive_multibyte_text() {
+        assert_eq!(
+            cited_ids_ordered("é FN-02 then U-1, AC-3 and FN-02 again; XFN-9 FN-123456 ÄUS-4"),
+            vec!["FN-02", "WU-1", "AC-3", "US-4"]
+        );
+    }
 
     #[test]
     fn validates_registry_duplicates_traces_and_work_unit_alignment() {

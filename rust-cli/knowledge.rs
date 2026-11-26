@@ -24,16 +24,45 @@ const IGNORE_BLOCK: &str = "# >>> dtech-aidlc managed block v1\n/state.json\n/st
 fn err<T>(message: impl Into<String>) -> Result<T, String> {
     Err(message.into())
 }
-fn project_root(root: &Path) -> Result<PathBuf, String> {
+/// How a project root resolves before any knowledge file is touched.
+///
+/// Node resolves `--project` lexically (`path.resolve`) and never requires the
+/// directory to exist for read-only work, so a missing project is reported by the
+/// caller (for example `orchestrate next` prints "Project is not initialized at
+/// ..."), never as an OS error from canonicalization.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ProjectRoot {
+    /// The root exists and is a directory.
+    Directory(PathBuf),
+    /// Nothing exists at the root yet.
+    Missing(PathBuf),
+}
+
+impl ProjectRoot {
+    pub fn path(&self) -> &Path {
+        match self {
+            ProjectRoot::Directory(path) | ProjectRoot::Missing(path) => path,
+        }
+    }
+}
+
+/// Classify a project root without canonicalizing it. Errors only for a relative
+/// root or a root that exists but is not a directory.
+pub fn resolve_project_root(root: &Path) -> Result<ProjectRoot, String> {
     if !root.is_absolute() {
         return err("Project root must be an absolute path");
     }
-    let root = root.canonicalize().map_err(|e| e.to_string())?;
-    let meta = fs::symlink_metadata(&root).map_err(|e| e.to_string())?;
-    if meta.file_type().is_symlink() || !meta.is_dir() {
-        return err("Project root must be a directory");
+    match fs::metadata(root) {
+        Ok(meta) if meta.is_dir() => Ok(ProjectRoot::Directory(root.to_path_buf())),
+        Ok(_) => err("Project root must be a directory"),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+            Ok(ProjectRoot::Missing(root.to_path_buf()))
+        }
+        Err(e) => err(e.to_string()),
     }
-    Ok(root)
+}
+fn project_root(root: &Path) -> Result<PathBuf, String> {
+    resolve_project_root(root).map(|resolved| resolved.path().to_path_buf())
 }
 pub fn knowledge_manifest_path(root: &Path) -> Result<PathBuf, String> {
     Ok(project_root(root)?.join(KNOWLEDGE_MANIFEST))
@@ -53,7 +82,9 @@ fn safe_id(id: &str, label: &str) -> Result<(), String> {
             .bytes()
             .all(|b| b.is_ascii_alphanumeric() || b"._-".contains(&b))
     {
-        return err(format!("Invalid {label}: {id}"));
+        return err(format!(
+            "Invalid {label}: use letters, digits, dot, underscore, or hyphen"
+        ));
     }
     Ok(())
 }
@@ -167,20 +198,74 @@ fn atomic_write(path: &Path, bytes: &[u8], mode: u32) -> Result<(), String> {
     }
     result
 }
+/// JavaScript `String(value)` for the values a manifest field may hold.
+fn js_display(value: Option<&Value>) -> String {
+    match value {
+        None => "undefined".into(),
+        Some(Value::String(s)) => s.clone(),
+        Some(Value::Null) => "null".into(),
+        Some(Value::Array(items)) => items
+            .iter()
+            .map(|item| match item {
+                Value::Null => String::new(),
+                other => js_display(Some(other)),
+            })
+            .collect::<Vec<_>>()
+            .join(","),
+        Some(Value::Object(_)) => "[object Object]".into(),
+        Some(Value::Number(n)) => n
+            .as_f64()
+            .filter(|f| f.fract() == 0.0 && f.abs() < 1e21)
+            .map(|f| format!("{f:.0}"))
+            .unwrap_or_else(|| n.to_string()),
+        Some(other) => other.to_string(),
+    }
+}
+/// JavaScript `string.length` (UTF-16 code units).
+fn js_len(text: &str) -> usize {
+    text.encode_utf16().count()
+}
+/// Characters matched by JavaScript `\s` and removed by `String.prototype.trim`.
+pub(crate) fn is_js_space(c: char) -> bool {
+    matches!(
+        c,
+        '\t' | '\n' | '\u{b}' | '\u{c}' | '\r' | ' ' | '\u{a0}' | '\u{1680}' | '\u{2000}'
+            ..='\u{200a}'
+                | '\u{2028}'
+                | '\u{2029}'
+                | '\u{202f}'
+                | '\u{205f}'
+                | '\u{3000}'
+                | '\u{feff}'
+    )
+}
+/// JavaScript `String.prototype.trim`.
+pub(crate) fn js_trim(text: &str) -> &str {
+    text.trim_matches(is_js_space)
+}
 fn validate_path(id: &str, path: &Value) -> Result<(), String> {
-    let p = path.as_str().ok_or_else(|| format!("source {id}: path must be a relative path inside the project root using forward slashes"))?;
+    let generic = || {
+        format!("source {id}: path must be a relative path inside the project root using forward slashes")
+    };
+    let Some(p) = path.as_str() else {
+        return Err(generic());
+    };
+    let bytes = p.as_bytes();
     if p.is_empty()
-        || p.len() > 400
+        || js_len(p) > 400
         || p.contains('\0')
         || p.contains('\\')
         || p.starts_with('/')
-        || p.starts_with("//")
-        || p.as_bytes().get(1) == Some(&b':')
+        || (bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':')
         || p.split('/')
             .any(|part| part.is_empty() || part == "." || part == "..")
-        || matches!(p.split('/').next(), Some(".git" | ".aidlc"))
     {
-        return err(format!("source {id}: path must be a relative path inside the project root using forward slashes"));
+        return Err(generic());
+    }
+    if matches!(p.split('/').next(), Some(".git" | ".aidlc")) {
+        return err(format!(
+            "source {id}: path must not point into .git or .aidlc"
+        ));
     }
     Ok(())
 }
@@ -208,10 +293,8 @@ pub fn validate_knowledge_manifest(data: &Value) -> Result<(), String> {
         let o = source
             .as_object()
             .ok_or_else(|| fail("each source must be an object".into()))?;
-        let id = source
-            .get("id")
-            .and_then(Value::as_str)
-            .unwrap_or("undefined");
+        let id = js_display(source.get("id"));
+        let id = id.as_str();
         if let Some(k) = o
             .keys()
             .find(|k| !["id", "path", "kind", "description"].contains(&k.as_str()))
@@ -244,7 +327,7 @@ pub fn validate_knowledge_manifest(data: &Value) -> Result<(), String> {
         if let Some(d) = source.get("description") {
             if !d.is_string()
                 || d.as_str().unwrap().contains(['\r', '\n'])
-                || d.as_str().unwrap().len() > 300
+                || js_len(d.as_str().unwrap()) > 300
             {
                 return err(fail(format!(
                     "source {id}: description must be one line of at most 300 characters"
@@ -305,7 +388,9 @@ pub fn write_knowledge_manifest(root: &Path, manifest: &Value) -> Result<(), Str
     atomic_write(&root.join(KNOWLEDGE_MANIFEST), &bytes, 0o644)
 }
 pub fn inspect_sources(root: &Path, manifest: &Value) -> Value {
-    let root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
+    // Node joins onto `path.resolve(root)`; no canonicalization (which would fail for a
+    // missing project and yield `\\?\` paths on Windows).
+    let root = std::path::absolute(root).unwrap_or_else(|_| root.to_path_buf());
     let mut warnings = Vec::new();
     let mut sources = Vec::new();
     for source in manifest
@@ -316,27 +401,21 @@ pub fn inspect_sources(root: &Path, manifest: &Value) -> Value {
     {
         let mut row = source.clone();
         let p = source["path"].as_str().unwrap_or("");
+        let id = js_display(source.get("id"));
         let abs = p.split('/').fold(root.clone(), |mut a, part| {
             a.push(part);
             a
         });
         let (status, size) = match fs::symlink_metadata(abs) {
             Ok(m) if m.file_type().is_symlink() => {
-                warnings.push(format!(
-                    "Source {} is a symbolic link",
-                    source["id"].as_str().unwrap_or("undefined")
-                ));
+                warnings.push(format!("Source {id} is a symbolic link"));
                 ("symlink", Value::Null)
             }
             Ok(m) if m.is_dir() => ("ok", Value::Null),
             Ok(m) if m.is_file() => ("ok", json!(m.len())),
             Ok(_) => ("unsafe", Value::Null),
             Err(_) => {
-                warnings.push(format!(
-                    "Source {} path {} does not exist",
-                    source["id"].as_str().unwrap_or("undefined"),
-                    p
-                ));
+                warnings.push(format!("Source {id} path {p} does not exist"));
                 ("missing", Value::Null)
             }
         };
@@ -395,30 +474,27 @@ pub fn remove_source(root: &Path, id: &str) -> Result<Value, String> {
     write_knowledge_manifest(root, &manifest)?;
     Ok(json!({"removed":id}))
 }
+/// Node `knowledgePreflight(root)`: refuse an unsafe `.aidlc` (Node
+/// `assertSafeStateDir` messages) or a symlinked manifest, then load the manifest.
+///
+/// A project root that does not exist is not an error here, exactly like Node: the
+/// result is `Ok((false, default manifest))`, so callers such as `orchestrate next`
+/// go on to report "Project is not initialized at <path>" or "No active intent".
+/// Use [`resolve_project_root`] to tell a missing root apart explicitly.
 pub fn knowledge_preflight(root: &Path) -> Result<(bool, Value), String> {
-    let root = check_state_dir(root)?;
+    let root = project_root(root)?;
+    crate::audit::assert_safe_state_dir(&root)?;
     let path = root.join(KNOWLEDGE_MANIFEST);
     if fs::symlink_metadata(&path).is_ok_and(|m| m.file_type().is_symlink()) {
         return err("Refusing to write through symlink: aidlc.knowledge.json");
     }
     load_knowledge_manifest(&root)
 }
-fn project_template(root: &Path) -> Result<PathBuf, String> {
-    if let Some(home) = std::env::var_os("DTECH_AIDLC_HOME") {
-        let p = PathBuf::from(home);
-        for c in [p.join("core"), p] {
-            let f = c.join("data/scaffold/PROJECT.md");
-            if f.exists() {
-                return Ok(f);
-            }
-        }
-    }
-    let p = root.join("data/scaffold/PROJECT.md");
-    if p.exists() {
-        Ok(p)
-    } else {
-        err(format!("Missing scaffold file: {}", p.display()))
-    }
+/// The PROJECT.md scaffold. Node reads it beside its own sources (never from
+/// `DTECH_AIDLC_HOME`); the native binary carries the same file embedded.
+fn project_template() -> Result<&'static [u8], String> {
+    crate::scope::embedded_asset("data/scaffold/PROJECT.md")
+        .ok_or_else(|| "Missing scaffold file: data/scaffold/PROJECT.md".to_owned())
 }
 pub fn init_knowledge(root: &Path, create_manifest: bool) -> Result<Value, String> {
     let root = project_root(root)?;
@@ -450,11 +526,13 @@ pub fn init_knowledge(root: &Path, create_manifest: bool) -> Result<Value, Strin
                 json!({"path":rel,"created":false,"reason":"parent directory does not exist"})
             }
             Err(_) => {
-                let template = project_template(&root)?;
-                let bytes = fs::read(template).map_err(|e| e.to_string())?;
+                // Stricter than Node: never create the scaffold through a symlinked
+                // parent directory.
+                check_components(&root, rel)?;
+                let bytes = project_template()?;
                 match OpenOptions::new().write(true).create_new(true).open(&abs) {
                     Ok(mut f) => {
-                        f.write_all(&bytes).map_err(|e| e.to_string())?;
+                        f.write_all(bytes).map_err(|e| e.to_string())?;
                         #[cfg(unix)]
                         {
                             use std::os::unix::fs::PermissionsExt;
@@ -501,65 +579,121 @@ pub struct ParsedRecord {
     pub title: String,
     pub headings: Map<String, Value>,
 }
-pub fn parse_record(text: &str) -> Result<ParsedRecord, String> {
-    let lines: Vec<&str> = text.lines().collect();
-    if lines.first().copied() != Some("---") {
-        return err("frontmatter is missing");
+/// Node's frontmatter regex `^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)`: returns the
+/// captured frontmatter text and the length of the whole match.
+fn frontmatter_match(text: &str) -> Option<(&str, usize)> {
+    let start = if text.starts_with("---\n") {
+        4
+    } else if text.starts_with("---\r\n") {
+        5
+    } else {
+        return None;
+    };
+    let bytes = text.as_bytes();
+    let mut p = start;
+    while p < bytes.len() {
+        let newline = match bytes[p] {
+            b'\r' if bytes.get(p + 1) == Some(&b'\n') => p + 1,
+            b'\n' => p,
+            _ => {
+                p += 1;
+                continue;
+            }
+        };
+        let after = newline + 1;
+        if text[after..].starts_with("---") {
+            let rest = &text[after + 3..];
+            let close = if rest.is_empty() {
+                Some(0)
+            } else if rest.starts_with('\n') {
+                Some(1)
+            } else if rest.starts_with("\r\n") {
+                Some(2)
+            } else {
+                None
+            };
+            if let Some(close) = close {
+                return Some((&text[start..p], after + 3 + close));
+            }
+        }
+        p += 1;
     }
-    let end = lines
-        .iter()
-        .enumerate()
-        .skip(1)
-        .find(|(_, l)| **l == "---")
-        .map(|(i, _)| i)
-        .ok_or("frontmatter is missing")?;
+    None
+}
+/// JavaScript `text.split(/\r?\n/)`.
+fn split_lines(text: &str) -> Vec<&str> {
+    text.split('\n')
+        .map(|line| line.strip_suffix('\r').unwrap_or(line))
+        .collect()
+}
+/// Node `/^([\w-]+):\s*(.*?)\s*$/` on one frontmatter line.
+fn frontmatter_scalar(line: &str) -> Option<(&str, &str)> {
+    let (key, rest) = line.split_once(':')?;
+    if key.is_empty()
+        || !key
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-')
+    {
+        return None;
+    }
+    let value = js_trim(rest);
+    // `.` does not match line terminators, so such a value fails the whole regex.
+    if value.contains(['\r', '\n', '\u{2028}', '\u{2029}']) {
+        return None;
+    }
+    Some((key, value))
+}
+/// `value.replace(/^['"]|['"]$/g, '')`.
+fn strip_quotes(value: &str) -> String {
+    let value = value.strip_prefix(['\'', '"']).unwrap_or(value);
+    value.strip_suffix(['\'', '"']).unwrap_or(value).to_owned()
+}
+/// Node `parseRecord(text)`. `headings` keeps every `## ` section; Node holds them in a
+/// `Map`, which serializes as `{}` in command output (see [`read_records`]).
+pub fn parse_record(text: &str) -> Result<ParsedRecord, String> {
+    let (matched, consumed) = frontmatter_match(text).ok_or("frontmatter is missing")?;
     let mut fm = Map::new();
-    for line in &lines[1..end] {
-        if let Some((k, v)) = line.split_once(':') {
-            let value = v.trim().trim_matches(['\'', '\"']).to_owned();
-            fm.insert(k.trim().to_owned(), json!(value));
+    for line in split_lines(matched) {
+        if let Some((key, value)) = frontmatter_scalar(line) {
+            fm.insert(key.to_owned(), json!(strip_quotes(value)));
         }
     }
-    let body = lines[end + 1..].join("\n");
-    let title = lines[end + 1..]
+    let body = text[consumed..].to_owned();
+    let lines = split_lines(&body);
+    let title = lines
         .iter()
         .find_map(|l| l.strip_prefix("# "))
-        .unwrap_or("")
-        .trim()
-        .to_owned();
+        .map(|t| js_trim(t).to_owned())
+        .unwrap_or_default();
     let mut headings = Map::new();
     let mut current: Option<String> = None;
-    let mut buf = Vec::new();
-    let flush = |current: &Option<String>, buf: &Vec<String>, headings: &mut Map<String, Value>| {
+    let mut buf: Vec<&str> = Vec::new();
+    let flush = |current: &Option<String>, buf: &Vec<&str>, headings: &mut Map<String, Value>| {
         if let Some(k) = current {
-            headings.insert(k.clone(), json!(buf.join("\n").trim()));
+            headings.insert(k.clone(), json!(js_trim(&buf.join("\n"))));
         }
     };
-    for line in lines.iter().skip(end + 1) {
+    for line in &lines {
         if let Some(h) = line.strip_prefix("## ") {
             flush(&current, &buf, &mut headings);
-            current = Some(h.trim().into());
+            current = Some(js_trim(h).to_owned());
             buf.clear();
         } else if line.starts_with("# ") {
             flush(&current, &buf, &mut headings);
             current = None;
             buf.clear();
         } else if current.is_some() {
-            buf.push((*line).to_owned());
+            buf.push(line);
         }
     }
     flush(&current, &buf, &mut headings);
     let list = |key: &str| -> Value {
-        let s = fm
-            .get(key)
-            .and_then(Value::as_str)
-            .unwrap_or("")
-            .trim()
-            .trim_start_matches('[')
-            .trim_end_matches(']');
-        json!(s
+        let raw = fm.get(key).and_then(Value::as_str).unwrap_or("");
+        let raw = raw.strip_prefix('[').unwrap_or(raw);
+        let raw = raw.strip_suffix(']').unwrap_or(raw);
+        json!(raw
             .split(',')
-            .map(str::trim)
+            .map(js_trim)
             .filter(|x| !x.is_empty())
             .collect::<Vec<_>>())
     };
@@ -572,45 +706,94 @@ pub fn parse_record(text: &str) -> Result<ParsedRecord, String> {
         headings,
     })
 }
-pub fn read_records(root: &Path) -> Value {
-    let Ok(dir) = knowledge_dir(root) else {
-        return json!({"records":[],"invalid":[]});
-    };
+/// One scanned knowledge record: its Node-shaped JSON row and, for records with
+/// frontmatter, the `## ` headings found (used by [`check_records`]).
+struct ScannedRecord {
+    row: Value,
+    headings: Option<Vec<String>>,
+}
+fn scan_records(root: &Path) -> (Vec<ScannedRecord>, Vec<Value>) {
     let mut records = Vec::new();
     let mut invalid = Vec::new();
-    let Ok(meta) = fs::symlink_metadata(&dir) else {
-        return json!({"records":records,"invalid":invalid});
+    let Ok(dir) = knowledge_dir(root) else {
+        return (records, invalid);
     };
-    if meta.file_type().is_symlink() {
-        return json!({"records":records,"invalid":invalid});
+    match fs::symlink_metadata(&dir) {
+        Ok(meta) if !meta.file_type().is_symlink() => {}
+        _ => return (records, invalid),
     }
     let Ok(entries) = fs::read_dir(&dir) else {
-        return json!({"records":records,"invalid":invalid});
+        return (records, invalid);
     };
-    for entry in entries.flatten() {
+    #[allow(unused_mut)]
+    let mut entries: Vec<_> = entries.flatten().collect();
+    // libuv sorts directory listings byte-wise on Unix; on Windows it keeps the
+    // file system's order, which `read_dir` also returns.
+    #[cfg(unix)]
+    entries.sort_by_key(|entry| entry.file_name());
+    for entry in entries {
         let name = entry.file_name().to_string_lossy().into_owned();
         if !name.ends_with(".md") || name.starts_with('_') || name.starts_with('.') {
             continue;
         }
         let rel = format!(".aidlc/knowledge/{name}");
-        let Ok(m) = entry.file_type() else {
+        let Ok(kind) = entry.file_type() else {
             continue;
         };
-        if m.is_symlink() || !m.is_file() {
+        if kind.is_symlink() || !kind.is_file() {
             invalid.push(json!({"file":rel,"errors":["is a symbolic link or not a regular file"]}));
             continue;
         }
-        let stem = name.trim_end_matches(".md");
+        let stem = &name[..name.len() - 3];
         if safe_id(stem, "record id").is_err() {
             invalid.push(json!({"file":rel,"errors":["file name is not a valid record id"]}));
             continue;
         }
-        let Ok(text) = fs::read_to_string(entry.path()) else {
-            invalid.push(json!({"file":rel,"errors":["cannot be read as UTF-8"]}));
+        let Ok(bytes) = fs::read(entry.path()) else {
+            invalid.push(json!({"file":rel,"errors":["cannot be read"]}));
             continue;
         };
-        match parse_record(&text) { Err(_) => records.push(json!({"id":stem,"title":stem,"closed":null,"origin":"legacy","scope":null,"tags":[],"supersedes":[],"warnings":["no frontmatter; add it using the knowledge-record template"],"file":rel})), Ok(p)=> records.push(json!({"id":p.frontmatter["id"].as_str().filter(|s|!s.is_empty()).unwrap_or(stem),"title":p.frontmatter["title"].as_str().filter(|s|!s.is_empty()).unwrap_or(&p.title),"origin":p.frontmatter["origin"].as_str().unwrap_or("archived"),"scope":p.frontmatter.get("scope").and_then(Value::as_str),"closed":p.frontmatter.get("closed").and_then(Value::as_str),"tags":p.lists["tags"],"supersedes":p.lists["supersedes"],"file":rel,"parsed":{"frontmatter":p.frontmatter,"lists":p.lists,"body":p.body,"title":p.title,"headings":p.headings}})) }
+        let text = String::from_utf8_lossy(&bytes);
+        match parse_record(&text) {
+            Err(_) => records.push(ScannedRecord {
+                row: json!({"id":stem,"title":stem,"closed":null,"origin":"legacy","scope":null,"tags":[],"supersedes":[],"warnings":["no frontmatter; add it using the knowledge-record template"],"file":rel}),
+                headings: None,
+            }),
+            Ok(p) => {
+                let field = |key: &str| {
+                    p.frontmatter
+                        .get(key)
+                        .and_then(Value::as_str)
+                        .filter(|s| !s.is_empty())
+                };
+                let title = field("title")
+                    .or(Some(p.title.as_str()).filter(|s| !s.is_empty()))
+                    .unwrap_or(stem);
+                let row = json!({
+                    "id": field("id").unwrap_or(stem),
+                    "title": title,
+                    "origin": field("origin").unwrap_or("archived"),
+                    "scope": field("scope"),
+                    "closed": field("closed"),
+                    "tags": p.lists["tags"],
+                    "supersedes": p.lists["supersedes"],
+                    "file": rel,
+                    // Node keeps headings in a Map, which JSON.stringify writes as {}.
+                    "parsed": {"frontmatter":p.frontmatter,"lists":p.lists,"body":p.body,"title":p.title,"headings":{}}
+                });
+                records.push(ScannedRecord {
+                    row,
+                    headings: Some(p.headings.keys().cloned().collect()),
+                });
+            }
+        }
     }
+    (records, invalid)
+}
+/// Node `readRecords(root)`: `{records, invalid}` exactly as the CLI prints them.
+pub fn read_records(root: &Path) -> Value {
+    let (records, invalid) = scan_records(root);
+    let records: Vec<Value> = records.into_iter().map(|record| record.row).collect();
     json!({"records":records,"invalid":invalid})
 }
 pub fn write_index(root: &Path) -> Result<Value, String> {
@@ -779,7 +962,7 @@ pub fn knowledge_gate_check(root: &Path, graph: &Value, state: &Value) -> Value 
     }
     if parsed.frontmatter["scope"]
         .as_str()
-        .is_some_and(|s| s != state["scope"].as_str().unwrap_or(""))
+        .is_some_and(|s| !s.is_empty() && s != state["scope"].as_str().unwrap_or(""))
     {
         errors.push(format!(
             "scope must be {}",
@@ -798,8 +981,10 @@ pub fn ensure_ignore_file(root: &Path) -> Result<Value, String> {
     check_components(&root, ".aidlc/.gitignore")?;
     fs::create_dir_all(root.join(".aidlc")).map_err(|e| e.to_string())?;
     let path = root.join(".aidlc/.gitignore");
-    let text = match fs::read_to_string(&path) {
-        Ok(t) => t,
+    // Node `readFileSync(path, 'utf8')` decodes lossily: bytes that are not UTF-8
+    // become U+FFFD instead of failing the command after the state was written.
+    let text = match fs::read(&path) {
+        Ok(bytes) => String::from_utf8_lossy(&bytes).into_owned(),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
             atomic_write(&path, format!("{IGNORE_BLOCK}\n").as_bytes(), 0o600)?;
             return Ok(json!({"path":".aidlc/.gitignore","result":"created"}));
@@ -855,10 +1040,8 @@ pub fn ensure_ignore_file(root: &Path) -> Result<Value, String> {
     Ok(json!({"path":".aidlc/.gitignore","result":"updated"}))
 }
 pub fn check_records(root: &Path) -> Value {
-    let data = read_records(root);
-    let mut problems: Vec<String> = data["invalid"]
-        .as_array()
-        .unwrap()
+    let (records, invalid) = scan_records(root);
+    let mut problems: Vec<String> = invalid
         .iter()
         .map(|x| {
             format!(
@@ -874,17 +1057,16 @@ pub fn check_records(root: &Path) -> Value {
             )
         })
         .collect();
-    let records = data["records"].as_array().unwrap();
-    for r in records {
-        if r["origin"] == "archived" && r.get("parsed").is_some() {
+    for record in &records {
+        let Some(headings) = &record.headings else {
+            continue;
+        };
+        if record.row["origin"] == "archived" {
             for h in ["Outcome", "Decisions", "Limitations", "Follow-ups", "Links"] {
-                if !r["parsed"]["headings"]
-                    .as_object()
-                    .is_some_and(|o| o.contains_key(h))
-                {
+                if !headings.iter().any(|found| found == h) {
                     problems.push(format!(
                         "{}: missing heading {h}",
-                        r["id"].as_str().unwrap_or("")
+                        record.row["id"].as_str().unwrap_or("")
                     ));
                 }
             }
@@ -896,6 +1078,25 @@ pub fn check_records(root: &Path) -> Value {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    #[cfg(unix)]
+    fn initialization_refuses_symlinked_project_parent() {
+        use std::os::unix::fs::symlink;
+        let root =
+            std::env::temp_dir().join(format!("knowledge-parent-root-{}", std::process::id()));
+        let outside =
+            std::env::temp_dir().join(format!("knowledge-parent-outside-{}", std::process::id()));
+        fs::create_dir_all(&root).unwrap();
+        fs::create_dir_all(&outside).unwrap();
+        symlink(&outside, root.join("docs")).unwrap();
+        let manifest = json!({"schemaVersion":1,"sources":[{"id":"project","path":"docs/PROJECT.md","kind":"project"}]});
+        write_knowledge_manifest(&root, &manifest).unwrap();
+        assert!(init_knowledge(&root, false).is_err());
+        assert!(!outside.join("PROJECT.md").exists());
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(outside).unwrap();
+    }
+
     #[test]
     fn validates_manifest_safety_and_shape() {
         assert!(validate_knowledge_manifest(&json!({"schemaVersion":1,"sources":[{"id":"project","path":"PROJECT.md","kind":"project"}]})).is_ok());
@@ -990,6 +1191,27 @@ mod tests {
         assert!(check_records(&root)["ok"].as_bool().unwrap());
         assert!(write_index(&root).is_ok());
         assert_eq!(ensure_ignore_file(&root).unwrap()["result"], "created");
+        let _ = fs::remove_dir_all(root);
+    }
+    #[test]
+    fn ignore_file_that_is_not_utf8_is_read_lossily_like_node() {
+        let root =
+            std::env::temp_dir().join(format!("knowledge-ignore-utf8-{}", std::process::id()));
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(root.join(".aidlc")).unwrap();
+        assert_eq!(ensure_ignore_file(&root).unwrap()["result"], "created");
+        let path = root.join(".aidlc/.gitignore");
+        let mut bytes = fs::read(&path).unwrap();
+        bytes.extend_from_slice(b"# caf\xe9 notes\nlocal.txt\n");
+        fs::write(&path, &bytes).unwrap();
+        assert_eq!(ensure_ignore_file(&root).unwrap()["result"], "unchanged");
+        assert_eq!(fs::read(&path).unwrap(), bytes);
+        // Without the managed block the file is rewritten from the lossy text, as Node does.
+        fs::write(&path, b"# caf\xe9\n").unwrap();
+        assert_eq!(ensure_ignore_file(&root).unwrap()["result"], "updated");
+        let text = fs::read_to_string(&path).unwrap();
+        assert!(text.starts_with("# >>> dtech-aidlc managed block"));
+        assert!(text.ends_with("# caf\u{fffd}\n"));
         let _ = fs::remove_dir_all(root);
     }
 }

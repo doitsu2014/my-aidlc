@@ -12,7 +12,7 @@ fn stale_engine_home_falls_back_to_default() {
         .env("DTECH_AIDLC_HOME", &missing)
         .output()
         .unwrap();
-    let actual = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc-rs"))
+    let actual = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
         .args(["scope", "solo"])
         .env("DTECH_AIDLC_HOME", &missing)
         .output()
@@ -39,7 +39,7 @@ fn help_and_completion_match_existing_cli() {
             .args(&args)
             .output()
             .unwrap();
-        let actual = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc-rs"))
+        let actual = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
             .args(&args)
             .output()
             .unwrap();

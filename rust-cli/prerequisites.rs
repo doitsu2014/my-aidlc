@@ -133,8 +133,29 @@ pub fn preflight_names(config: &Value, stage: &Value) -> Vec<String> {
         .collect()
 }
 
+/// Refuse a declaration that has no command to run: `check` missing, not a string, or
+/// empty. Node cannot run such a declaration either (`spawnSync` throws a type error);
+/// running an empty shell command instead would report the prerequisite as healthy.
+pub fn require_runnable(name: &str, definition: &Value) -> Result<(), String> {
+    match definition.get("check") {
+        Some(Value::String(check)) if !check.is_empty() => Ok(()),
+        _ => Err(format!(
+            "Prerequisite {name} needs a one-line --check command"
+        )),
+    }
+}
+
 /// Execute one configured check in `root`, with a timeout and bounded failure output.
+/// A declaration without a runnable command ([`require_runnable`]) fails without
+/// starting a shell.
 pub fn run_prerequisite(root: &str, name: &str, definition: &Value) -> Value {
+    if let Err(problem) = require_runnable(name, definition) {
+        let check = definition.get("check").cloned().unwrap_or(Value::Null);
+        let mut result =
+            result_failure(name, "", definition, timestamp_now(), None, false, &problem);
+        result["check"] = check;
+        return result;
+    }
     let check = definition
         .get("check")
         .and_then(Value::as_str)
@@ -454,6 +475,24 @@ mod tests {
         let result = run_prerequisite(".", "slow", &json!({"check":"sleep 4", "timeoutSeconds":1}));
         assert_eq!(result["timedOut"], true);
         assert!(started.elapsed() < Duration::from_secs(3));
+    }
+
+    #[test]
+    fn declaration_without_a_command_fails_instead_of_running_an_empty_shell() {
+        for definition in [
+            json!({"check": 5, "hint": "start docker"}),
+            json!({"hint": "no command"}),
+            json!({"check": ""}),
+        ] {
+            assert_eq!(
+                require_runnable("docker", &definition).unwrap_err(),
+                "Prerequisite docker needs a one-line --check command"
+            );
+            let result = run_prerequisite(".", "docker", &definition);
+            assert_eq!(result["ok"], false, "{definition}");
+            assert_eq!(result["exitCode"], Value::Null);
+        }
+        assert!(require_runnable("docker", &json!({"check": "docker info"})).is_ok());
     }
 
     #[test]

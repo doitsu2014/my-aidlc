@@ -2,6 +2,13 @@
 
 Each release lists the behaviour changes a user or a script can notice.
 
+## 1.0.0
+
+- The `dtech-aidlc` CLI is a native Rust executable installed with `cargo install --path . --locked --bin dtech-aidlc`. Every command (onboard/init, orchestrate next/report, status, scope, intent, config, harness, knowledge, ids, repos, deps, doctor, completion) runs natively, and the graph, methodology, harness projections and scaffold are embedded in the binary. The Node CLI under `core/tools/` remains as the parity reference.
+- Without `DTECH_AIDLC_HOME`, the embedded methodology is written to `.aidlc/engine/` (git-ignored, refreshed when the binary changes), and directive paths point there.
+- Commands that write state now check that `.aidlc/audit.jsonl` can be written before changing anything.
+- Known differences from Node: harness files always come from the embedded copies; some symlinked or dangling state paths are refused where Node writes through them; a prerequisite without a check command reports a readable error. Parity was verified on Windows only.
+
 ## 0.7.2
 
 - Develop uses test-alongside vertical slices, with test-first focused on behavior where risk justifies it; rework guidance emphasizes local recovery and stopping repeated retries.

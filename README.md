@@ -6,7 +6,7 @@
 
 **Let the AI do the work. Keep the decisions yours.**
 
-[![Version](https://img.shields.io/badge/version-0.7.0-2563eb?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.0-2563eb?style=flat-square)](CHANGELOG.md)
 [![Node.js](https://img.shields.io/badge/node-%E2%89%A5%2020-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-475569?style=flat-square)](#quick-start)
 [![Claude Code](https://img.shields.io/badge/harness-Claude%20Code-d97757?style=flat-square)](#harnesses)
@@ -180,18 +180,18 @@ That's it. The assistant asks the CLI for a directive, does the stage work, and 
 
 ### Experimental Rust preview (Cargo)
 
-The Rust port is **not a replacement for the production CLI yet**. The preview supports `version`, `help`, `scope`, and `completion zsh`; project-changing commands are not implemented. It installs as `dtech-aidlc-rs`, leaving the existing `dtech-aidlc` command untouched. The graph and methodology needed by `scope` are embedded in the executable.
+Every command is routed to native Rust code and has been compared with the Node CLI on Windows. Without `DTECH_AIDLC_HOME`, the Rust binary uses its embedded methodology, materialised under `.aidlc/engine/`, and harness files always come from the embedded copies. macOS and Linux have not been verified yet. See the migration plan for the remaining gaps. It installs as `dtech-aidlc` and can shadow or replace the existing Node CLI if its Cargo bin directory takes precedence on `PATH`. Do not replace the Node CLI unless you accept those limitations. The graph and methodology needed by `scope` are embedded in the executable.
 
 From this repository checkout, with Rust and Cargo installed:
 
 ```sh
-cargo install --path . --locked --bin dtech-aidlc-rs
+cargo install --path . --locked --bin dtech-aidlc
 ```
 
 To update the preview after updating the checkout, run:
 
 ```sh
-cargo install --path . --locked --bin dtech-aidlc-rs --force
+cargo install --path . --locked --bin dtech-aidlc --force
 ```
 
 The commands work in PowerShell and POSIX shells. Cargo installs into its configured binary directory (normally `%USERPROFILE%\.cargo\bin` on Windows or `~/.cargo/bin` on macOS/Linux); add that directory to `PATH` if necessary. To remove the preview, run `cargo uninstall dtech-aidlc`. This removes the Cargo package's executable, not an independently installed Node CLI. See [the migration plan](plans/rust-cli-migration.md) for remaining work.
