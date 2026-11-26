@@ -1387,9 +1387,13 @@ fn changelog_has_a_section_for_each_release_and_the_crate_version() {
         let heading = format!("## {version}");
         assert!(changelog.lines().any(|line| line == heading), "{version}");
     }
-    let badge = format!("version-{crate_version}-");
     assert!(
-        read("README.md").contains(&badge),
+        read("README.md").contains("(.github/badges/version.svg)"),
+        "README must use the local version badge"
+    );
+    let badge = format!("<title>version: {crate_version}</title>");
+    assert!(
+        read(".github/badges/version.svg").contains(&badge),
         "README version badge must show {crate_version}"
     );
 }
