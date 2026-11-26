@@ -145,10 +145,10 @@ flowchart TD
 
 **Requirements:** a Rust toolchain with Cargo (to build and install the CLI) and a supported assistant harness for the slash-command workflow. You can also run the CLI directly. Git is used for approver names and dependency repositories when available; nothing else is needed at run time.
 
-**1. Install** from the repository checkout (PowerShell or a POSIX shell):
+**1. Install** with Cargo (PowerShell or a POSIX shell):
 
 ```sh
-cargo install --path . --locked --bin dtech-aidlc
+cargo install --git https://github.com/doitsu2014/my-aidlc --locked dtech-aidlc
 ```
 
 **2. Onboard** your project from its root:
@@ -174,7 +174,15 @@ That's it. The assistant asks the CLI for a directive, does the stage work, and 
 
 ## Install options
 
-The CLI is a native Rust executable. The graph, methodology, harness projections and project scaffold are embedded in it, so it runs without the repository checkout or any other runtime. Build and install it from the repository checkout with Cargo; the commands work in PowerShell and POSIX shells:
+The CLI is a native Rust executable. The graph, methodology, harness projections and project scaffold are embedded in it, so it runs without the repository checkout or any other runtime. Build and install it with Cargo; the commands work in PowerShell and POSIX shells.
+
+From GitHub, without a checkout:
+
+```sh
+cargo install --git https://github.com/doitsu2014/my-aidlc --locked dtech-aidlc
+```
+
+From a local checkout, at the repository root:
 
 ```sh
 cargo install --path . --locked --bin dtech-aidlc
@@ -194,11 +202,14 @@ To run without installing, use `cargo run --locked -- --help` from the repositor
 
 ## Upgrade and uninstall
 
-To upgrade, update the checkout and reinstall over the existing executable:
+To upgrade, reinstall over the existing executable, either from GitHub or from an updated checkout:
 
 ```sh
+cargo install --git https://github.com/doitsu2014/my-aidlc --locked dtech-aidlc --force
 cargo install --path . --locked --bin dtech-aidlc --force
 ```
+
+`dtech-aidlc --version` shows the installed version.
 
 To uninstall:
 
@@ -317,7 +328,7 @@ Depth can be chosen when an intent starts or changed later with `dtech-aidlc int
 | Claude Code | `/dtech-aidlc` |
 | DeepSeek Harness | `/aidlc` |
 
-Onboarding projects the selected slash-command skill into the project. The methodology stays in the installed engine and is read from there; the projected skill files contain the harness-specific operating instructions.
+Onboarding projects the selected slash-command skill into the project. The methodology is embedded in the CLI and written to `.aidlc/engine/` when a directive needs it, so it always matches the installed version; the projected skill files contain the harness-specific operating instructions.
 
 ```sh
 dtech-aidlc harness status
@@ -344,7 +355,7 @@ dtech-aidlc repos pull
 | :--- | :--- |
 | `PROJECT.md`, `aidlc.knowledge.json`, and `aidlc.deps.json` when used | `.aidlc/state.json`, `state.v1.bak.json` |
 | Projected harness skill folders and their `.projection.json` stamps | `.aidlc/audit.jsonl`, `.aidlc/config.json` |
-| `.aidlc/.gitignore`, `.aidlc/knowledge/`, and `.aidlc/intents/`, according to team policy | `.aidlc/shared/`, `.aidlc/repos/`, temporary files |
+| `.aidlc/.gitignore`, `.aidlc/knowledge/`, and `.aidlc/intents/`, according to team policy | `.aidlc/shared/`, `.aidlc/repos/`, `.aidlc/engine/` (ignored automatically), temporary files |
 
 The tool maintains a managed ignore block in `.aidlc/.gitignore` and does not edit the root `.gitignore`. Committed intent artifacts may contain decisions and analysis, so agree on repository access and retention before committing them. Never put credentials in project guidance, methodology, or generated workflow artifacts.
 
