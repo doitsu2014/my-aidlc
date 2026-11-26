@@ -1,9 +1,9 @@
 # Unit-level scheduling: implementation design
 
-- **Input plan:** `D:\orca\my-cms\makara\docs\development\dtech-aidlc-unit-level-scheduling-plan.md` (Vietnamese, sections 1-7).
+- **Input plan:** the owner's unit-level scheduling plan, kept in the owner's project (Vietnamese, sections 1-7).
 - **Applies to:** this repository (dtech-aidlc 1.0.0 Rust source: `rust-cli/**`, `core/**`, `harness/**`, `tests/**`).
 - **Owner decisions already made:** implement all milestones M1-M5. Scheduling is unit-level only: there is no `--strict-order` or stage-major option, and in-flight 1.0.0 intents migrate to unit-level scheduling. The auto-park threshold N defaults to 3 and can be set in `.aidlc/config.json`.
-- **Evidence used:** the Rust source at the current `main` (b3e97b0), and a read-only inspection of the owner's intent `use-dtech-aidlc-to-develop-the-backup-and-restor` (its `state.json`, `audit.jsonl`, `work-units.json`, `work-units.md`, `test-strategy.md`, `ids.json` and `build-and-verify/WU-06/regression-report.md`). Nothing under `D:\orca` was written, run or touched with git.
+- **Evidence used:** the Rust source at the current `main` (b3e97b0), and a read-only inspection of the owner's intent `<real-intent>` (its `state.json`, `audit.jsonl`, `work-units.json`, `work-units.md`, `test-strategy.md`, `ids.json` and `build-and-verify/WU-06/regression-report.md`). Nothing under the owner's project was written, run or touched with git.
 
 ---
 
@@ -24,7 +24,7 @@ Line numbers refer to the files as they are at b3e97b0.
 **Further facts that shape the design:**
 
 1. `ids.json` TS entries never trace to a WU. In the real registry, 0 of 69 TS entries have a `WU-` trace. Test ownership exists only as Markdown prose and tables: `test-strategy.md` "Work unit to test mapping and exit", and `work-units.md` "Work unit mapping" and "Coverage cross-check". These use ranges (`TS-20..TS-29`) and letter suffixes (`TS-27a`, `TS-44b`) that `ids.rs::valid_id` rejects (`rust-cli/ids.rs:23-27`). The registry note says suffixed tests "are registered under their base number".
-2. Real failing test names carry the TS number as a lowercase prefix of the last path segment, for example `lifecycle::lifecycle_tests::ts27a_three_unlink_failures_…`. Some do not, for example `infra::tests::reconciliation::job_store_reconciliation_inventory_and_epoch_are_durable`. Several TS numbers have more than one owner (TS-42, TS-44, TS-56, TS-65, TS-30, TS-32).
+2. Real failing test names carry the TS number as a lowercase prefix of the last path segment, for example `suite_a::tests::ts27a_case`. Some do not, for example `suite_b::tests::unregistered_case`. Several TS numbers have more than one owner (TS-42, TS-44, TS-56, TS-65, TS-30, TS-32).
 3. `normalise_state` forces `"version": 2` on every load (`rust-cli/workflow/mod.rs:1155-1160`), and `validate_intent_state` does not check `version` (`:1186-1260`). A 1.0.0 binary therefore loads any version number and rewrites it as 2. It keeps unknown top-level keys, because `serde_json` `Value` maps with `preserve_order` round-trip them.
 4. The 1.0.0 reports have no `unit` field. Each per-unit stage entry `stages[s].units[U] = {status, reportedAt}` keeps `reportedAt` even after a rework resets `status` to `pending`. Joining `reportedAt` with the row's `reports[].at` recovers the pre-reset result. For example, red-tests WU-02 `reportedAt` 2026-11-24T09:58:42.653Z matches the `skipped` report at the same instant.
 5. There is no serde derive in `Cargo.toml` (only `serde_json` with `preserve_order`, and `sha2`). Builds are offline, so no dependency may be added. New code stays `Value`-based, with small hand-written views.
@@ -112,7 +112,7 @@ The ledger exists only when the intent has real work units: a `work-units.json` 
     }
   },
   "deferredRegressions": [
-    { "test": "lifecycle::lifecycle_tests::ts20_registered_row_without_file_is_transitioned_to_release_pending",
+    { "test": "suite_a::tests::ts20_case",
       "ts": ["TS-20"], "owner": "WU-16", "unowned": false,
       "status": "open",                      // open|resolved
       "firstSeen": "<ISO>", "lastSeen": "<ISO>", "reportedBy": ["WU-06"], "resolvedAt": null, "suite": "normal" }
@@ -494,12 +494,12 @@ The CLI never runs tests. The agent reports regression evidence as a structured 
   "schemaVersion": 1,
   "unit": "WU-06",                    // the reported unit id, or "sweep"
   "scope": "full",                    // "full" = whole existing suite(s); "affected" = a declared subset
-  "commands": ["cargo test --manifest-path apps/api/Cargo.toml --workspace --no-fail-fast",
-               "cargo test --manifest-path apps/api/Cargo.toml --workspace --no-fail-fast -- --ignored"],
+  "commands": ["cargo test --manifest-path Cargo.toml --workspace --no-fail-fast",
+               "cargo test --manifest-path Cargo.toml --workspace --no-fail-fast -- --ignored"],
   "baseline": ".aidlc/intents/<id>/develop/baseline.md",
   "summary": { "passed": 369, "failed": 16, "ignored": 133 },
   "failures": [
-    { "test": "lifecycle::lifecycle_tests::ts20_registered_row_without_file_is_transitioned_to_release_pending",
+    { "test": "suite_a::tests::ts20_case",
       "suite": "normal", "ts": ["TS-20"], "owner": "WU-16", "baseline": false }
   ]
 }
@@ -523,7 +523,7 @@ The CLI never runs tests. The agent reports regression evidence as a structured 
 Each failure is classified in this order:
 
 1. `baseline: true` → **baseline**. It is never gating and is only counted.
-2. **TS set**: the explicit `ts`, or else a TS number inferred from the test name. The last `::`/`.`/`/` segment must match, case-insensitively, `^ts(\d{1,5})[a-z]?(_|$)`, which gives `TS-<n>`. Real example: `ts27a_three_unlink_failures…` → `TS-27`.
+2. **TS set**: the explicit `ts`, or else a TS number inferred from the test name. The last `::`/`.`/`/` segment must match, case-insensitively, `^ts(\d{1,5})[a-z]?(_|$)`, which gives `TS-<n>`. Real example: `ts27a_case` → `TS-27`.
 3. **Explicit `owner`.** It must be a non-removed unit. When the TS set is non-empty and ownership knows those TS, `owner` must be one of their owners. Otherwise the report fails with "regression.json: lifecycle::…ts20… owner WU-07 does not own TS-20 (owners: WU-16)". The owner is used.
 4. **Without `owner`:**
    - the stored ownership map is empty (no unit declares `tests` and no TS→WU traces exist) → the **reporter** (Decision D17). At the sweep it is **unowned**;
@@ -542,7 +542,7 @@ When any blocking failure exists, `--result complete` is refused with no write:
 
 ```text
 Stage build-and-verify cannot be completed for WU-06: 2 failing test(s) are owned by WU-06 or by a finished unit.
-  WU-06: infra::tests::reconciliation::ts56_… (TS-56)
+  WU-06: suite_b::tests::ts56_… (TS-56)
 Fix them, or report --result blocked --detail "…". Name the owner in regression.json when a test belongs to another unit.
 ```
 
@@ -555,10 +555,10 @@ On an accepted `complete`:
 - otherwise `R` becomes `green`.
 - audit: `regression.attributed {intentId, unit: R|"sweep", stage, own, deferred, unowned, baseline, resolved, scope}`.
 
-**Real scenario (M3 acceptance).** WU-06 reports `complete` with the 16 real WU-16 failures: the 13 `lifecycle::lifecycle_tests::ts…` tests plus 3 `infra::tests::reconciliation::…` tests, each with `owner: "WU-16"`. All 16 become deferred, and WU-06 becomes `green` instead of blocked. When WU-16 later reports a clean `full` run, the 16 items are resolved and WU-06 becomes `verified`.
+**Real scenario (M3 acceptance).** WU-06 reports `complete` with the 16 real WU-16 failures: the 13 `suite_a::tests::ts…` tests plus 3 `suite_b::tests::…` tests, each with `owner: "WU-16"`. All 16 become deferred, and WU-06 becomes `green` instead of blocked. When WU-16 later reports a clean `full` run, the 16 items are resolved and WU-06 becomes `verified`.
 
 **Feasibility with the real data (checked in review against `test-strategy.md` "Work unit to test mapping").**
-- 15 of the 16 names give a TS number by name inference. `infra::tests::reconciliation::job_store_reconciliation_inventory_and_epoch_are_durable` does not, so its `owner` is accepted without a cross-check.
+- 15 of the 16 names give a TS number by name inference. `suite_b::tests::unregistered_case` does not, so its `owner` is accepted without a cross-check.
 - Mapped to base numbers, TS-27 (WU-16 `TS-20..TS-29`; WU-08 `TS-27b`), TS-30 (WU-04, WU-16), TS-32 (WU-04, WU-16), TS-42 (WU-06, WU-16), TS-56 (WU-04, WU-06, WU-16) and TS-65 (WU-06, WU-16) each have several owners. WU-16 is always among them, so `owner: "WU-16"` passes the check in step 3.
 - Without `owner`, TS-42/56/65 would be charged to the reporter WU-06, and TS-30/32 would be unowned.
 - On the owner's intent as it is now (no `tests`, empty ownership), all 16 need an explicit `owner`, or D17 charges them to WU-06.
@@ -1198,7 +1198,7 @@ Golden files re-blessed in M5 (each diff decoded and checked; only the projected
 - `rust_routing_parity/harness.json`, `onboard.json`: the projected `SKILL.md` text and its stamp hash.
 - `rust_routing_parity/fixture-onboarded-claude.json`, `fixture-onboarded-deepseek.json`: note 6.
 
-Replay on a copy of the owner's intent (`DTECH_AIDLC_REPLAY_PROJECT=D:\orca\my-cms\makara`, temporary folder deleted by the test): `status` previewed 16 `pending` units; `queue` showed WU-01 ready; `doctor` had no workflow failure and warned about the `"_"` placeholder, the WU-06 → WU-16 inverted dependency (red-tests 2026-11-24T17:06:28.829Z), the missing test ownership and the three waves of section 14; `orchestrate next` wrote `units.migrated {units: 16, ignoredKeys: ["_"], priorResults: 12}` (old audit bytes kept as a prefix) and selected red-tests WU-01; after WU-01's red step, its build step deferred the 16 real WU-16 failures (`regression.deferred: 16`), WU-01 became `green`, doctor warned that 16 failing tests belong to WU-16, which has not started, and `next` moved on to WU-02 red.
+Replay on a copy of the owner's intent (`DTECH_AIDLC_REPLAY_PROJECT=<owner project>`, temporary folder deleted by the test): `status` previewed 16 `pending` units; `queue` showed WU-01 ready; `doctor` had no workflow failure and warned about the `"_"` placeholder, the WU-06 → WU-16 inverted dependency (red-tests 2026-11-24T17:06:28.829Z), the missing test ownership and the three waves of section 14; `orchestrate next` wrote `units.migrated {units: 16, ignoredKeys: ["_"], priorResults: 12}` (old audit bytes kept as a prefix) and selected red-tests WU-01; after WU-01's red step, its build step deferred the 16 real WU-16 failures (`regression.deferred: 16`), WU-01 became `green`, doctor warned that 16 failing tests belong to WU-16, which has not started, and `next` moved on to WU-02 red.
 
 ### Review fixes (after M5)
 

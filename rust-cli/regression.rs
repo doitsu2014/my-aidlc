@@ -50,7 +50,7 @@ fn ts_name(number: u64) -> String {
 }
 
 /// The TS identifier a test name carries: the last `::`, `.` or `/` segment must match
-/// `^ts(\d{1,5})[a-z]?(_|$)`, case-insensitively. `ts27a_three_unlink_failures` gives
+/// `^ts(\d{1,5})[a-z]?(_|$)`, case-insensitively. `ts27a_case` gives
 /// `TS-27`; a name without the prefix gives `None`.
 pub fn infer_ts(test: &str) -> Option<String> {
     let last = test.rsplit([':', '.', '/']).next().unwrap_or(test);
@@ -1041,17 +1041,17 @@ mod tests {
     #[test]
     fn name_inference_reads_the_last_segment() {
         assert_eq!(
-            infer_ts("lifecycle::lifecycle_tests::ts27a_three_unlink_failures").as_deref(),
+            infer_ts("suite_a::tests::ts27a_case").as_deref(),
             Some("TS-27")
         );
-        assert_eq!(infer_ts("ts20_registered_row").as_deref(), Some("TS-20"));
+        assert_eq!(infer_ts("ts20_case").as_deref(), Some("TS-20"));
         assert_eq!(infer_ts("a.b.TS5").as_deref(), Some("TS-05"));
         assert_eq!(infer_ts("suite/ts042_x").as_deref(), Some("TS-42"));
         assert_eq!(infer_ts("ts27ab_x"), None);
         assert_eq!(infer_ts("ts123456_x"), None);
         assert_eq!(infer_ts("tests_ts20_x"), None);
         assert_eq!(
-            infer_ts("infra::tests::reconciliation::job_store_reconciliation_inventory"),
+            infer_ts("suite_b::tests::job_store_reconciliation_inventory"),
             None
         );
         assert_eq!(ts_number("TS-05"), ts_number("TS-5"));
