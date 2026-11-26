@@ -2,7 +2,7 @@
 
 Each release lists the behaviour changes a user or a script can notice.
 
-## Unreleased
+## 1.2.1
 
 - Fixed Windows prerequisite commands containing quoted paths or arguments: pass the configured check to `cmd.exe` without Rust's C-runtime argument escaping, preserving `cmd`'s native parsing. Unix shell invocation is unchanged. A Windows-only regression test checks a quoted path containing spaces and `&`, plus a quoted executable path.
 - Added `orchestrate revisit --confirm --unit <id> --approved-by <owner>` to record a human owner's confirmation of a closed AI-orchestrator owner decision. Queue, complete and doctor views now distinguish pending from confirmed decisions; confirmation emits `unit.decision-confirmed`.
