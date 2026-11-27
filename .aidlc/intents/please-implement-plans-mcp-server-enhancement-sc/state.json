@@ -265,13 +265,88 @@
     "red-tests": {
       "status": "in_progress",
       "startedAt": "2026-11-27T16:38:17.733Z",
-      "units": {}
+      "units": {
+        "WU-010": {
+          "status": "complete",
+          "reportedAt": "2026-11-27T16:47:10.186Z"
+        }
+      },
+      "detail": null,
+      "reportedAt": "2026-11-27T16:47:10.186Z",
+      "reports": [
+        {
+          "at": "2026-11-27T16:47:10.186Z",
+          "result": "complete",
+          "detail": null,
+          "unit": "WU-010"
+        }
+      ],
+      "artifacts": [
+        {
+          "output": "failing-tests",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/red-tests/WU-010/failing-tests.md",
+          "bytes": 1021,
+          "sha256": "6af5ee7cb74959c6481cc695033a7cb072cd82e6108034e7b1955d3319bb64a4"
+        },
+        {
+          "output": "red-evidence",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/red-tests/WU-010/red-evidence.md",
+          "bytes": 1887,
+          "sha256": "48021d062b46f75779bcbd6cf0347bfb2bfb7da3aec9b6ad1db8e269a98b84e3"
+        }
+      ]
+    },
+    "build-and-verify": {
+      "status": "in_progress",
+      "startedAt": "2026-11-27T16:47:10.201Z",
+      "units": {
+        "WU-010": {
+          "status": "complete",
+          "reportedAt": "2026-11-27T16:48:31.139Z"
+        }
+      },
+      "detail": null,
+      "reportedAt": "2026-11-27T16:48:31.139Z",
+      "reports": [
+        {
+          "at": "2026-11-27T16:48:31.139Z",
+          "result": "complete",
+          "detail": null,
+          "unit": "WU-010"
+        }
+      ],
+      "artifacts": [
+        {
+          "output": "implementation",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-010/implementation.md",
+          "bytes": 1104,
+          "sha256": "ed916b2e8c61c8ab6ca7e76ff153b8925fe2bf4a77c8ff63b7d4d6a8c394c400"
+        },
+        {
+          "output": "green-verification-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-010/green-verification-report.md",
+          "bytes": 1595,
+          "sha256": "36a5cfaa48e65f7e73837cb99e44b6175f5d4181702be513399e8200eafc0dad"
+        },
+        {
+          "output": "regression-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-010/regression-report.md",
+          "bytes": 680,
+          "sha256": "e6914bcdd8fe77849669e25d48e9106100899f93d83a845fddad05090f831848"
+        },
+        {
+          "output": "known-limitations",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-010/known-limitations.md",
+          "bytes": 466,
+          "sha256": "c7d83b48fe381122cc16f289542039bd62d00204674df9a9c712324464a03601"
+        }
+      ]
     }
   },
   "dependencies": {},
   "createdAt": "2026-11-27T14:29:23.464Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-27T16:38:17.740Z",
+  "updatedAt": "2026-11-27T16:48:31.141Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -329,8 +404,8 @@
       "WU-008",
       "WU-009"
     ],
-    "progressSeq": 0,
-    "syncedAt": "2026-11-27T16:38:17.733Z",
+    "progressSeq": 1,
+    "syncedAt": "2026-11-27T16:48:31.139Z",
     "units": {
       "WU-001": {
         "title": "Scaffold and packaging",
@@ -362,22 +437,36 @@
         "tests": [
           "TS-019"
         ],
-        "status": "pending",
-        "selectedAt": null,
+        "status": "verified",
+        "selectedAt": "2026-11-27T16:47:10.186Z",
         "steps": {
-          "red-tests": null,
-          "build-and-verify": null
+          "red-tests": "complete",
+          "build-and-verify": "complete"
         },
-        "attempts": {},
+        "attempts": {
+          "red-tests": 1,
+          "build-and-verify": 1
+        },
         "blockedStreak": null,
         "park": null,
         "parkHistory": [],
         "inputFingerprint": "sha256:0ee0519866d1094943d2c8b54f6170aa36ec0025e27b78b20a85a041ffb160e5",
-        "history": [],
+        "history": [
+          {
+            "stage": "red-tests",
+            "result": "complete",
+            "at": "2026-11-27T16:47:10.186Z"
+          },
+          {
+            "stage": "build-and-verify",
+            "result": "complete",
+            "at": "2026-11-27T16:48:31.139Z"
+          }
+        ],
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-27T16:38:17.722Z"
+        "updatedAt": "2026-11-27T16:48:31.139Z"
       },
       "WU-002": {
         "title": "Prerequisite guard, error constant and pending preview",
@@ -609,7 +698,9 @@
       "via": null
     },
     "baselineTests": [],
-    "rework": null
+    "rework": null,
+    "parallelSince": "2026-11-27T16:42:03.316Z",
+    "lastSatisfiedAt": "2026-11-27T16:48:31.139Z"
   },
   "units": [
     {
@@ -619,7 +710,7 @@
     },
     {
       "id": "WU-010",
-      "status": "in_progress",
+      "status": "complete",
       "dependsOn": []
     },
     {

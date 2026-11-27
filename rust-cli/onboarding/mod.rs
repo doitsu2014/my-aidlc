@@ -1594,7 +1594,11 @@ mod tests {
     #[test]
     fn rejects_traversal_and_absolute_paths() {
         assert!(normalize_source_path("../escape").is_err());
+        assert!(normalize_source_path("/escape").is_err());
+        #[cfg(windows)]
         assert!(normalize_source_path("C:/escape").is_err());
+        #[cfg(not(windows))]
+        assert_eq!(normalize_source_path("C:/escape").unwrap(), "C:/escape");
         assert_eq!(normalize_source_path("./docs/").unwrap(), "docs");
     }
     #[test]

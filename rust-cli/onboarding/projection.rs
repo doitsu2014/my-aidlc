@@ -460,7 +460,6 @@ mod tests {
         #[cfg(unix)]
         {
             let (p, s, m) = setup();
-            fs::remove_file(p.join(".claude/skills/demo/SKILL.md")).unwrap();
             std::os::unix::fs::symlink(
                 s.join("claude/SKILL.md"),
                 p.join(".claude/skills/demo/SKILL.md"),
