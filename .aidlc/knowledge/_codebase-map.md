@@ -40,6 +40,7 @@ Intent scope note (User-provided): this map serves intent 1 of 2 (shared applica
 
 ## 3. Entry points
 
+- Observed (updated 2026-11-27, WU-001): binary `dtech-aidlc-mcp` (second `[[bin]]`, `rust-cli/mcp_main.rs` -> `dtech_aidlc::mcp::run(Vec<OsString>)`, `rust-cli/mcp/`). Stub that exits 0 until the protocol layer lands (WU-004). `Cargo.toml` sets `default-run = "dtech-aidlc"` so `cargo run -- ...` still runs the CLI, and `rust-version = "1.100"`. `rust-cli/application.rs` is the shared CLI/MCP facade module (empty until WU-003).
 - Observed: binary `dtech-aidlc` (`Cargo.toml` `[[bin]]`, `rust-cli/main.rs` `main` -> `run`). Commands routed in `run()`: `onboard|init`, `orchestrate next|report|park|queue|revisit`, `scope`, `status`, `intent ...`, `harness ...`, `config ...`, `doctor`, `ids ...`, `knowledge ...`, `repos ...`, `deps ...`, `completion zsh`, `version`, `help`. Full list in `rust-cli/help.txt`.
 - Observed main paths:
   - `orchestrate next`: `run_orchestrate` (main.rs) loads graph (`scope::read_graph`, external engine via `DTECH_AIDLC_HOME` or embedded), `knowledge_preflight`, then `orchestrate::orchestrate_next`, then `finish_directive`, prints JSON.
@@ -92,7 +93,7 @@ Intent scope note (User-provided): this map serves intent 1 of 2 (shared applica
 
 - Observed (the test run built the debug profile cleanly): `cargo build`. `PROJECT.md` reports `cargo build --release --locked` clean (not re-run here).
 - Run without install: `cargo run --locked -- --help` (README, not run). Install: `cargo install --path . --locked --bin dtech-aidlc` (README, not run).
-- Observed: a second `[[bin]]` for an MCP server would be declared in `Cargo.toml`; `build.rs` embeds assets for every target of the package.
+- Observed (updated 2026-11-27, WU-001): `Cargo.toml` declares two `[[bin]]`s, `dtech-aidlc` (default-run) and `dtech-aidlc-mcp`; `build.rs` embeds assets for every target of the package. Packaging guard test: `cargo test --test mcp_packaging` (dependency set, rust-version, both bins, default-run, Cargo.lock sha256 with CR stripped).
 - Observed: no CI workflows found (`.github/` contains only `badges/`); Assumption: CI lives elsewhere or is absent (owner: project owner).
 
 ## 9. Known risks and technical debt

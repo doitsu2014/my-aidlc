@@ -3,6 +3,8 @@ name = "dtech-aidlc"
 version = "1.2.2"
 edition = "2021"
 publish = false
+rust-version = "1.100"
+default-run = "dtech-aidlc"
 
 [dependencies]
 serde_json = { version = "1.0", features = ["preserve_order"] }
@@ -14,3 +16,7 @@ path = "rust-cli/lib.rs"
 [[bin]]
 name = "dtech-aidlc"
 path = "rust-cli/main.rs"
+
+[[bin]]
+name = "dtech-aidlc-mcp"
+path = "rust-cli/mcp_main.rs"

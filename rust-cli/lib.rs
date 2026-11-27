@@ -1,6 +1,7 @@
 //! The dtech-aidlc CLI library: every command of the `dtech-aidlc` binary is routed to a
 //! module here.
 
+pub mod application;
 pub mod args;
 pub mod artifacts;
 pub mod audit;
@@ -15,6 +16,7 @@ pub mod ids;
 pub mod intent_commands;
 pub mod knowledge;
 pub mod knowledge_commands;
+pub mod mcp;
 pub mod onboarding;
 pub mod orchestrate;
 pub mod orchestration_assets;
