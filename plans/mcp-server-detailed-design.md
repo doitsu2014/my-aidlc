@@ -101,6 +101,7 @@ Current CLI route setup in `main.rs` constructs these inputs in `run_read_only`,
 - Stdout is exclusively MCP framing. All diagnostics, startup errors, and telemetry warnings go to stderr.
 - Startup errors that prevent protocol initialization are emitted to stderr and exit non-zero; no partial workflow state is written.
 - Graceful shutdown flushes best-effort telemetry and closes handles without changing workflow state.
+- Configuration such as project root and transport is process-scoped, but gate mode/approver allowlist and other policy-relevant config are reloaded with the same operation-specific semantics as the CLI on each call, immediately before decisions. Do not retain a long-lived stale policy snapshot.
 
 ### 4.2 Protocol dependency
 
