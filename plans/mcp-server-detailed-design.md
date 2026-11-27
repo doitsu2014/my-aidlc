@@ -27,7 +27,7 @@ Principles:
 Cargo.toml
   [[bin]] dtech-aidlc       -> rust-cli/main.rs       (existing)
   [[bin]] dtech-aidlc-mcp   -> rust-cli/mcp_main.rs   (proposed)
-  monitor subcommand        -> rust-cli/main.rs       (proposed; separate child process implementation TBD)
+  monitor subcommand        -> rust-cli/main.rs       (proposed; foreground, separate from MCP process)
 
 rust-cli/
   application.rs            shared request context and operation façade (new)
@@ -216,8 +216,6 @@ A local operator/maintainer uses the dashboard to answer:
 The dashboard is a separately started, read-only local app. It cannot call MCP tools, mutate workflow state, approve gates, replay reports, change telemetry settings, or delete logs.
 
 ### 7.2 Navigation and screen layout
-
-**Privacy notice:** The dashboard header/help disclosure names the effective telemetry setting, storage location (`.aidlc/telemetry/`), retention limits, and fields that may be retained (tool/operation names, timestamps, outcomes, durations, and selected intent/stage/unit/session/trace identifiers). It states that prompts, raw arguments/results, artifacts, credentials, and full project paths are excluded. The dashboard is read-only; the user changes collection settings through the documented local configuration/launch options, not from dashboard controls.
 
 **Privacy notice:** The dashboard header/help disclosure names the effective telemetry setting, storage location (`.aidlc/telemetry/`), retention limits, and fields that may be retained (tool/operation names, timestamps, outcomes, durations, and selected intent/stage/unit/session/trace identifiers). It states that prompts, raw arguments/results, artifacts, credentials, and full project paths are excluded. The dashboard is read-only; the user changes collection settings through the documented local configuration/launch options, not from dashboard controls.
 
