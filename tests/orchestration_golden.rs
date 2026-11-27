@@ -29,6 +29,56 @@ const BLOCKED_EXIT: i32 = 3;
 
 static COUNTER: AtomicUsize = AtomicUsize::new(0);
 
+/// Normalizes date-stamped fallback IDs such as `intent-20261127-cb4957`.
+/// Unicode-only intent text uses a SHA-derived suffix, while its date is intentionally
+/// the current UTC date and therefore must not make lifecycle goldens time-dependent.
+fn normalize_hashed_intent_ids(text: &str) -> String {
+    const PREFIX: &str = "intent-";
+    let mut normalized = String::with_capacity(text.len());
+    let mut remaining = text;
+    while let Some(start) = remaining.find(PREFIX) {
+        normalized.push_str(&remaining[..start]);
+        normalized.push_str(PREFIX);
+        let candidate = &remaining[start + PREFIX.len()..];
+        let bytes = candidate.as_bytes();
+        let valid = bytes.len() >= 15
+            && bytes[..8].iter().all(u8::is_ascii_digit)
+            && bytes[8] == b'-'
+            && bytes[9..15].iter().all(u8::is_ascii_hexdigit);
+        if valid {
+            normalized.push_str("<DATE>");
+            remaining = &candidate[8..];
+        } else {
+            remaining = candidate;
+        }
+    }
+    normalized.push_str(remaining);
+    normalized
+}
+
+fn normalize_hashed_intent_ids_value(value: &Value) -> Value {
+    match value {
+        Value::String(text) => Value::String(normalize_hashed_intent_ids(text)),
+        Value::Array(items) => Value::Array(
+            items
+                .iter()
+                .map(normalize_hashed_intent_ids_value)
+                .collect(),
+        ),
+        Value::Object(map) => {
+            let mut normalized = Map::new();
+            for (key, item) in map {
+                normalized.insert(
+                    normalize_hashed_intent_ids(key),
+                    normalize_hashed_intent_ids_value(item),
+                );
+            }
+            Value::Object(normalized)
+        }
+        other => other.clone(),
+    }
+}
+
 /// The native CLI, without an inherited `DTECH_AIDLC_HOME`.
 fn native_command() -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"));
@@ -241,7 +291,7 @@ impl Project {
             .into_iter()
             .map(|id| {
                 let value = self.read_json(&format!(".aidlc/intents/{id}/state.json"));
-                (id, self.normalize(&value))
+                (normalize_hashed_intent_ids(&id), self.normalize(&value))
             })
             .collect()
     }
@@ -262,7 +312,7 @@ impl Project {
                     })
                     .unwrap_or_default();
                 names.sort();
-                (id, names)
+                (normalize_hashed_intent_ids(&id), names)
             })
             .collect()
     }
@@ -320,6 +370,7 @@ impl Project {
         for variant in self.root_variants() {
             value = value.replace(&variant, "<ROOT>");
         }
+        value = normalize_hashed_intent_ids(&value);
         if value.contains("<ROOT>") {
             value = value.replace('\\', "/");
         }
@@ -422,7 +473,8 @@ fn assert_lifecycle_golden(scenario: &str, drive: impl Fn(&mut Project)) {
         "{scenario}: step sequence"
     );
     for (n, r) in golden.iter().zip(&rust) {
-        let r = step_json(r);
+        let n = normalize_hashed_intent_ids_value(n);
+        let r = normalize_hashed_intent_ids_value(&step_json(r));
         let label = format!("{scenario} / {}", r["label"].as_str().unwrap_or_default());
         assert_eq!(r["exit"], n["exit"], "{label}: exit code");
         assert_eq!(r["stderr"], n["stderr"], "{label}: stderr");
@@ -442,7 +494,7 @@ fn assert_lifecycle_golden(scenario: &str, drive: impl Fn(&mut Project)) {
                 .map(|rows| rows.iter().map(|row| row["event"].clone()).collect())
                 .unwrap_or_default()
         };
-        assert_eq!(events(&r), events(n), "{label}: audit event sequence");
+        assert_eq!(events(&r), events(&n), "{label}: audit event sequence");
         assert_eq!(r["audit"], n["audit"], "{label}: audit rows");
     }
 }
@@ -1051,7 +1103,15 @@ fn unicode_intent_ids_match_golden() {
                 .to_owned();
             let who = p.who();
             assert!(!id.is_empty(), "[{who}] {text}");
-            assert_eq!(p.last().pointer["activeIntentId"], id, "[{who}] {text}");
+            assert_eq!(
+                normalize_hashed_intent_ids(
+                    &p.last().pointer["activeIntentId"]
+                        .as_str()
+                        .unwrap_or_default()
+                ),
+                normalize_hashed_intent_ids(&id),
+                "[{who}] {text}"
+            );
         });
     }
 }
