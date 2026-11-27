@@ -2,6 +2,7 @@
 //! adapter (`tools`) is wired in by a later work unit.
 
 pub mod protocol;
+pub mod redact;
 
 use serde_json::{json, Value};
 use std::ffi::OsString;
