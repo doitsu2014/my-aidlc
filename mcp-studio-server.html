@@ -221,7 +221,7 @@ footer { border-top: 1px solid var(--line); padding-top: 1rem; display: flex; fl
         <div class="principle"><strong>Local by default</strong><p>MCP uses stdio and opens no listener. The separate monitor serves read-only HTTP on loopback; the project owns its state.</p></div>
         <div class="principle"><strong>Audit is not telemetry</strong><p>The existing append-only audit log records workflow audit events. Proposed bounded, best-effort telemetry is separate and never authorizes writes.</p></div>
         <div class="principle"><strong>Loopback still needs defenses</strong><p>Loopback is not process isolation. Review Host/Origin, CORS, DNS rebinding, local access, and whether a per-run read token is needed.</p></div>
-        <div class="principle"><strong>Defaults remain open</strong><p>Telemetry enablement and retention need a decision. Metadata spans are operational signals, not OpenTelemetry export or proof of an audited gate decision.</p></div>
+        <div class="principle"><strong>Defaults remain open</strong><p>Telemetry enablement and retention need a decision. Metadata spans are operational signals, not OpenTelemetry export or proof of an audited gate decision; file integrity and completeness also need separate treatment if stronger assurance is required.</p></div>
       </div>
     </aside>
   </section>
