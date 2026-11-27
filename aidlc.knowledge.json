@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "sources": [
+    {
+      "id": "project",
+      "path": "PROJECT.md",
+      "kind": "project"
+    },
+    {
+      "id": "README.md",
+      "path": "README.md",
+      "kind": "readme",
+      "description": "Detected readme source."
+    }
+  ]
+}

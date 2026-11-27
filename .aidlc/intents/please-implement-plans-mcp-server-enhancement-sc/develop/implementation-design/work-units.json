@@ -1,0 +1,14 @@
+{
+  "units": [
+    { "id": "WU-001", "title": "Scaffold and packaging", "criteria": ["AC-013"], "dependsOn": [], "tests": ["TS-016", "TS-017"] },
+    { "id": "WU-010", "title": "Fix pre-existing Unix test bugs", "criteria": ["AC-001"], "dependsOn": [], "tests": ["TS-019"] },
+    { "id": "WU-002", "title": "Prerequisite guard, error constant and pending preview", "criteria": ["AC-001", "AC-008", "AC-009", "AC-011", "AC-012"], "dependsOn": ["WU-001"], "tests": ["TS-007", "TS-010", "TS-011"] },
+    { "id": "WU-004", "title": "MCP protocol layer", "criteria": ["AC-003", "AC-004", "AC-005"], "dependsOn": ["WU-001"], "tests": ["TS-001", "TS-002", "TS-003"] },
+    { "id": "WU-006", "title": "Path redaction", "criteria": ["AC-006", "AC-008", "AC-011"], "dependsOn": ["WU-001"], "tests": ["TS-008"] },
+    { "id": "WU-003", "title": "Facade and CLI routing", "criteria": ["AC-001", "AC-002", "AC-008", "AC-009", "AC-010"], "dependsOn": ["WU-002"], "tests": ["TS-010", "TS-011"] },
+    { "id": "WU-005", "title": "MCP tool adapter", "criteria": ["AC-003", "AC-005", "AC-006", "AC-007", "AC-008", "AC-009", "AC-010", "AC-011"], "dependsOn": ["WU-003", "WU-004", "WU-006"], "tests": ["TS-004", "TS-018"] },
+    { "id": "WU-007", "title": "Integration, parity and install tests", "criteria": ["AC-002", "AC-003", "AC-004", "AC-005", "AC-008", "AC-009", "AC-010", "AC-011", "AC-012", "AC-013"], "dependsOn": ["WU-003", "WU-005", "WU-006"], "tests": ["TS-005", "TS-006", "TS-007", "TS-008", "TS-009", "TS-014"] },
+    { "id": "WU-008", "title": "CI workflow", "criteria": ["AC-001", "AC-003", "AC-013"], "dependsOn": ["WU-007", "WU-010"], "tests": ["TS-012", "TS-015"] },
+    { "id": "WU-009", "title": "README docs", "criteria": ["AC-014"], "dependsOn": ["WU-004", "WU-005"], "tests": ["TS-013", "TS-015"] }
+  ]
+}

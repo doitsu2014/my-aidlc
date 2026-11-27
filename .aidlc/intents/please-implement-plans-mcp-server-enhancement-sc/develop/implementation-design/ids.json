@@ -1,0 +1,522 @@
+{
+  "schemaVersion": 1,
+  "ids": {
+    "FN": [
+      {
+        "id": "FN-001",
+        "title": "application::open (CLI-order project open)",
+        "traces": [
+          "AC-002",
+          "AC-011"
+        ]
+      },
+      {
+        "id": "FN-002",
+        "title": "application::external_engine (shared DTECH_AIDLC_HOME resolution)",
+        "traces": [
+          "AC-002"
+        ]
+      },
+      {
+        "id": "FN-003",
+        "title": "application::status and application::queue",
+        "traces": [
+          "AC-006",
+          "AC-007"
+        ]
+      },
+      {
+        "id": "FN-004",
+        "title": "application::knowledge_preflight",
+        "traces": [
+          "AC-001",
+          "AC-008"
+        ]
+      },
+      {
+        "id": "FN-005",
+        "title": "application::next with MCP option reset and prerequisite guard",
+        "traces": [
+          "AC-001",
+          "AC-002",
+          "AC-008"
+        ]
+      },
+      {
+        "id": "FN-006",
+        "title": "application::report with approver guard and pendingPrerequisites",
+        "traces": [
+          "AC-009",
+          "AC-010"
+        ]
+      },
+      {
+        "id": "FN-007",
+        "title": "prerequisites::check_prerequisites and the three orchestrate_next call-site swaps",
+        "traces": [
+          "AC-001",
+          "AC-008",
+          "AC-009"
+        ]
+      },
+      {
+        "id": "FN-008",
+        "title": "orchestrate::STATE_CHANGED hoist",
+        "traces": [
+          "AC-011",
+          "AC-012"
+        ]
+      },
+      {
+        "id": "FN-009",
+        "title": "main.rs routing through the facade (exit code 3 stays in the CLI)",
+        "traces": [
+          "AC-001",
+          "AC-002"
+        ]
+      },
+      {
+        "id": "FN-010",
+        "title": "mcp::protocol::read_frame bounded framing",
+        "traces": [
+          "AC-004",
+          "AC-005"
+        ]
+      },
+      {
+        "id": "FN-011",
+        "title": "mcp::protocol::handle and dispatch (envelope, era detection, stamping, panic catch)",
+        "traces": [
+          "AC-003",
+          "AC-004"
+        ]
+      },
+      {
+        "id": "FN-012",
+        "title": "mcp::protocol::serve loop and single stdout writer",
+        "traces": [
+          "AC-004"
+        ]
+      },
+      {
+        "id": "FN-013",
+        "title": "mcp::tools::tool_list and validate_args",
+        "traces": [
+          "AC-003",
+          "AC-005"
+        ]
+      },
+      {
+        "id": "FN-014",
+        "title": "mcp::tools::call_tool (adapter, outcome and error mapping)",
+        "traces": [
+          "AC-006",
+          "AC-007",
+          "AC-008",
+          "AC-009",
+          "AC-010",
+          "AC-011"
+        ]
+      },
+      {
+        "id": "FN-015",
+        "title": "mcp::redact::Redactor (path redaction, Windows and macOS forms)",
+        "traces": [
+          "AC-006",
+          "AC-008",
+          "AC-011"
+        ]
+      },
+      {
+        "id": "FN-016",
+        "title": "mcp_main and mcp::run (launch root, startup failure, warnings)",
+        "traces": [
+          "AC-003",
+          "AC-004",
+          "AC-012",
+          "AC-013"
+        ]
+      },
+      {
+        "id": "FN-017",
+        "title": "Stdout purity and unwinding policy",
+        "traces": [
+          "AC-004",
+          "AC-011"
+        ]
+      },
+      {
+        "id": "FN-018",
+        "title": "CI workflow for windows-latest and macos-latest",
+        "traces": [
+          "AC-001",
+          "AC-003",
+          "AC-013"
+        ]
+      },
+      {
+        "id": "FN-019",
+        "title": "Platform portability and state-replace failure mapping",
+        "traces": [
+          "AC-011",
+          "AC-012"
+        ]
+      },
+      {
+        "id": "FN-020",
+        "title": "orchestrate::pending_prerequisites preview",
+        "traces": [
+          "AC-009"
+        ]
+      },
+      {
+        "id": "FN-021",
+        "title": "README and host-configuration documentation contract",
+        "traces": [
+          "AC-014"
+        ]
+      }
+    ],
+    "IF": [
+      {
+        "id": "IF-001",
+        "title": "application facade (Caller, Project, operations)",
+        "traces": [
+          "FN-001",
+          "FN-002",
+          "FN-003",
+          "FN-004",
+          "FN-005",
+          "FN-006"
+        ]
+      },
+      {
+        "id": "IF-002",
+        "title": "Shared exact-match error constants STATE_CHANGED and APPROVER_REQUIRED",
+        "traces": [
+          "FN-006",
+          "FN-008"
+        ]
+      },
+      {
+        "id": "IF-003",
+        "title": "prerequisites::check_prerequisites",
+        "traces": [
+          "FN-007"
+        ]
+      },
+      {
+        "id": "IF-004",
+        "title": "orchestrate::pending_prerequisites",
+        "traces": [
+          "FN-020"
+        ]
+      },
+      {
+        "id": "IF-005",
+        "title": "Protocol boundary ToolHost and serve",
+        "traces": [
+          "FN-011",
+          "FN-012"
+        ]
+      },
+      {
+        "id": "IF-006",
+        "title": "MCP wire contract: tools, schemas, result shapes per era, error codes",
+        "traces": [
+          "FN-011",
+          "FN-013",
+          "FN-014"
+        ]
+      },
+      {
+        "id": "IF-007",
+        "title": "Redactor API",
+        "traces": [
+          "FN-015"
+        ]
+      },
+      {
+        "id": "IF-008",
+        "title": "Tool adapter surface tool_list and call_tool",
+        "traces": [
+          "FN-013",
+          "FN-014"
+        ]
+      },
+      {
+        "id": "IF-009",
+        "title": "Binary contracts dtech-aidlc and dtech-aidlc-mcp",
+        "traces": [
+          "FN-009",
+          "FN-016",
+          "FN-017"
+        ]
+      },
+      {
+        "id": "IF-010",
+        "title": "CI workflow contract",
+        "traces": [
+          "FN-018"
+        ]
+      }
+    ],
+    "TS": [
+      {
+        "id": "TS-001",
+        "title": "Protocol legacy-era transcripts",
+        "traces": [
+          "AC-003",
+          "AC-004",
+          "FN-011"
+        ]
+      },
+      {
+        "id": "TS-002",
+        "title": "Protocol modern-era transcripts",
+        "traces": [
+          "AC-003",
+          "FN-011"
+        ]
+      },
+      {
+        "id": "TS-003",
+        "title": "Protocol shared cases (framing, panic, CRLF, EOF)",
+        "traces": [
+          "AC-004",
+          "AC-011",
+          "FN-010",
+          "FN-011",
+          "FN-012"
+        ]
+      },
+      {
+        "id": "TS-004",
+        "title": "Adapter unit tests (validation before access, error classification)",
+        "traces": [
+          "AC-005",
+          "AC-010",
+          "AC-011",
+          "FN-013",
+          "FN-014"
+        ]
+      },
+      {
+        "id": "TS-005",
+        "title": "tests/mcp_stdio.rs child-process sessions",
+        "traces": [
+          "AC-003",
+          "AC-004",
+          "AC-012",
+          "FN-012",
+          "FN-016",
+          "FN-017"
+        ]
+      },
+      {
+        "id": "TS-006",
+        "title": "tests/mcp_parity.rs CLI versus MCP parity",
+        "traces": [
+          "AC-002",
+          "AC-007",
+          "AC-008",
+          "AC-009",
+          "AC-010",
+          "FN-005",
+          "FN-006",
+          "FN-014"
+        ]
+      },
+      {
+        "id": "TS-007",
+        "title": "State conflict deterministic interleaving",
+        "traces": [
+          "AC-012",
+          "FN-008",
+          "FN-019"
+        ]
+      },
+      {
+        "id": "TS-008",
+        "title": "tests/mcp_redaction.rs including Windows-form strings",
+        "traces": [
+          "AC-006",
+          "AC-008",
+          "AC-011",
+          "FN-015"
+        ]
+      },
+      {
+        "id": "TS-009",
+        "title": "Offline two-binary install test",
+        "traces": [
+          "AC-013",
+          "FN-016"
+        ]
+      },
+      {
+        "id": "TS-010",
+        "title": "Library guard tests (skip, approver, pending, option reset)",
+        "traces": [
+          "AC-008",
+          "AC-009",
+          "AC-010",
+          "FN-005",
+          "FN-006",
+          "FN-007",
+          "FN-008",
+          "FN-020"
+        ]
+      },
+      {
+        "id": "TS-011",
+        "title": "CLI invariance gate against recorded baseline",
+        "traces": [
+          "AC-001",
+          "FN-005",
+          "FN-009"
+        ]
+      },
+      {
+        "id": "TS-012",
+        "title": "CI evidence on windows-latest and macos-latest",
+        "traces": [
+          "AC-001",
+          "AC-003",
+          "FN-018"
+        ]
+      },
+      {
+        "id": "TS-013",
+        "title": "Manual host launch checks (Claude Code, DeepSeek Harness) on macOS and Windows",
+        "traces": [
+          "AC-003",
+          "AC-014",
+          "FN-016",
+          "FN-021"
+        ]
+      },
+      {
+        "id": "TS-014",
+        "title": "Hostile-input table",
+        "traces": [
+          "AC-004",
+          "AC-005",
+          "FN-010",
+          "FN-013"
+        ]
+      },
+      {
+        "id": "TS-015",
+        "title": "Repo-content checks for CI file and README sh-blocks",
+        "traces": [
+          "AC-001",
+          "AC-013",
+          "AC-014",
+          "FN-018",
+          "FN-021"
+        ]
+      },
+      {
+        "id": "TS-016",
+        "title": "Zero-new-crates, rust-version and Cargo.lock assertions",
+        "traces": [
+          "AC-013",
+          "FN-016"
+        ]
+      },
+      {
+        "id": "TS-017",
+        "title": "Baseline pass/fail capture before first change",
+        "traces": [
+          "AC-001",
+          "FN-009"
+        ]
+      },
+      {
+        "id": "TS-018",
+        "title": "Tool list has no doctor or config tool",
+        "traces": [
+          "AC-003",
+          "AC-008",
+          "FN-013"
+        ]
+      },
+      {
+        "id": "TS-019",
+        "title": "Pre-existing Unix test bugs fixed (two lib tests pass on Unix, Windows assertion preserved)",
+        "traces": [
+          "AC-001"
+        ]
+      }
+    ],
+    "WU": [
+      {
+        "id": "WU-001",
+        "title": "Scaffold and packaging"
+      },
+      {
+        "id": "WU-010",
+        "title": "Fix pre-existing Unix test bugs"
+      },
+      {
+        "id": "WU-002",
+        "title": "Prerequisite guard, error constant and pending preview"
+      },
+      {
+        "id": "WU-003",
+        "title": "Facade and CLI routing"
+      },
+      {
+        "id": "WU-004",
+        "title": "MCP protocol layer"
+      },
+      {
+        "id": "WU-005",
+        "title": "MCP tool adapter"
+      },
+      {
+        "id": "WU-006",
+        "title": "Path redaction"
+      },
+      {
+        "id": "WU-007",
+        "title": "Integration, parity and install tests"
+      },
+      {
+        "id": "WU-008",
+        "title": "CI workflow"
+      },
+      {
+        "id": "WU-009",
+        "title": "README docs"
+      }
+    ],
+    "CFG": [
+      {
+        "id": "CFG-001",
+        "title": "Cargo.toml second [[bin]] dtech-aidlc-mcp"
+      },
+      {
+        "id": "CFG-002",
+        "title": "Cargo.toml rust-version 1.100"
+      },
+      {
+        "id": "CFG-003",
+        "title": "GitHub Actions workflow .github/workflows/ci.yml"
+      },
+      {
+        "id": "CFG-004",
+        "title": "Test and CI environment contract (TMPDIR, PATH, canonical bases)"
+      },
+      {
+        "id": "CFG-005",
+        "title": "MCP launch contract: --project flag and DTECH_AIDLC_HOME warning"
+      },
+      {
+        "id": "CFG-006",
+        "title": "MCP limits constants (line size, field caps)"
+      }
+    ]
+  }
+}

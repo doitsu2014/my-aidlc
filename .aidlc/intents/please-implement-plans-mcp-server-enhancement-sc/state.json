@@ -1,0 +1,689 @@
+{
+  "version": 2,
+  "intentId": "please-implement-plans-mcp-server-enhancement-sc",
+  "intent": "please implement @plans/mcp-server-enhancement\n\nScope of this intent (owner chose to split the plans into two intents): intent 1 of 2 — the shared application façade (CLI refactor) and the MCP stdio server binary, i.e. plan phases 1–2 in plans/mcp-server-enhancement/mcp-server-observability-implementation-plan.md, together with the related parts of mcp-server-architecture.md and mcp-server-detailed-design.md. Telemetry, the monitor dashboard, and plan phases 3–5 are out of scope here; they belong to intent 2, which starts after this intent closes.",
+  "scope": "solo",
+  "scopeSource": "config",
+  "projectScope": "solo",
+  "depth": "standard",
+  "mode": "ai",
+  "status": "active",
+  "currentStage": "red-tests",
+  "stages": {
+    "problem-framing": {
+      "status": "complete",
+      "startedAt": "2026-11-27T14:29:23.464Z",
+      "detail": null,
+      "reportedAt": "2026-11-27T14:34:50.110Z",
+      "reports": [
+        {
+          "at": "2026-11-27T14:34:50.110Z",
+          "result": "complete",
+          "detail": null
+        }
+      ],
+      "units": {},
+      "artifacts": [
+        {
+          "output": "problem-statement",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/analyze/problem-framing/problem-statement.md",
+          "bytes": 7746,
+          "sha256": "cfa085f7171b77f68969128df4f34e2b2b9fd9c9b50f8c74c04c8aaf11ece40e"
+        },
+        {
+          "output": "success-measures",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/analyze/problem-framing/success-measures.md",
+          "bytes": 1917,
+          "sha256": "f6153e019fe3f543fcaf0428c30ed1605c9ff1f1e08fa34f6d01ea2f75698324"
+        },
+        {
+          "output": "stakeholder-map",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/analyze/problem-framing/stakeholder-map.md",
+          "bytes": 1498,
+          "sha256": "851b9c13da0c7dca4baa4f88bcdf9ea46cc1b09b589c6e4f0611f9c4531b9bc2"
+        },
+        {
+          "output": "acceptance-criteria",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/analyze/problem-framing/acceptance-criteria.md",
+          "bytes": 13621,
+          "sha256": "0b577bbb710d40ff34bde99f842c35a88939c1f1de0f44b41b1e0cf68c1a67c7"
+        },
+        {
+          "output": "user-stories",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/analyze/problem-framing/user-stories.md",
+          "bytes": 3964,
+          "sha256": "e9a65f04d8c656d91ad7bc5d944793e00425f1f97bcfd9783f2a3e09fff081d4"
+        }
+      ]
+    },
+    "context-and-risk": {
+      "status": "complete",
+      "startedAt": "2026-11-27T14:34:50.119Z",
+      "detail": null,
+      "reportedAt": "2026-11-27T14:57:43.929Z",
+      "reports": [
+        {
+          "at": "2026-11-27T14:44:50.480Z",
+          "result": "blocked",
+          "detail": "analysis-baseline needs the owner's written decisions before AI approval: Q3 dependency/MSRV/offline policy for an MCP SDK; Q5 whether MCP next/report may run owner-configured prerequisite shell checks and where the guard lives; Q6 whether MCP report accepts an approver label and how AI-mode 'AI Orchestrator' is supplied (AC-009/AC-010 conflict); Q1 which MCP host(s) count as supported for AC-003. See analyze/context-and-risk/gate-recommendation.md."
+        },
+        {
+          "at": "2026-11-27T14:57:43.929Z",
+          "result": "complete",
+          "detail": null,
+          "approval": {
+            "decision": "approved",
+            "by": "AI Orchestrator",
+            "bySource": "flag",
+            "mode": "ai",
+            "note": null,
+            "openItems": {
+              "writtenApproval": 0,
+              "followUp": 8
+            }
+          }
+        }
+      ],
+      "units": {},
+      "resumedAt": "2026-11-27T14:49:47.363Z",
+      "artifacts": [
+        {
+          "output": "constraints-and-assumptions",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/analyze/context-and-risk/constraints-and-assumptions.md",
+          "bytes": 10328,
+          "sha256": "56c8724fd34141213a7d1aa810dd5e6770ccd2f8f2297e672c89f500ff1caf23"
+        },
+        {
+          "output": "evidence-log",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/analyze/context-and-risk/evidence-log.md",
+          "bytes": 5886,
+          "sha256": "a10f9be6c2dd949ba456348f092d452e52e6001fbac3ad4ad505219cd02fc71b"
+        },
+        {
+          "output": "risk-register",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/analyze/context-and-risk/risk-register.md",
+          "bytes": 7186,
+          "sha256": "c392de860327afca1fcb0e4d4b59c2ca7b7088fbcc3ea72281d05ecd0a07e21e"
+        },
+        {
+          "output": "open-questions",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/analyze/context-and-risk/open-questions.md",
+          "bytes": 10084,
+          "sha256": "3ad529eb60d84c9eb9a46961b152efab5d4a05c27515064634535336b6d70c80"
+        },
+        {
+          "output": "quality-requirements",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/analyze/context-and-risk/quality-requirements.md",
+          "bytes": 3668,
+          "sha256": "296c5f6608b29a5cae9a6a9d9aa478df1553d47a214f53835d401668433ebb42"
+        }
+      ]
+    },
+    "option-generation": {
+      "status": "complete",
+      "startedAt": "2026-11-27T14:57:50.184Z",
+      "detail": null,
+      "reportedAt": "2026-11-27T15:21:53.891Z",
+      "reports": [
+        {
+          "at": "2026-11-27T15:21:53.891Z",
+          "result": "complete",
+          "detail": null
+        }
+      ],
+      "units": {},
+      "artifacts": [
+        {
+          "output": "solution-options",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/ideate/option-generation/solution-options.md",
+          "bytes": 37417,
+          "sha256": "d265f4721dcd2abdbfb24ecbd9f38ad7041b52649c2a63eeed36c058f9c95cfd"
+        },
+        {
+          "output": "trade-off-matrix",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/ideate/option-generation/trade-off-matrix.md",
+          "bytes": 11993,
+          "sha256": "b2ec941421713fcc89e51d95ebbbfa62f913fc13a38412fb43c2d20b209f097c"
+        }
+      ]
+    },
+    "direction-selection": {
+      "status": "complete",
+      "startedAt": "2026-11-27T15:21:53.902Z",
+      "detail": null,
+      "reportedAt": "2026-11-27T16:22:52.774Z",
+      "reports": [
+        {
+          "at": "2026-11-27T16:22:52.774Z",
+          "result": "complete",
+          "detail": null,
+          "approval": {
+            "decision": "approved",
+            "by": "AI Orchestrator",
+            "bySource": "flag",
+            "mode": "ai",
+            "note": null,
+            "openItems": {
+              "writtenApproval": 0,
+              "followUp": 16
+            }
+          }
+        }
+      ],
+      "units": {},
+      "artifacts": [
+        {
+          "output": "recommended-direction",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/ideate/direction-selection/recommended-direction.md",
+          "bytes": 14421,
+          "sha256": "efd3955f8dcc8a0f7d21ce2321fed4ce246e0aaf940bf87ec7b3b2054ff159f5"
+        },
+        {
+          "output": "decision-record",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/ideate/direction-selection/decision-record.md",
+          "bytes": 76311,
+          "sha256": "6922949ba9cb0c98c837606a0742e838816fe11fe0553d70962bdb83f6603504"
+        },
+        {
+          "output": "scope-boundary",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/ideate/direction-selection/scope-boundary.md",
+          "bytes": 15820,
+          "sha256": "b96b199b0fcc68188f7dd9421e69ed2a7dd6141d1899c4f897f9a8376b55abcb"
+        },
+        {
+          "output": "architecture-design",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/ideate/direction-selection/architecture-design.md",
+          "bytes": 46753,
+          "sha256": "4e52f3bd86eed04e3adbc642de8c9b98b0d09a65dddb9fa83f8f7cae3e59912f"
+        },
+        {
+          "output": "threat-model",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/ideate/direction-selection/threat-model.md",
+          "bytes": 24546,
+          "sha256": "4a1e57f36e772326ca206f2fe910476e4cb12bf3f3473e9e91e67050d3a32202"
+        }
+      ]
+    },
+    "implementation-design": {
+      "status": "complete",
+      "startedAt": "2026-11-27T16:22:57.836Z",
+      "detail": null,
+      "reportedAt": "2026-11-27T16:38:17.722Z",
+      "reports": [
+        {
+          "at": "2026-11-27T16:38:17.722Z",
+          "result": "complete",
+          "detail": null
+        }
+      ],
+      "units": {},
+      "artifacts": [
+        {
+          "output": "implementation-plan",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/implementation-plan.md",
+          "bytes": 6490,
+          "sha256": "c277dc8bbdfb0455a97c184eda9f70efb29268ba5c2a6de077370158d120494e"
+        },
+        {
+          "output": "interfaces-and-contracts",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/interfaces-and-contracts.md",
+          "bytes": 13197,
+          "sha256": "cfb76c52f50ba5d33c7f67f02e4b98d0871ca653771c8bc2f1316906052d3350"
+        },
+        {
+          "output": "functional-design",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/functional-design.md",
+          "bytes": 16983,
+          "sha256": "c37353ec4620019b2926a601acd0894e5e13e0d157fcf27d1949464e6bfabbb4"
+        },
+        {
+          "output": "test-strategy",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/test-strategy.md",
+          "bytes": 8734,
+          "sha256": "5d1106ab2458b0ca31f7e22cdedd0958261a0e3eade91d2d6cd39382df38e25f"
+        },
+        {
+          "output": "work-units",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/work-units.md",
+          "bytes": 9079,
+          "sha256": "e062994fc319589d828343e778c6cc2c87f4ace13b35acffa54ab1aa7738707b"
+        },
+        {
+          "output": "work-units-json",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/work-units.json",
+          "bytes": 1810,
+          "sha256": "a4904e026de15ffea1473df9d172cb188ce16f304340906e03c3286705540878"
+        },
+        {
+          "output": "id-registry",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/ids.json",
+          "bytes": 11488,
+          "sha256": "cb9c18764c7d3e2d67c8d9178844a8cca22cd43a9dceb8537dbef5e51a5ccea7"
+        }
+      ]
+    },
+    "red-tests": {
+      "status": "in_progress",
+      "startedAt": "2026-11-27T16:38:17.733Z",
+      "units": {}
+    }
+  },
+  "dependencies": {},
+  "createdAt": "2026-11-27T14:29:23.464Z",
+  "modeSource": "config",
+  "updatedAt": "2026-11-27T16:38:17.740Z",
+  "gates": {
+    "analysis-baseline": {
+      "phase": "analyze",
+      "stage": "context-and-risk",
+      "decision": "approved",
+      "result": "complete",
+      "by": "AI Orchestrator",
+      "bySource": "flag",
+      "mode": "ai",
+      "at": "2026-11-27T14:57:43.929Z",
+      "note": null,
+      "detail": null,
+      "skippedStages": [],
+      "artifacts": [],
+      "openItems": {
+        "writtenApproval": 0,
+        "followUp": 8
+      }
+    },
+    "solution-direction": {
+      "phase": "ideate",
+      "stage": "direction-selection",
+      "decision": "approved",
+      "result": "complete",
+      "by": "AI Orchestrator",
+      "bySource": "flag",
+      "mode": "ai",
+      "at": "2026-11-27T16:22:52.774Z",
+      "note": null,
+      "detail": null,
+      "skippedStages": [],
+      "artifacts": [],
+      "openItems": {
+        "writtenApproval": 0,
+        "followUp": 16
+      }
+    }
+  },
+  "workUnits": {
+    "schemaVersion": 1,
+    "source": {
+      "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/work-units.json",
+      "sha256": "a4904e026de15ffea1473df9d172cb188ce16f304340906e03c3286705540878",
+      "registrySha256": "cb9c18764c7d3e2d67c8d9178844a8cca22cd43a9dceb8537dbef5e51a5ccea7"
+    },
+    "order": [
+      "WU-001",
+      "WU-010",
+      "WU-002",
+      "WU-004",
+      "WU-006",
+      "WU-003",
+      "WU-005",
+      "WU-007",
+      "WU-008",
+      "WU-009"
+    ],
+    "progressSeq": 0,
+    "syncedAt": "2026-11-27T16:38:17.733Z",
+    "units": {
+      "WU-001": {
+        "title": "Scaffold and packaging",
+        "dependsOn": [],
+        "tests": [
+          "TS-016",
+          "TS-017"
+        ],
+        "status": "pending",
+        "selectedAt": "2026-11-27T16:38:17.733Z",
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:a024de75d610477b22552b083b9ab78b8c977499e8f993f9c521b74ba936b4d9",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-27T16:38:17.722Z"
+      },
+      "WU-010": {
+        "title": "Fix pre-existing Unix test bugs",
+        "dependsOn": [],
+        "tests": [
+          "TS-019"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:0ee0519866d1094943d2c8b54f6170aa36ec0025e27b78b20a85a041ffb160e5",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-27T16:38:17.722Z"
+      },
+      "WU-002": {
+        "title": "Prerequisite guard, error constant and pending preview",
+        "dependsOn": [
+          "WU-001"
+        ],
+        "tests": [
+          "TS-007",
+          "TS-010",
+          "TS-011"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:e50c31eed3b2662f09d2c6abc41477474c247341dd18abc09db36998ecfc6408",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-27T16:38:17.722Z"
+      },
+      "WU-004": {
+        "title": "MCP protocol layer",
+        "dependsOn": [
+          "WU-001"
+        ],
+        "tests": [
+          "TS-001",
+          "TS-002",
+          "TS-003"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:31c81d64f7400dd01bd17fd8cb04ebb1447df36b4b393cca591ac7aa4b7348bd",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-27T16:38:17.722Z"
+      },
+      "WU-006": {
+        "title": "Path redaction",
+        "dependsOn": [
+          "WU-001"
+        ],
+        "tests": [
+          "TS-008"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:2724d4aa3eb97ebf86bf47c887dc7151fbfac9eba834e38b06fedbc1c61af8c8",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-27T16:38:17.722Z"
+      },
+      "WU-003": {
+        "title": "Facade and CLI routing",
+        "dependsOn": [
+          "WU-002"
+        ],
+        "tests": [
+          "TS-010",
+          "TS-011"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:073b84eead84df5e438297698b91f385943ff0f93878271ea112df49b28f5202",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-27T16:38:17.722Z"
+      },
+      "WU-005": {
+        "title": "MCP tool adapter",
+        "dependsOn": [
+          "WU-003",
+          "WU-004",
+          "WU-006"
+        ],
+        "tests": [
+          "TS-004",
+          "TS-018"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:5418279a7919dc5f298bf5e9d23eaaf1810944b0e0d1cceb1bf1164fed782d94",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-27T16:38:17.722Z"
+      },
+      "WU-007": {
+        "title": "Integration, parity and install tests",
+        "dependsOn": [
+          "WU-003",
+          "WU-005",
+          "WU-006"
+        ],
+        "tests": [
+          "TS-005",
+          "TS-006",
+          "TS-007",
+          "TS-008",
+          "TS-009",
+          "TS-014"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:2015da208b7ec5c98181e9cdefb77b2a70531aa28863680d5b3ae0dbffa4643e",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-27T16:38:17.722Z"
+      },
+      "WU-008": {
+        "title": "CI workflow",
+        "dependsOn": [
+          "WU-007",
+          "WU-010"
+        ],
+        "tests": [
+          "TS-012",
+          "TS-015"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:e84b56a22861477b6f03bcab80464df77134483de4c442cff561ebe9a295f1a0",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-27T16:38:17.722Z"
+      },
+      "WU-009": {
+        "title": "README docs",
+        "dependsOn": [
+          "WU-004",
+          "WU-005"
+        ],
+        "tests": [
+          "TS-013",
+          "TS-015"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:0f150e0670ad5774ed8ef4a8d6bde41126c22e1f2f176261716892a71dc3f3fc",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-27T16:38:17.722Z"
+      }
+    },
+    "deferredRegressions": [],
+    "sweep": {
+      "status": "pending",
+      "selectedAt": null,
+      "at": null,
+      "failures": [],
+      "attempts": 0,
+      "via": null
+    },
+    "baselineTests": [],
+    "rework": null
+  },
+  "units": [
+    {
+      "id": "WU-001",
+      "status": "in_progress",
+      "dependsOn": []
+    },
+    {
+      "id": "WU-010",
+      "status": "in_progress",
+      "dependsOn": []
+    },
+    {
+      "id": "WU-002",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-001"
+      ]
+    },
+    {
+      "id": "WU-004",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-001"
+      ]
+    },
+    {
+      "id": "WU-006",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-001"
+      ]
+    },
+    {
+      "id": "WU-003",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-002"
+      ]
+    },
+    {
+      "id": "WU-005",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-003",
+        "WU-004",
+        "WU-006"
+      ]
+    },
+    {
+      "id": "WU-007",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-003",
+        "WU-005",
+        "WU-006"
+      ]
+    },
+    {
+      "id": "WU-008",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-007",
+        "WU-010"
+      ]
+    },
+    {
+      "id": "WU-009",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-004",
+        "WU-005"
+      ]
+    }
+  ],
+  "currentUnit": "WU-001"
+}

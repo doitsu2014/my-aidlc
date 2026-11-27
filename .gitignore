@@ -4,8 +4,6 @@ coverage/
 .DS_Store
 
 # Local project state and generated artifacts
-.aidlc/
-.aidlc-work/
 *.tmp
 *.bak
 
