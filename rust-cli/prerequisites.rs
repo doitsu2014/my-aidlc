@@ -524,8 +524,20 @@ mod tests {
             ]
         );
         // skip=false is identical to run_prerequisites.
+        // Rows carry a millisecond `startedAt`, so compare without it.
+        let strip = |rows: Vec<Value>| -> Vec<Value> {
+            rows.into_iter()
+                .map(|mut r| {
+                    r.as_object_mut().unwrap().remove("startedAt");
+                    r
+                })
+                .collect()
+        };
         let ran = check_prerequisites(".", &config, &["bad".into()], false);
-        assert_eq!(ran, run_prerequisites(".", &config, &["bad".into()]));
+        assert_eq!(
+            strip(ran),
+            strip(run_prerequisites(".", &config, &["bad".into()]))
+        );
         let _ = std::fs::remove_file(&marker);
     }
 

@@ -1,10 +1,11 @@
 //! MCP server: launch handling (FN-016). The protocol layer is `protocol`; the tool
-//! adapter (`tools`) is wired in by a later work unit.
+//! adapter (`tools`) serves `status`, `queue`, `next` and `report` over the
+//! application facade, wired in by `run` below.
 
 pub mod protocol;
 pub mod redact;
+pub mod tools;
 
-use serde_json::{json, Value};
 use std::ffi::OsString;
 use std::path::PathBuf;
 
@@ -54,15 +55,23 @@ pub fn run(args: Vec<OsString>) -> u8 {
             return 1;
         }
     };
-    // WU-005: DTECH_AIDLC_HOME stderr warning and the startup Redactor are wired here.
-    // ponytail: empty tool table until the adapter lands; its wiring edit replaces `host`.
+    let redactor = redact::Redactor::new(&root);
+    if let Some(home) = std::env::var_os("DTECH_AIDLC_HOME").filter(|h| !h.is_empty()) {
+        if crate::application::external_engine().is_none() {
+            eprintln!(
+                "dtech-aidlc-mcp: warning: DTECH_AIDLC_HOME is set but not usable ({}); using the embedded engine",
+                redactor.redact_message(&home.to_string_lossy(), "<redacted-path>")
+            );
+        }
+    }
+    let ctx = tools::ToolContext { root, redactor };
     let host = protocol::ToolHost {
-        list: || json!([]),
-        call: |_: &PathBuf, _: &str, _: &Value| None,
+        list: tools::tool_list,
+        call: tools::call_tool,
     };
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
-    protocol::serve(stdin.lock(), stdout.lock(), &host, &root) as u8
+    protocol::serve(stdin.lock(), stdout.lock(), &host, &ctx) as u8
 }
 
 #[cfg(test)]
