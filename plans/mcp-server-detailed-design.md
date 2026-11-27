@@ -257,8 +257,8 @@ Mobile wireframe (no horizontal page scroll):
 │ LOCAL ONLY · ● RECORDING  │
 │ last event 14:32 · PARTIAL│
 ├────────────────────────────┤
-│ calls 128 · errors 3/128  │
-│ p50 42 ms · p95 240 ms    │
+│ MCP tools 128 · errors 3/128 │
+│ tool p50 42 ms · p95 240 ms  │
 │ [latency] [event volume]  │
 ├────────────────────────────┤
 │ [Filters (2)] [Refresh]   │
@@ -302,6 +302,7 @@ Detail panel fields:
 - Keep filter state in memory for the current monitor session. Do not place project path, token, or other sensitive data in URL query/hash or persistent browser storage.
 - Manual refresh plus modest auto-refresh. Pause/resume affects only UI refresh, not collection. Show last successful refresh, retain last-known data on errors with stale label, apply backoff, and suspend polling when page is hidden.
 - Clicking summary values filters the underlying list; charts provide text alternatives and exact range/counts. Avoid charts when the same value is clearer as a direct labeled summary.
+- Metric contract: `MCP tool calls` counts one `mcp.tool.completed` event per completed tool invocation; failures and blocked results use that same population and denominator. Tool latency uses only completed MCP tool durations, excluding protocol initialization and shared-operation spans. Shared-operation counts/latency, if displayed, have their own labeled population and are never added to MCP tool counts. Deduplicate by event ID; define how unfinished calls and missing completion events are represented (in-flight vs incomplete/unknown), not silently as successes.
 
 ### 7.5 Dashboard states
 
@@ -309,8 +310,6 @@ Detail panel fields:
 |---|---|---|
 | First run/no telemetry directory | Purposeful empty state; no invented events or zero-as-healthy metrics | Launch MCP with telemetry enabled and perform a tool call; run monitor in selected project. |
 | Telemetry disabled | Explicit disabled badge, no claim of server health | Enable telemetry in documented local configuration if desired. |
-
-The monitor cannot distinguish these states from the absence of telemetry files alone. Define a trustworthy local collector-status signal (for example, monitor launch configuration plus an explicit telemetry-enabled marker with bounded lifecycle semantics) before presenting distinct states. If that signal is unavailable or stale, show an honest “no telemetry observed / status unknown” state rather than inferring disabled or first-run.
 | Healthy data | Freshness, range, coverage, summary and event rows | Use filters/details. |
 | Partial/corrupt records | Keep valid rows; count skipped records and mark partial | Explain records were skipped; do not hide valid rows. |
 | Stale data/no recent event | Preserve last-known data with stale banner and timestamp | Refresh or check process/collection state; lack of events is not proof of failure. |
@@ -318,6 +317,8 @@ The monitor cannot distinguish these states from the absence of telemetry files 
 | MCP process absent | State “no active MCP session observed”; do not call this workflow failure | Launch/reconnect host if an MCP call is expected. |
 | Query/size limit reached | Show truncated/limited result state and applied limit | Narrow range/filters or load next page. |
 | Dashboard shutting down | Stop refresh and show shutdown state | No workflow action implied. |
+
+The monitor cannot distinguish first-run from disabled collection based on missing telemetry files alone. Define a trustworthy local collector-status signal (for example, monitor launch configuration plus an explicit telemetry-enabled marker with bounded lifecycle semantics) before presenting distinct states. If that signal is unavailable or stale, show an honest “no telemetry observed / status unknown” state rather than inferring disabled or first-run.
 
 ### 7.6 Visual, responsive and accessibility design
 
@@ -331,7 +332,7 @@ The monitor cannot distinguish these states from the absence of telemetry files 
 
 ### 7.7 Dashboard process, API, and security
 
-- Separate proposed command: `dtech-aidlc monitor --project <path>`; final name requires CLI naming review.
+- Separate monitor process, with `dtech-aidlc monitor --project <path>` as the selected proposed launch contract. The CLI subcommand must start the monitor child process and return independently of the stdio MCP server. Keep the command name consistent with the proposed CLI subcommand and `rust-cli/main.rs` router rather than adding a separate monitor executable unless an ADR revises this decision.
 - Bind to `127.0.0.1` on an ephemeral port by default; print URL but do not open browser automatically. No `0.0.0.0` binding in v1.
 - Read-only GET endpoints only. No POST/PUT/PATCH/DELETE, no tool invocation, and no workflow-state or audit-log reads. Prefer a generic “local project” label; the dashboard reads telemetry files only.
 - Query interface accepts bounded time range, allowlisted filter values, sort and opaque cursor. It never accepts a filesystem path or filename from the browser and never returns raw JSONL lines.
@@ -398,7 +399,7 @@ Proposed flags/config (exact public names require owner review):
 3. Exact gate-report tool UX and whether supported hosts can reliably require a user confirmation UI.
 4. Telemetry default (enabled metadata-only with opt-out vs opt-in only).
 5. Telemetry retention/file size values and whether Windows file permissions need additional handling.
-6. Monitor command naming and whether local static UI can avoid a framework/runtime dependency.
+6. Resolve the monitor launch/packaging contract consistently with the selected `dtech-aidlc monitor` subcommand in §7.7; also decide whether the local static UI can avoid a framework/runtime dependency.
 7. Loopback dashboard browser access: Host/Origin protections alone or a per-run token.
 8. Dashboard latency percentile minimum sample size and exact metric definitions.
 
