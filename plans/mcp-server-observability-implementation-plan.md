@@ -2,6 +2,7 @@
 
 - **Status:** Proposed; no MCP server, telemetry pipeline, or dashboard is implemented yet.
 - **Design documents:** [Architecture design](mcp-server-architecture.md) · [Detailed design, including dashboard](mcp-server-detailed-design.md)
+- **Branch/commit/push:** This plan does not prescribe a branch workflow. Delivery changes must follow the repository's current user/project branch instructions.
 - **Scope:** Add an optional local MCP interface and a separate local observability dashboard while keeping the existing `dtech-aidlc` CLI fully usable.
 - **Primary users:** People who drive AIDLC through an MCP-capable assistant, and maintainers who need to see tool-call and workflow progress locally.
 - **Design rule:** MCP is an adapter to shared AIDLC application operations, not a CLI subprocess proxy and not a second workflow engine.
@@ -104,6 +105,7 @@ Initial façade responsibilities:
 - Load runtime graph/configuration with the same embedded/external engine behavior as the CLI.
 - Expose `status`, `orchestrate_next`, `orchestrate_report`, and `orchestrate_queue` operations through typed wrappers over the existing library behavior.
 - Reuse `orchestrate::orchestrate_next`, `orchestrate::orchestrate_report_with_engine`, and the existing unit queue handler/domain logic; move only adapter/router code needed to make these callable from both binaries.
+- Preserve CLI route preflights and finalizers, including knowledge preflight, fresh operation-specific config, `finish_directive`, and `finish_report`; a core orchestration call alone is not parity. Redact absolute paths from MCP outputs while preserving CLI output unchanged.
 - Keep the CLI's existing parser, text/JSON presentation, stdout/stderr behavior, and exit codes stable. Its `main.rs` becomes a thin CLI adapter that parses arguments, invokes the façade, and renders results.
 - Keep MCP-specific JSON mapping and error formatting out of business/domain modules.
 
@@ -126,9 +128,9 @@ First release exposes a deliberately small set of tools. Use strict JSON schemas
 | Tool | Access | Inputs / behavior | Side effects |
 |---|---|---|---|
 | `aidlc_status` | Read | Optional intent selector if the existing status operation supports it; otherwise report active intent/status. Return structured status. | None beyond telemetry. |
-| `aidlc_queue` | Read | Return ready, blocked, parked, and waiting work-unit information using the existing queue logic. | None beyond telemetry. |
-| `aidlc_next` | Workflow mutation | Select and return the next directive using existing `orchestrate next` rules. Clearly document that selection can persist state/audit information. | Existing state/audit effects; telemetry. |
-| `aidlc_report` | Workflow mutation | Inputs map to supported `orchestrate report` fields: stage, result, detail, needs, artifact/evidence fields, and gate-decision fields only where existing rules allow them. | Existing validation, state writes, audit, and configured gate behavior. |
+| `aidlc_queue` | Read (may be migration preview) | Return ready/blocked/parked/waiting units. Legacy state may produce an in-memory `migration: pending` preview; never present it as persisted state. | Telemetry only; assert project files are unchanged. |
+| `aidlc_next` | State-affecting; guarded | Require an existing active intent in v1; refuse rather than create one. Do not execute configured prerequisite shell checks implicitly; expose requirements or a separately approved explicit opt-in. | Existing directive selection may persist state/audit; telemetry. |
+| `aidlc_report` | Workflow mutation | Inputs map only to current `ReportOptions`; completion artifacts/evidence are derived by existing logic, not arbitrary caller fields. Human-mode approved gates are refused through MCP in v1; AI-mode approval follows current policy. | Existing validation, state writes, audit, and configured gate behavior. |
 
 Tool response rules:
 
@@ -141,9 +143,10 @@ Tool response rules:
 #### Gate/approval semantics
 
 - Do not add a privileged `aidlc_approve_gate` tool that treats model-supplied identity as authentication.
-- Keep the existing gate policy and report validation as the source of truth. The current project explicitly treats approver names as caller-supplied/self-asserted entries, not authenticated signatures; MCP must not imply otherwise.
-- `aidlc_report` may submit gate fields only in the same conditions the CLI accepts. It must preserve `gate-mode`, allowed-approver, AI recommendation, and open-item checks.
-- The harness should request explicit human confirmation before submitting a human-mode approval when its UI supports it. The server cannot assume every host provides that UI; document this limitation and do not describe MCP as cryptographic or identity-backed authorization.
+- Keep existing report validation as the source of truth for operations MCP does expose.
+- MCP must not submit an approved decision for a human-mode gate in v1. The existing approval path receives a name/label and has no independently verified human-consent proof; optional host confirmation UI is not server-verifiable authorization.
+- The project owner completes human-mode gate approval through the existing direct CLI flow. AI-mode approvals remain available only through existing AI-orchestrator recommendation/open-item policy.
+- Approver attribution in CLI falls back from explicit flag to Git `user.name`, OS username, then `unknown`; none is authenticated. An empty allowlist is not an authentication control.
 - Any stronger authenticated approval flow is a separate architecture decision and must not be smuggled into this adapter change.
 
 ### 3.4 Telemetry model and persistence
@@ -192,7 +195,7 @@ Minimum events:
 - Process lifecycle: `process.started`, `process.stopped` (best effort).
 - MCP request lifecycle: `mcp.request.started`, `mcp.tool.completed`, `mcp.protocol.error`.
 - Shared operation lifecycle: `operation.started`, `operation.completed`, with duration and bounded outcome/error code.
-- Workflow events emitted at existing transition points: `stage.selected`, `stage.reported`, `unit.parked`, `unit.revisited`, `gate.decided`, `intent.paused`, `intent.resumed`, `intent.abandoned` where practical.
+- Explicitly instrument and test selected events only: MCP tool start/completion; façade operation start/completion; stage selected/reported after finalization; unit parked/revisited when exposed; and gate decision only after successful report persistence plus audit. Intent pause/resume/abandon remain out of v1 until those operations are routed through and instrumented at the shared façade. Do not scrape the audit log or imply telemetry mirrors all audit rows.
 - CLI events at the shared boundary carry `component: "cli"`; they do not pretend to be MCP tool calls.
 
 Instrumentation must not duplicate or reinterpret audit events. Where an operation already emits a durable audit record, telemetry may reference the event type and a non-sensitive correlation id, but the audit log remains authoritative for the audited action.
@@ -206,7 +209,7 @@ The dashboard is a first-class local product surface, not an unspecified chart p
 Use one responsive page with four related views/regions, ordered by operational priority:
 
 1. **Health strip:** telemetry status (recording/off/degraded), selected time range, last event time, active MCP process/session count when known, and a clear “coverage is partial” indicator if some events are missing or only MCP-level spans are available.
-2. **Activity summary:** tool calls and outcomes, latency distribution (p50/p95, with sample count), error count/rate, and current/recent workflow-stage activity. Avoid vanity KPI tiles: each summary must link to or filter the underlying event rows.
+2. **Activity summary:** count completed MCP tool spans, their outcomes/error denominator, tool latency p50/p95 with sample count, and separately labeled shared-operation/workflow events. Never combine MCP requests and their child operation spans into one call count or latency population. Avoid vanity KPI tiles: each summary must link to or filter the underlying event rows.
 3. **Live/recent event stream:** time-ordered event list with time, component/source (`MCP`, `shared operation`, `CLI`), tool/operation, stage/unit when present, duration, and outcome. Use text and icon/label as well as color for status.
 4. **Selected event details:** a side panel on wide screens and inline disclosure on narrow screens. Show trace/session correlation, parent/child span relationship, event type, duration, outcome, safe error code/message, and permitted identifiers. Do not show prompt text, raw tool arguments, artifact contents, credentials, or unredacted paths.
 
@@ -275,14 +278,15 @@ Wireframe states: healthy data retains the above hierarchy; empty state replaces
 #### Dashboard read model and event details
 
 - Event-list row fields: timestamp (with timezone clarity), source (`mcp`, `application`, `cli`), event/tool/operation name, intent/stage/unit identifiers where allowed, duration with `ms` units, outcome (`ok`, `blocked`, `error`), and trace/session correlation id.
-- Summary metrics show their time range and sample count. Latency percentiles are computed only for completed spans in the selected range, label p50/p95 and `ms`, and show “insufficient samples” instead of a misleading number below a documented minimum sample size. Error rate states its numerator and denominator.
+- Metric contract: tool-call counts/errors/blocked denominator use distinct completed MCP tool spans only; latency uses completed MCP tool duration only, excluding setup and child operation spans. Shared-operation counts are a separate population, never added to tool calls. Deduplicate by event id; missing completion remains unknown/incomplete, not success.
+- Summary metrics show their time range and sample count. Latency percentiles label p50/p95 and `ms`, and show “insufficient samples” instead of a misleading number below a documented minimum sample size. Error rate states its numerator and denominator.
 - Detail panel includes event id, timestamps, component, event name, duration and units, outcome, safe error code/message, trace/span/parent ids, and allowlisted metadata. If a field was redacted, omitted, malformed, or truncated, say so without exposing the raw value.
 - The API provides bounded time-window queries, allowlisted filters, deterministic order, cursor pagination, and stable errors (`invalid_filter`, `range_too_large`, `cursor_stale`, `store_unavailable`). It never accepts a path or filename from the browser and never returns raw JSONL lines.
 - Retention and deletion disclosure states the configured maximum age/size and makes clear that expired records may leave gaps. No UI delete action in v1; retention is applied by the local process policy, not dashboard controls.
 
 #### States and failure handling
 
-Design and implement explicit states for: no telemetry directory yet, telemetry disabled, healthy data, partial/corrupt lines skipped, stale/no recent events, telemetry sink error, MCP process absent, query/file-size limit reached, and dashboard server shutting down. State messages say what the operator can do next. Preserve a last-known data view on refresh failures and mark it stale; never make a failed refresh look like a healthy empty system. A dashboard restart should not affect the MCP process or workflow.
+Design and implement explicit states for: no telemetry observed/status unknown, telemetry configured off only when provided by trusted launch/config input, recent events, partial/corrupt lines skipped, stale/no recent events, telemetry sink error only when independently observable, MCP liveness unknown, query/file-size limit reached, and dashboard server shutting down. State messages say what the operator can do next. Preserve a last-known data view on refresh failures and mark it stale; never make a failed refresh look like a healthy empty system or infer process absence from silence. A dashboard restart should not affect the MCP process or workflow.
 
 #### Visual and accessibility design
 
@@ -294,18 +298,18 @@ Design and implement explicit states for: no telemetry directory yet, telemetry 
 #### Dashboard implementation and security boundary
 
 - Add an optional `dtech-aidlc monitor --project <path>` command (name is provisional; settle after checking CLI naming and platform packaging).
-- The monitor is a separate process from the stdio MCP server. It binds only to `127.0.0.1` on an ephemeral port by default, prints the URL, and does not open a browser automatically.
+- The `dtech-aidlc monitor` CLI subcommand launches a separate foreground monitor process, independent of the stdio MCP server. The monitor binds only to `127.0.0.1` on an ephemeral port, prints its URL, and does not open a browser automatically.
 - The dashboard exposes read-only pages/API. No POST/PUT/PATCH/DELETE routes and no workflow tool invocation.
 - Read only recognized event files below `.aidlc/telemetry/`; validate paths and cap file count, response size, event count, and query window. Do not traverse arbitrary user paths or follow symlinks.
 - Serve inline/static bundled assets or embedded HTML; no remote fonts, analytics, or external JS for the initial local dashboard.
-- Browser safety: loopback bind, strict Host/Origin validation, no permissive CORS, no mutating routes, and a per-run unguessable read token if the chosen browser/API design requires it. Do not put the token in telemetry or project files. Evaluate DNS-rebinding and local browser cross-origin access in the threat model.
+- Browser safety: loopback bind, strict Host/Origin validation, no permissive CORS, and no mutating routes are required. Choose the per-run token/bootstrap mechanism only after reviewing local same-user process access and browser-origin threats; do not put tokens in telemetry, URLs, or project files. Review DNS-rebinding and local browser cross-origin access.
 - If the dashboard cannot start, report a clear local error; do not affect the MCP or CLI processes.
 
 #### Dashboard detail-design component and state matrix
 
 | Component | Healthy | Empty / disabled | Degraded / error | Interaction |
 |---|---|---|---|---|
-| Health strip | Recording state, last event, range, process/session count when known | Explain telemetry off or no first event | Stale/degraded label, last successful refresh, safe reason | Status details; never implies workflow approval/health from missing telemetry |
+| Health strip | Last observed event, range, observed coverage; liveness only if a separately specified heartbeat exists | No events/status unknown unless trusted config says telemetry is off | Stale/degraded label, last successful refresh, safe reason | Never implies process liveness or workflow health from missing telemetry |
 | Summary | Counts, p50/p95 with sample size, error numerator/denominator | “No data for range” without zero-as-healthy ambiguity | Preserve last-known summary and mark stale | Click metric to filter underlying rows |
 | Filters | Current filters, result count, sort and range | Available but clearly returns no records | Keep filters; show failed query separately | Keyboard-operable, clear/reset, bounded presets |
 | Event stream | Paginated newest-first rows | Instructions, no fabricated live rows | Show partial/corrupt-line count and stale marker | Select row, load more/cursor paging |
@@ -466,13 +470,13 @@ Before implementation, include a dashboard-specific design pack in this plan's e
 
 | Risk | Mitigation |
 |---|---|
-| CLI and MCP behavior diverge | Put shared command semantics behind library façade and test semantic parity on equivalent fixtures. |
+| CLI and MCP behavior diverge | Put shared command semantics behind library façade, preserve route preflights/finalizers (`finish_directive`, `finish_report`), path projections and current config reload behavior; test semantic parity on equivalent fixtures including knowledge write-back. |
 | MCP tool call bypasses gate or audit | Reuse existing orchestration operations; prohibit direct state-file writes in adapter; mutation integration tests. |
-| Assistant fabricates approver name | Preserve self-asserted caveat, require explicit gate fields, host-side human confirmation where supported; do not claim authentication. |
+| MCP model supplies an unverified human approver name | Refuse human-mode `approval: approved` via MCP v1; owner completes that gate through CLI. Keep AI-mode decisions under existing AI recommendation/open-item rules; names and allowlists are not authentication. |
 | Stdio diagnostics corrupt MCP protocol | Reserve stdout exclusively for SDK protocol writes; send logs to stderr; assert in child-process tests. |
 | Telemetry leaks prompt/artifact data | Allowlist event fields; never serialize raw arguments/results; privacy regression tests. |
 | Dashboard becomes an attack surface | Separate optional process, loopback-only bind, strict host/origin policy, no CORS, read-only endpoints, bounded input/output. |
-| MCP dependency conflicts with offline builds/MSRV | Complete dependency spike before implementation; lock versions; verify `--locked` and offline build requirements. |
+| MCP dependency lacks a defined compiler baseline or offline cache | Select/document `rust-version`, verify dependency MSRV and `--locked` reproducibility; validate offline cache availability separately if required. |
 | Local events mistaken for durable audit | Separate directories, schemas, naming, documentation, and dashboard labels; audit log remains authoritative. |
 | Instrumentation coverage appears complete when it is not | Distinguish MCP spans from shared operation events; show gaps and bypassed legacy routes. |
 | Telemetry file count/storage grows unbounded | Per-file and total retention caps; safe best-effort pruning; monitor enforces query bounds. |
@@ -485,8 +489,8 @@ These are implementation gates, not reasons to defer the architecture:
 
 1. **Telemetry default:** enable local metadata-only telemetry by default with an opt-out, or disabled until opted in. Proposed default is enabled with a clear opt-out; privacy review may choose the stricter disabled default.
 2. **Dashboard command name:** `dtech-aidlc monitor` is proposed; confirm it does not conflict with the intended CLI vocabulary.
-3. **MCP SDK/dependency policy:** choose the Rust SDK only after verifying maintenance, license, MSRV, protocol version support, and locked/offline builds.
-4. **Human approval UX:** determine which supported MCP hosts can present a true user confirmation interaction. Where unavailable, clearly fall back to the existing self-asserted CLI approval contract rather than imply authenticated approval.
-5. **Dashboard authentication:** finalize whether loopback + Host/Origin restrictions suffice or a per-run token is required by the implementation and supported browsers.
+3. **MCP SDK/dependency policy:** choose the Rust SDK only after verifying maintenance, license, protocol version support, Windows support, a selected MSRV (the repository currently declares none), and `--locked` reproducibility; validate offline cache requirements separately.
+4. **Human approval UX:** MCP v1 does not submit human-mode gate approvals; owner uses existing CLI. Revisit only with a server-verifiable consent mechanism. AI-mode policy stays separate.
+5. **Dashboard access model:** retain strict Host/Origin allowlisting and no CORS; select a secure per-run token/bootstrap strategy after reviewing browser-origin and same-user process access.
 
 No phase-graph or intent-state schema change is proposed for the initial release.

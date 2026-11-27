@@ -30,7 +30,7 @@ Relevant current APIs and constraints:
 - State writes check that pointer and intent bytes have not changed and use an atomic save path (`orchestrate.rs:1071-1109`). Existing operations preflight and append `.aidlc/audit.jsonl` (`rust-cli/audit.rs:98-117`, `153-193`).
 - The current audit log is durable workflow audit data. It is not telemetry, traces, or a live dashboard feed.
 - Gate approver attribution is resolved from an explicit CLI value, Git `user.name`, or OS username (then `unknown`); none is authenticated identity. Existing human and AI gate modes have different rules. The proposed MCP v1 must not submit an approved decision for a human-mode gate; the owner completes that approval through the existing direct CLI path. AI-mode decisions remain subject to the existing recommendation/open-item policy.
-- Existing CLI behavior is guarded by Rust unit/integration tests and golden snapshots. `Cargo.lock` and offline/locked build expectations make dependency choice a deliberate design gate.
+- Existing CLI behavior is guarded by Rust unit/integration tests and golden snapshots. `Cargo.lock` supports locked builds; the repository does not currently declare `rust-version`, and a locked build is not inherently offline. Set an MSRV and evaluate offline-cache requirements explicitly before selecting dependencies.
 
 All MCP, telemetry and dashboard components below are proposals, not current features.
 
@@ -82,7 +82,7 @@ flowchart LR
 | Shared application layer | Project context, operation dispatch, domain validation, gate checks, persistence, existing audit behavior, shared telemetry hooks. | Duplicate lifecycle logic across adapters. |
 | Project workspace | Authoritative project context, `.aidlc/` state, artifacts, config and audit. | Be mirrored into an independent workflow database. |
 | Telemetry store | Bounded local operational events, separate from audit. | Authorize, mutate, or become evidence that a phase gate passed. |
-| Monitor/dashboard | Read-only query and visualization of telemetry, with clear coverage/status indicators. | Invoke AIDLC tools, modify telemetry/state, or expose remote endpoints. |
+| Monitor/dashboard | Read-only query and visualization of telemetry, launched by the proposed `dtech-aidlc monitor` subcommand as a separate process; loopback-only HTTP with strict Host/Origin checks and a per-run access-token decision. | Invoke AIDLC tools, modify telemetry/state, or expose remote endpoints. |
 
 ## 6. Boundaries and data flow
 
@@ -140,13 +140,13 @@ Two event layers serve different questions:
 - **MCP spans:** tool name, request/response timing, protocol outcome, safe error code, and correlation identifiers. Only calls through MCP are represented.
 - **Shared operation/workflow events:** operation start/end and selected lifecycle transitions, emitted from shared code. These can cover both MCP and CLI paths once both call that code.
 
-Telemetry is separate from `.aidlc/audit.jsonl`. The audit log remains the existing workflow audit record; telemetry is operational and best-effort. The dashboard displays coverage honestly: “no MCP span” does not mean no CLI activity, and missing events do not mean a healthy workflow.
+Telemetry is separate from `.aidlc/audit.jsonl`. The audit log remains the existing workflow audit record; telemetry is operational and best-effort. The dashboard displays coverage honestly: “no MCP span” does not mean no CLI activity, missing events do not mean a healthy workflow, and emitted transition events are not an exhaustive mirror of audit rows.
 
 Initial deployment is local only:
 
 - MCP uses stdio and opens no listener.
 - Telemetry is stored below a dedicated ignored `.aidlc/telemetry/` directory, subject to safe-path validation and bounded retention.
-- Dashboard is a separate `monitor` process binding to loopback only on an ephemeral port. It reads recognized telemetry data and has no workflow mutation endpoint.
+- Dashboard is a separate process launched by the proposed `dtech-aidlc monitor` CLI subcommand, binding to loopback only on an ephemeral port. It reads recognized telemetry data and has no workflow mutation endpoint. Strict Host/Origin checks and a per-run read-token/access model are mandatory design gates.
 - No remote telemetry exporter is included in v1.
 
 ## 8. Trust, privacy and security boundaries
@@ -155,7 +155,7 @@ Initial deployment is local only:
 - Select project root at server launch; do not let each tool call select an arbitrary path.
 - Keep protocol stdout clean. Diagnostics go to stderr; telemetry goes to the dedicated sink.
 - Never place raw prompt text, tool arguments, results, artifact bodies, secrets, environment values, or unredacted absolute paths in telemetry.
-- Dashboard is read-only, loopback-bound, bounded, and resistant to path traversal and symlink following. Apply strict Host/Origin checks and no permissive CORS; assess whether a per-run local token is needed.
+- Dashboard is read-only, loopback-bound, bounded, and resistant to path traversal and symlink following. Apply strict Host/Origin checks, no permissive CORS, and an access-control mechanism chosen after local-process/browser threat review.
 - Dashboard visibility does not grant write permission. Approval values remain governed by current AIDLC rules and their self-asserted identity limitation.
 - Telemetry failures must not change operation results, persist partial workflow state, or corrupt MCP/CLI output.
 
@@ -169,8 +169,8 @@ Initial deployment is local only:
 | Workflow state | Existing project files and `.aidlc/` | No new workflow database. |
 | Audit vs telemetry | Keep separate stores/schemas/roles | Privacy and semantics review. |
 | Telemetry default | Proposed enabled for safe metadata with explicit opt-out; disabled-by-default remains an alternative | Owner privacy decision before release. |
-| Dashboard host | Separate local monitor, loopback-only HTTP | Security review of browser access/Host/Origin/token. |
-| MCP Rust SDK | Not selected | Dependency spike must prove maintenance, license, protocol support, MSRV and `--locked`/offline build compatibility. |
+| Dashboard host | `dtech-aidlc monitor` launches a separate, read-only loopback HTTP process | Security review requires strict Host/Origin checks and a chosen per-run access-control/bootstrap model. |
+| MCP Rust SDK | Not selected | Dependency spike must prove maintenance, license, protocol support, selected MSRV, Windows support, and `--locked` reproducibility; validate offline-cache availability separately if required. |
 | Approver identity | Preserve current caller-supplied identity contract | No claim of authenticated approvals. |
 
 ## 10. Quality attributes

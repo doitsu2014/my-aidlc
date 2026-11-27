@@ -105,7 +105,7 @@ Current CLI route setup in `main.rs` constructs these inputs in `run_read_only`,
 
 ### 4.2 Protocol dependency
 
-Use a maintained Rust MCP SDK only after the architecture spike validates its protocol support, stdio behavior, license, MSRV, async runtime footprint, Windows support, and locked/offline build compatibility. Pin in `Cargo.lock`. Do not implement JSON-RPC framing by hand unless an ADR documents the SDK blocker and a conformance plan.
+Use a maintained Rust MCP SDK only after the architecture spike validates its protocol support, stdio behavior, license, selected MSRV, async runtime footprint, Windows support, and `--locked` build reproducibility. Pin in `Cargo.lock`; validate offline-cache availability separately if offline installation is a requirement. Do not implement JSON-RPC framing by hand unless an ADR documents the SDK blocker and a conformance plan.
 
 ### 4.3 Tool set and schemas
 
@@ -123,7 +123,7 @@ Input: empty object, `additionalProperties: false`.
 
 Output: existing queue representation of ready/waiting/blocked/parked/done units. On legacy state, the current queue path may synthesize an in-memory migration preview marked `migration: "pending"`; it must not be presented as persisted state. Preserve and surface the preview marker clearly in MCP structured output and any UI that consumes it. Assert that queue reads write no project files.
 
-#### `aidlc_next` (state-affecting; may run configured prerequisite commands)
+#### `aidlc_next` (state-affecting; guarded; no implicit prerequisite execution)
 
 Input: begin with no assistant-supplied gate identity or arbitrary root. The current `orchestrate_next` behavior can create a new intent when no active intent exists, even when no explicit intent text is supplied, and can run owner-configured prerequisite checks before returning a directive. Merely omitting an MCP `intent` field does not constrain those effects.
 
@@ -181,7 +181,7 @@ Version the schema independently from AIDLC state:
   "spanId": "opaque-span-id",
   "parentSpanId": null,
   "component": "mcp|application|cli|monitor",
-  "event": "mcp.tool.completed|operation.completed|stage.selected|gate.decided",
+  "event": "mcp.request.started|mcp.tool.completed|operation.started|operation.completed|workflow.stage_selected|workflow.stage_reported|workflow.unit_parked|workflow.unit_revisited|workflow.gate_decided",
   "name": "aidlc_next",
   "intentId": "optional validated id",
   "stageId": "optional graph id",
@@ -194,15 +194,23 @@ Version the schema independently from AIDLC state:
 
 The final schema must be an explicit allowlist. Do not serialize arbitrary `Value` arguments/results or error source strings. Exclude prompts, `detail`, artifact content, registered doc content, credentials, env vars, raw filesystem paths, and free-form user text. If a safe error message is needed in the dashboard, map from stable error codes to fixed local copy rather than recording unbounded error text.
 
-### 6.3 Event names and correlation
+### 6.3 Event names, producer ownership, and correlation
 
-- `process.started`, `process.stopped`.
-- `mcp.request.started`, `mcp.tool.completed`, `mcp.protocol.error`.
-- `operation.started`, `operation.completed`.
-- Selected existing lifecycle transitions: `stage.selected`, `stage.reported`, `unit.parked`, `unit.revisited`, `gate.decided`, `intent.paused`, `intent.resumed`, `intent.abandoned`.
-- Preserve `component` and `caller` distinction so a CLI-originated operation does not look like an MCP tool call.
-- Propagate a generated `traceId`/parent span through one MCP call into the application operation. For direct CLI calls, generate a trace root with no MCP parent.
-- Correlation IDs are operational metadata, not authentication credentials.
+These are proposed telemetry events, not a promise that existing audit rows automatically become events. Instrument each event explicitly and test its producer. Emit no event by scraping `.aidlc/audit.jsonl`.
+
+| Event | Producer/hook | Coverage and meaning |
+|---|---|---|
+| `mcp.request.started` / `mcp.tool.completed` | MCP transport adapter | One start and one terminal completion per tool invocation when the process survives; includes outcome `ok`, `blocked`, or `error`. Missing completion after crash is unknown/incomplete, never success. |
+| `operation.started` / `operation.completed` | Shared application façade around each public operation | One operation pair for calls that enter the façade. It does not imply every inner stage transition was emitted. |
+| `workflow.stage_selected` | Explicit instrumentation after successful `orchestrate_next` selection/finalization | Indicates a directive was selected, not that work started or completed. |
+| `workflow.stage_reported` | Explicit instrumentation after successful report finalization | Indicates report operation returned accepted; does not establish truth of reported evidence. |
+| `workflow.unit_parked` / `workflow.unit_revisited` | Explicit instrumentation at successful queue mutation result | Only if those operations are exposed through the façade/MCP scope. |
+| `workflow.gate_decided` | Explicit instrumentation after the existing report path has persisted state and audit successfully | Descriptive event only; not proof of approver identity, consent, or audit-log integrity. Human-mode approval is not accepted through MCP v1. |
+| `workflow.intent_paused` / `workflow.intent_resumed` / `workflow.intent_abandoned` | Only if those intent operations are later moved into the shared façade and explicitly instrumented | Not covered merely because current CLI commands exist. Exclude from v1 event claims until wired and tested. |
+
+For every event, preserve `component`/`caller` (`mcp`, `cli`, or `application`) and source coverage. MCP request spans cover MCP only. Shared-operation events cover only invocations that pass through instrumented façade hooks. Legacy CLI routes bypassing the façade remain invisible to these events. Dashboard labels coverage as observed event types and source; never claim complete workflow/audit coverage from a generic “shared events available” flag.
+
+Propagate a generated `traceId`/parent span through one MCP call into the application operation. For direct CLI calls, generate a trace root with no MCP parent. Event IDs are deduplication keys only, and trace/session IDs are operational metadata, not authentication credentials.
 
 ## 7. Dashboard detailed design
 
@@ -218,7 +226,7 @@ The dashboard is a separately started, read-only local app. It cannot call MCP t
 
 ### 7.2 Navigation and screen layout
 
-**Privacy notice:** The dashboard header/help disclosure names the effective telemetry setting, storage location (`.aidlc/telemetry/`), retention limits, and fields that may be retained (tool/operation names, timestamps, outcomes, durations, and selected intent/stage/unit/session/trace identifiers). It states that prompts, raw arguments/results, artifacts, credentials, and full project paths are excluded. The dashboard is read-only; the user changes collection settings through the documented local configuration/launch options, not from dashboard controls.
+**Privacy notice:** The dashboard header/help disclosure names the effective telemetry setting (or “unknown”), storage location (`.aidlc/telemetry/`), retention limits, and fields that may be retained (tool/operation names, timestamps, outcomes, durations, and selected intent/stage/unit/session/trace identifiers). It states that prompts, raw arguments/results, artifacts, credentials, and full project paths are excluded. The dashboard is read-only; the user changes collection settings through documented local configuration/launch options, not from dashboard controls.
 
 One responsive screen for v1, with a header and four regions:
 
@@ -231,7 +239,7 @@ Desktop wireframe:
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ AIDLC MONITOR  project label  LOCAL ONLY  [15m ▾]  [Refresh]             │
+│ AIDLC MONITOR  local project  LOCAL ONLY  [15m ▾]  [Refresh]             │
 ├──────────────────────────────────────────────────────────────────────────┤
 │ ● RECORDING  last event 14:32:08  MCP sessions 1  coverage: PARTIAL      │
 ├───────────────────────────────────────────────┬──────────────────────────┤
@@ -301,23 +309,23 @@ Detail panel fields:
 - Keep filter state in memory for the current monitor session. Do not place project path, token, or other sensitive data in URL query/hash or persistent browser storage.
 - Manual refresh plus modest auto-refresh. Pause/resume affects only UI refresh, not collection. Show last successful refresh, retain last-known data on errors with stale label, apply backoff, and suspend polling when page is hidden.
 - Clicking summary values filters the underlying list; charts provide text alternatives and exact range/counts. Avoid charts when the same value is clearer as a direct labeled summary.
-- Metric contract: `MCP tool calls` counts one `mcp.tool.completed` event per completed tool invocation; failures and blocked results use that same population and denominator. Tool latency uses only completed MCP tool durations, excluding protocol initialization and shared-operation spans. Shared-operation counts/latency, if displayed, have their own labeled population and are never added to MCP tool counts. Deduplicate by event ID; define how unfinished calls and missing completion events are represented (in-flight vs incomplete/unknown), not silently as successes.
+- Metric contract: `MCP tool calls` counts distinct `mcp.tool.completed` event IDs; errors and blocked counts use that same completed-tool population and show numerator/denominator. Tool latency uses only completed MCP tool durations, excluding protocol setup and shared-operation spans. Shared-operation counts/latency, if shown, have separate labels and populations; never sum them into tool-call counts because one request may produce multiple operations. Deduplicate by event ID. Exclude unfinished/missing-completion spans from success denominators; expose them as incomplete/unknown where a start event exists.
 
 ### 7.5 Dashboard states
 
 | State | Display behavior | Operator guidance |
 |---|---|---|
-| First run/no telemetry directory | Purposeful empty state; no invented events or zero-as-healthy metrics | Launch MCP with telemetry enabled and perform a tool call; run monitor in selected project. |
-| Telemetry disabled | Explicit disabled badge, no claim of server health | Enable telemetry in documented local configuration if desired. |
-| Healthy data | Freshness, range, coverage, summary and event rows | Use filters/details. |
+| No telemetry observed | Purposeful empty/unknown state; no invented events or zero-as-healthy metrics | Check the configured collection setting and make a tool call if telemetry is expected. |
+| Telemetry configured off | Show disabled only when the setting is supplied through a trusted monitor launch/config input, not inferred from missing files | Enable using documented local configuration if desired. |
+| Recent events observed | Show event freshness, range, coverage, summary and rows; do not equate recent events with process liveness | Use filters/details. |
 | Partial/corrupt records | Keep valid rows; count skipped records and mark partial | Explain records were skipped; do not hide valid rows. |
-| Stale data/no recent event | Preserve last-known data with stale banner and timestamp | Refresh or check process/collection state; lack of events is not proof of failure. |
-| Store unreadable/sink failure | Distinguish monitor read failure from collector write failure | Give safe local action, keep workflow unaffected. |
-| MCP process absent | State “no active MCP session observed”; do not call this workflow failure | Launch/reconnect host if an MCP call is expected. |
+| Stale/no recent event | Preserve last-known data with stale banner and timestamp | Refresh or check process/collection state; lack of events is not proof of failure. |
+| Store unreadable/sink failure | Distinguish monitor read failure from collector write failure only when an independent signal exists; otherwise status is unknown | Give safe local action, keep workflow unaffected. |
+| MCP process liveness unknown | Show “no recent MCP events observed,” not “process absent.” A positive live-session status requires a separate heartbeat/status signal with bounded expiry semantics | Launch/reconnect host if a new MCP call is expected. |
 | Query/size limit reached | Show truncated/limited result state and applied limit | Narrow range/filters or load next page. |
 | Dashboard shutting down | Stop refresh and show shutdown state | No workflow action implied. |
 
-The monitor cannot distinguish first-run from disabled collection based on missing telemetry files alone. Define a trustworthy local collector-status signal (for example, monitor launch configuration plus an explicit telemetry-enabled marker with bounded lifecycle semantics) before presenting distinct states. If that signal is unavailable or stale, show an honest “no telemetry observed / status unknown” state rather than inferring disabled or first-run.
+The best-effort event store cannot prove current process liveness, collection being disabled, or complete event capture. If the monitor receives a trusted telemetry-enabled setting at launch, it may report that configuration; otherwise show “status unknown.” A positive live-session count requires a separate local heartbeat/status mechanism with bounded lease/expiry and its own path, permission, and security review.
 
 ### 7.6 Visual, responsive and accessibility design
 
@@ -331,12 +339,12 @@ The monitor cannot distinguish first-run from disabled collection based on missi
 
 ### 7.7 Dashboard process, API, and security
 
-- Separate monitor process, with `dtech-aidlc monitor --project <path>` as the selected proposed launch contract. The CLI subcommand must start the monitor child process and return independently of the stdio MCP server. Keep the command name consistent with the proposed CLI subcommand and `rust-cli/main.rs` router rather than adding a separate monitor executable unless an ADR revises this decision.
+- Separate monitor process, launched by the proposed `dtech-aidlc monitor --project <path>` subcommand. The CLI command acts as a thin launcher for a monitor child process and returns independently; the process serves the UI until stopped. The monitor remains separate from the MCP stdio process. Keep Cargo targets, router behavior, packaging and docs aligned; do not add a separate public monitor executable unless an ADR revises this contract.
 - Bind to `127.0.0.1` on an ephemeral port by default; print URL but do not open browser automatically. No `0.0.0.0` binding in v1.
 - Read-only GET endpoints only. No POST/PUT/PATCH/DELETE, no tool invocation, and no workflow-state or audit-log reads. Prefer a generic “local project” label; the dashboard reads telemetry files only.
 - Query interface accepts bounded time range, allowlisted filter values, sort and opaque cursor. It never accepts a filesystem path or filename from the browser and never returns raw JSONL lines.
 - Stable errors: `invalid_filter`, `range_too_large`, `cursor_stale`, `store_unavailable`, `query_limit_reached`.
-- Strict Host/Origin handling, no permissive CORS, bounded response sizes and event counts, loopback-only bind. Decide whether a per-run unguessable read token is required after browser security review; never store it in telemetry or project files.
+- Access control: bind loopback only and enforce strict Host/Origin allowlisting, no permissive CORS, and bounded responses. A per-run token remains an open decision: assess how a same-user local process could read command output and whether browser-origin/bootstrap can securely deliver the token without putting it in URLs, project files, or telemetry. Document the chosen threat model and review local cross-process access and DNS rebinding before release.
 - Static UI is bundled/embedded. No remote fonts, analytics, scripts, or external services.
 - Read only recognized telemetry files; reject symlinks/traversal and enforce retention/query bounds. Ignore unknown schema fields safely.
 
@@ -393,13 +401,13 @@ Proposed flags/config (exact public names require owner review):
 
 ## 10. Open decisions before implementation
 
-1. Rust MCP SDK and required async runtime, after dependency/offline/MSRV spike.
-2. Whether `aidlc_next` can create a new intent over MCP in v1 or only select next stage for an existing intent.
-3. Exact gate-report tool UX and whether supported hosts can reliably require a user confirmation UI.
+1. Rust MCP SDK, selected MSRV, and required async runtime, after the dependency/locked-build spike; assess offline cache availability separately if required.
+2. Prerequisite handling if configured checks are needed for `aidlc_next`; default is no implicit command execution.
+3. Exact AI-mode gate-report UX; human-mode approved decisions are excluded from MCP v1.
 4. Telemetry default (enabled metadata-only with opt-out vs opt-in only).
 5. Telemetry retention/file size values and whether Windows file permissions need additional handling.
-6. Resolve the monitor launch/packaging contract consistently with the selected `dtech-aidlc monitor` subcommand in §7.7; also decide whether the local static UI can avoid a framework/runtime dependency.
-7. Loopback dashboard browser access: Host/Origin protections alone or a per-run token.
+6. Whether the local static UI can avoid a framework/runtime dependency; monitor launch contract is the `dtech-aidlc monitor` subcommand per §7.7.
+7. Dashboard token/bootstrap threat model and local cross-process access; Host/Origin checks and loopback binding are required regardless.
 8. Dashboard latency percentile minimum sample size and exact metric definitions.
 
 ## 11. Detailed design acceptance
