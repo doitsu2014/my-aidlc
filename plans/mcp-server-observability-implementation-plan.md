@@ -238,7 +238,7 @@ DESKTOP  ≥ 960 px
 │ Events · newest first · 128 results          │ [Clear filters]            │
 │ TIME       SOURCE OPERATION   DUR   OUTCOME  │                           │
 │ 14:32:08   MCP    aidlc_next   42ms  OK       │ Selected event             │
-│ 14:31:51   APP    workflow.stage_selected 18ms  OK │ trace / span / parent │
+│ 14:31:51   APP    workflow.stage_selected      OK │ trace / span / parent │
 │ 14:31:22   MCP    aidlc_report 86ms  BLOCKED  │ safe error + allowlisted    │
 │ [older events…] [Load more]                  │ metadata only               │
 └──────────────────────────────────────────────┴───────────────────────────┘

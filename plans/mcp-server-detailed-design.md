@@ -253,7 +253,7 @@ Desktop wireframe:
 │ EVENTS · newest first · 128 matches           ├──────────────────────────┤
 │ time       source  operation     duration status│ SELECTED EVENT           │
 │ 14:32:08   MCP     aidlc_next    42 ms    OK    │ trace/span/parent         │
-│ 14:31:51   APP     workflow.stage_selected 18 ms  OK │ safe code + safe fields │
+│ 14:31:51   APP     workflow.stage_selected      OK │ safe code + safe fields │
 │ 14:31:22   MCP     aidlc_report  86 ms BLOCKED │ return to filtered list   │
 │ [Load more]                                    │                          │
 └───────────────────────────────────────────────┴──────────────────────────┘
