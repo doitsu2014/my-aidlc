@@ -1,0 +1,230 @@
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Orca MCP Studio</title>
+<meta name="description" content="A proposed local-first dtech-aidlc MCP design with configured gate policy, separate telemetry, and a loopback-only read-only monitor.">
+<style>
+/* Layout: a tide-chart console that traces the request from two entry points through one guarded engine to local project state. */
+:root {
+  --paper: #f3f6f5;
+  --ink: #162d35;
+  --muted: #526b73;
+  --line: #b8c9c9;
+  --panel: #e7efed;
+  --accent: #007d78;
+  --accent-ink: #ffffff;
+  --warm: #a55327;
+  --warm-ink: #ffffff;
+  --display: "Space Grotesk", "Trebuchet MS", sans-serif;
+  --body: "Inter", "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #101e25;
+    --ink: #e4efed;
+    --muted: #a1b8bb;
+    --line: #40585e;
+    --panel: #192b32;
+    --accent: #53d3c2;
+    --accent-ink: #092a2a;
+    --warm: #f0a06d;
+    --warm-ink: #30190d;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #101e25;
+  --ink: #e4efed;
+  --muted: #a1b8bb;
+  --line: #40585e;
+  --panel: #192b32;
+  --accent: #53d3c2;
+  --accent-ink: #092a2a;
+  --warm: #f0a06d;
+  --warm-ink: #30190d;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding-block: 2.5rem 4rem;
+  padding-left: max(18px, env(safe-area-inset-left, 0px));
+  padding-right: max(18px, env(safe-area-inset-right, 0px));
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.55 var(--body);
+}
+a { color: var(--accent); }
+main { width: min(1120px, 100%); margin-inline: auto; display: grid; gap: 2rem; }
+header { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 1.5rem; border-bottom: 1px solid var(--line); padding-bottom: 1.5rem; }
+.kicker, .eyebrow { font: 600 .72rem/1.2 var(--mono); letter-spacing: .11em; text-transform: uppercase; color: var(--accent); }
+h1, h2, h3, p { margin: 0; }
+h1 { margin-top: .6rem; font: 600 clamp(2.4rem, 7vw, 5.2rem)/.95 var(--display); letter-spacing: -.065em; text-wrap: balance; }
+.lede { max-width: 57ch; color: var(--muted); margin-top: 1rem; }
+.version { font: 500 .72rem/1.4 var(--mono); color: var(--muted); text-align: right; }
+.hero-note { display: inline-flex; align-items: center; gap: .5rem; border: 1px solid var(--line); padding: .55rem .75rem; color: var(--muted); font: 500 .72rem/1.35 var(--mono); }
+.pulse { width: .55rem; aspect-ratio: 1; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 17%, transparent); }
+.claim { display: grid; grid-template-columns: minmax(0, .7fr) minmax(0, 1.3fr); gap: 2rem; align-items: start; }
+.claim h2 { max-width: 12ch; font: 600 clamp(1.5rem, 3vw, 2.15rem)/1.08 var(--display); letter-spacing: -.04em; text-wrap: balance; }
+.claim p { max-width: 60ch; color: var(--muted); }
+.diagram { border-block: 1px solid var(--line); padding-block: 1.3rem .6rem; }
+.diagram-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; padding-bottom: .7rem; }
+.diagram-head h2 { font: 600 .95rem/1.2 var(--display); }
+.diagram-head span { font: .68rem/1.3 var(--mono); color: var(--muted); }
+.diagram-scroll { width: 100%; overflow-x: auto; }
+svg { display: block; width: 100%; min-width: 720px; height: auto; color: var(--ink); }
+svg text { font-family: var(--body); fill: currentColor; }
+svg .small { font: 12px var(--mono); fill: var(--muted); }
+svg .label { font: 600 14px var(--display); }
+svg .sub { font: 12px var(--body); fill: var(--muted); }
+svg .box { fill: var(--panel); stroke: var(--line); stroke-width: 1.5; }
+svg .highlight { fill: color-mix(in srgb, var(--accent) 12%, var(--paper)); stroke: var(--accent); stroke-width: 2; }
+svg .gate { fill: color-mix(in srgb, var(--warm) 13%, var(--paper)); stroke: var(--warm); stroke-width: 1.7; }
+svg .flow { stroke: var(--ink); stroke-width: 1.7; fill: none; }
+svg .flow-accent { stroke: var(--accent); stroke-width: 2.5; fill: none; }
+svg .flow-warm { stroke: var(--warm); stroke-width: 2; fill: none; }
+figcaption { margin-top: .7rem; color: var(--muted); font-size: .85rem; max-width: 78ch; }
+.caption-mark { color: var(--accent); font: 600 .68rem var(--mono); text-transform: uppercase; letter-spacing: .08em; margin-right: .45rem; }
+.lower { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(250px, .85fr); gap: 2.4rem; }
+.section-title { font: 600 1.25rem/1.1 var(--display); letter-spacing: -.03em; margin-bottom: .9rem; }
+.tool-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.2rem; border-top: 1px solid var(--line); }
+.tool { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .3rem .8rem; padding: .8rem 0; border-bottom: 1px solid var(--line); align-items: baseline; min-width: 0; }
+.tool code { color: var(--ink); font: 600 .76rem var(--mono); overflow-wrap: anywhere; }
+.tool p { grid-column: 1 / -1; color: var(--muted); font-size: .84rem; }
+.tag { align-self: start; border: 1px solid var(--line); padding: .15rem .36rem; color: var(--muted); font: .62rem var(--mono); text-transform: uppercase; }
+.tag.write { border-color: var(--warm); color: var(--warm); }
+.principles { display: grid; gap: 1rem; border-left: 2px solid var(--accent); padding-left: 1rem; }
+.principle { display: grid; gap: .25rem; }
+.principle strong { font: 600 .9rem var(--display); }
+.principle p { color: var(--muted); font-size: .85rem; max-width: 42ch; }
+footer { border-top: 1px solid var(--line); padding-top: 1rem; display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem 1rem; color: var(--muted); font: .7rem/1.5 var(--mono); }
+@media (max-width: 680px) {
+  body { padding-block: 1.5rem 3rem; }
+  header { grid-template-columns: 1fr; align-items: start; }
+  .version { text-align: left; }
+  .hero-note { width: fit-content; }
+  .claim, .lower { grid-template-columns: 1fr; gap: 1rem; }
+  .claim h2 { max-width: 24ch; }
+  .tool-list { grid-template-columns: 1fr; }
+  .diagram-head { align-items: start; flex-direction: column; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pulse { animation: sonar 2.8s ease-out infinite; }
+  @keyframes sonar { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 8%, transparent); } }
+}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<main>
+  <header>
+    <div>
+      <div class="kicker">AIDLC · interface concept</div>
+      <h1>Orca MCP<br>Studio</h1>
+      <p class="lede">One workflow engine, two ways in. The MCP server gives assistants structured tools while the CLI remains useful on its own.</p>
+    </div>
+    <div class="hero-note"><span class="pulse"></span>MCP STDIO · NO MCP LISTENER</div>
+  </header>
+
+  <section class="claim" aria-labelledby="thesis">
+    <h2 id="thesis">Keep the engine. Add a new door.</h2>
+    <p>In this proposed design, the MCP server is the assistant-facing entry point, but it is not a shell-shaped proxy to the CLI. The MCP adapter and existing CLI are peers over shared AIDLC operations. Explicit instrumentation could emit MCP tool-call spans and shared-layer workflow events; direct CLI use would get operation-level events only where the CLI route passes through instrumented shared operations, not MCP-level spans.</p>
+  </section>
+
+  <section class="diagram" aria-labelledby="diagram-title">
+    <div class="diagram-head"><h2 id="diagram-title">Request path + observability · local boundary</h2><span>HOST → MCP → SHARED OPS · EVENT STREAM → DASHBOARD</span></div>
+    <figure>
+      <div class="diagram-scroll">
+        <svg viewBox="0 0 1200 610" role="img" aria-label="Proposed architecture, not yet implemented: the assistant harness calls an MCP process over stdio; the process opens no network listener. MCP and the existing CLI are separate entry paths to shared AIDLC operations. Mutations use existing validation and configured human-or-AI gate policy; gate decisions pass only through aidlc_report, and caller-supplied approver names are not authenticated identities. Workflow audit records remain in .aidlc/audit.jsonl. Proposed metadata-only MCP request spans and shared-operation events go to separate local telemetry; direct CLI activity has no MCP spans and appears only where shared operations are instrumented. A separately started monitor serves a read-only dashboard over loopback HTTP, not MCP. Loopback access still needs Host/Origin, CORS, DNS-rebinding, and local-access review.">
+          <defs>
+            <marker id="arrow-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink)"/></marker>
+            <marker id="arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/></marker>
+            <marker id="arrow-warm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--warm)"/></marker>
+          </defs>
+          <rect x="12" y="16" width="1176" height="576" rx="8" fill="none" stroke="var(--line)" stroke-dasharray="5 6"/>
+          <text x="30" y="39" class="small">LOCAL MACHINE · EXPLICIT PROJECT ROOT · TELEMETRY ENABLEMENT DEFAULT OPEN</text>
+
+          <rect class="box" x="42" y="93" width="178" height="74" rx="5"/>
+          <text x="60" y="121" class="label">Assistant harness</text><text x="60" y="145" class="sub">MCP client · configured tools</text>
+          <rect class="box" x="42" y="371" width="178" height="74" rx="5"/>
+          <text x="60" y="399" class="label">Existing CLI</text><text x="60" y="423" class="sub">people · scripts · setup</text>
+
+          <rect class="highlight" x="295" y="83" width="196" height="96" rx="5"/>
+          <text x="316" y="113" class="label">MCP server</text><text x="316" y="137" class="sub">local process · bounded tools</text><text x="316" y="160" class="small">stdio · no listener</text>
+
+          <rect class="box" x="565" y="194" width="220" height="132" rx="5"/>
+          <text x="589" y="230" class="label">Shared AIDLC</text><text x="589" y="251" class="label">operations</text><text x="589" y="281" class="sub">workflow rules · validations</text><text x="589" y="303" class="small">one state-transition layer</text>
+
+          <rect class="box" x="894" y="104" width="246" height="74" rx="5"/>
+          <text x="916" y="133" class="label">Project context</text><text x="916" y="156" class="sub">PROJECT · registered docs · knowledge</text>
+          <rect class="box" x="894" y="359" width="246" height="74" rx="5"/>
+          <text x="916" y="388" class="label">Workflow state · .aidlc/</text><text x="916" y="411" class="sub">intent state · artifacts</text>
+          <rect class="box" x="894" y="230" width="246" height="54" rx="5"/>
+          <text x="916" y="253" class="label">Append-only audit log</text><text x="916" y="274" class="small">.aidlc/audit.jsonl · not telemetry</text>
+          <path class="flow-warm" d="M771 407 H846 V257 H894" marker-end="url(#arrow-warm)"/>
+          <text x="786" y="397" class="small">audit event</text>
+
+          <rect class="gate" x="595" y="374" width="176" height="67" rx="5"/>
+          <text x="614" y="400" class="label">Validate + gate</text><text x="614" y="423" class="small">configured policy · caller label</text>
+
+          <rect class="highlight" x="295" y="463" width="224" height="55" rx="5"/>
+          <text x="313" y="486" class="label">Local telemetry store</text><text x="313" y="506" class="small">traces + lifecycle events</text>
+          <rect class="box" x="894" y="463" width="246" height="55" rx="5"/>
+          <text x="916" y="486" class="label">Read-only local dashboard</text><text x="916" y="506" class="small">separate monitor · loopback HTTP</text>
+
+          <path class="flow-accent" d="M220 130 H295" marker-end="url(#arrow-accent)"/>
+          <text x="231" y="118" class="small">MCP requests / results</text>
+          <path class="flow" d="M491 131 H530 V228 H565" marker-end="url(#arrow-ink)"/>
+          <text x="495" y="164" class="small">tool invoke</text>
+          <path class="flow" d="M220 408 H531 V307 H565" marker-end="url(#arrow-ink)"/>
+          <text x="384" y="399" class="small">CLI uses same operations</text>
+
+          <path class="flow" d="M785 222 H838 V141 H894" marker-end="url(#arrow-ink)"/>
+          <text x="811" y="130" class="small">read context</text>
+          <path class="flow" d="M894 160 H844 V247 H785" marker-end="url(#arrow-ink)"/>
+          <text x="809" y="238" class="small">context result</text>
+          <path class="flow" d="M785 284 H846 V385 H894" marker-end="url(#arrow-ink)"/>
+          <text x="803" y="339" class="small">read state</text>
+          <path class="flow-warm" d="M675 326 V374" marker-end="url(#arrow-warm)"/>
+          <text x="688" y="357" class="small">mutation</text>
+          <path class="flow-warm" d="M771 407 H833 V419 H894" marker-end="url(#arrow-warm)"/>
+          <text x="791" y="399" class="small">write if policy allows</text>
+
+          <path class="flow-accent" stroke-dasharray="5 4" d="M393 179 V463" marker-end="url(#arrow-accent)"/>
+          <text x="405" y="234" class="small">MCP spans</text>
+          <path class="flow-accent" stroke-dasharray="5 4" d="M670 326 V348 H520 V489 H519" marker-end="url(#arrow-accent)"/>
+          <text x="531" y="468" class="small">shared-op events</text>
+          <path class="flow" d="M519 489 H894" marker-end="url(#arrow-ink)"/>
+          <text x="680" y="480" class="small">dashboard reads events</text>
+          <text x="550" y="535" class="small">MCP stdout stays protocol-only · telemetry uses a separate local channel</text>
+          <text x="550" y="559" class="small">Separate read-only loopback HTTP monitor · MCP process remains stdio-only</text>
+        </svg>
+      </div>
+      <figcaption><span class="caption-mark">Proposed mechanism</span>The harness calls MCP over stdio; MCP and the CLI converge on shared operations. Explicit instrumentation can emit metadata-only MCP request spans and shared-operation lifecycle events to a separate local telemetry store. These are proposed operational events, not an OpenTelemetry export. A separately started monitor serves the read-only dashboard over loopback HTTP; this is not the MCP transport. Keep MCP stdout protocol-only. Direct CLI use may appear in operation events only where its route reaches instrumented shared code, and it never creates MCP spans. Telemetry is best-effort and distinct from `.aidlc/audit.jsonl`, which remains the workflow audit record; telemetry does not prove an audited gate decision. Telemetry enablement/retention and monitor access controls remain open design decisions. Loopback binding does not replace browser-origin defenses or a review of local-process access. All MCP/monitor instrumentation shown here is proposed, not shipped.</figcaption>
+    </figure>
+  </section>
+
+  <section class="lower">
+    <div>
+      <h2 class="section-title">A deliberately small tool surface</h2>
+      <div class="tool-list">
+        <article class="tool"><code>aidlc_status</code><span class="tag">read</span><p>Current intent, stage, gate, and work-unit state.</p></article>
+        <article class="tool"><code>aidlc_next</code><span class="tag write">state-affecting</span><p>Select the next directive using existing rules; selection may persist workflow state and audit events.</p></article>
+        <article class="tool"><code>aidlc_queue</code><span class="tag">read</span><p>Ready, blocked, and parked work units.</p></article>
+        <article class="tool"><code>aidlc_report</code><span class="tag write">write · policy checked</span><p>Submit results and supported gate decisions only through existing report validation and configured human/AI rules. Approver names are caller-supplied labels, not authenticated identities.</p></article>
+      </div>
+    </div>
+    <aside>
+      <h2 class="section-title">Dashboard signal</h2>
+      <div class="principles">
+        <div class="principle"><strong>CLI still stands alone</strong><p>Setup, administration, shell use, and fallback do not depend on an MCP host.</p></div>
+        <div class="principle"><strong>No second workflow engine</strong><p>State transitions and policy belong in shared operations, not in a parallel MCP implementation.</p></div>
+        <div class="principle"><strong>Local by default</strong><p>MCP uses stdio and opens no listener. The separate monitor serves read-only HTTP on loopback; the project owns its state.</p></div>
+        <div class="principle"><strong>Audit is not telemetry</strong><p>The existing append-only audit log records workflow audit events. Proposed bounded, best-effort telemetry is separate and never authorizes writes.</p></div>
+        <div class="principle"><strong>Loopback still needs defenses</strong><p>Loopback is not process isolation. Review Host/Origin, CORS, DNS rebinding, local access, and whether a per-run read token is needed.</p></div>
+        <div class="principle"><strong>Defaults remain open</strong><p>Telemetry enablement and retention need a decision. Metadata spans are operational signals, not OpenTelemetry export or proof of an audited gate decision.</p></div>
+      </div>
+    </aside>
+  </section>
+
+  <footer><span>PROPOSAL · MCP, TELEMETRY, AND DASHBOARD NOT YET IMPLEMENTED</span><span>MCP ADDS AN INTERFACE · THE CLI REMAINS FIRST-CLASS</span></footer>
+</main>
