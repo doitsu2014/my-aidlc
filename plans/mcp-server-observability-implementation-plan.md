@@ -158,14 +158,14 @@ Proposed event envelope:
 ```json
 {
   "schemaVersion": 1,
-  "eventId": "...",
+  "eventId": "opaque-id",
   "timestamp": "RFC3339 UTC",
   "component": "mcp|application|cli",
   "caller": "mcp|cli; omitted if unknown",
   "processId": 1234,
-  "sessionId": "opaque process-session id",
-  "traceId": "opaque correlation id",
-  "spanId": "opaque span id",
+  "sessionId": "opaque-process-session-id",
+  "traceId": "opaque-correlation-id",
+  "spanId": "opaque-span-id",
   "parentSpanId": null,
   "event": "mcp.request.started|mcp.tool.completed|mcp.protocol.error|operation.started|operation.completed|workflow.stage_selected|workflow.stage_reported|workflow.unit_parked|workflow.unit_revisited|workflow.gate_decided",
   "name": "aidlc_next",
@@ -430,7 +430,8 @@ Before implementation, include a dashboard-specific design pack in this plan's e
 - Application façade maps requests to existing operations and preserves result/error semantics.
 - Tool JSON schemas reject missing required fields, unknown fields, invalid enum values, oversized strings/lists, and malformed structured input.
 - Gate fields are refused outside valid phase-gate states and existing human/AI gate rules remain intact.
-- Telemetry schema serialization is stable and redaction allowlist rejects sensitive values.
+- Telemetry schema serialization is stable; a schema-consistency test verifies the duplicated event envelope in both design sources agrees field-for-field before release.
+- Producer tests verify every v1 event enum value has an explicit producer hook, especially `mcp.protocol.error`, and that no unlisted monitor event is emitted.
 - Telemetry rotation/retention handles malformed files, limits, and timestamps safely.
 - Dashboard query/parser tolerates truncated final JSONL records and unknown event types.
 
