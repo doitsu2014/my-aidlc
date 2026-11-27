@@ -1,3 +1,4 @@
+use dtech_aidlc::application;
 use dtech_aidlc::args::{command_flags, command_key, command_max_args, parse_args, FlagValue};
 use dtech_aidlc::onboarding::{onboard_project, rescan_project, OnboardOptions};
 use dtech_aidlc::orchestrate;
@@ -105,14 +106,16 @@ fn run() -> Result<u8, String> {
             if key == "orchestrate next" || key == "orchestrate report" {
                 return run_orchestrate(&key, &root, flags);
             }
-            if matches!(
-                key.as_str(),
-                "orchestrate park" | "orchestrate queue" | "orchestrate revisit"
-            ) {
+            if key == "orchestrate queue" {
+                let project = application::open(&root, application::Caller::Cli)?;
+                print_json(&application::queue(&project)?)?;
+                return Ok(0);
+            }
+            if matches!(key.as_str(), "orchestrate park" | "orchestrate revisit") {
                 return run_unit_queue(&key, &root, flags);
             }
             // Node reads the graph before rejecting the action.
-            load_runtime_graph(external_engine().as_deref())?;
+            load_runtime_graph(application::external_engine().as_deref())?;
             return Err("Use orchestrate next, report, park, queue or revisit".into());
         }
         "scope" | "status" => return run_read_only(&key, &root, rest, flags),
@@ -328,7 +331,7 @@ fn run_read_only(
     rest: &[String],
     flags: &BTreeMap<String, FlagValue>,
 ) -> Result<u8, String> {
-    let graph = load_runtime_graph(external_engine().as_deref())?;
+    let graph = load_runtime_graph(application::external_engine().as_deref())?;
     let output = match key {
         "scope" => {
             let config = dtech_aidlc::scope::validate_model_config(root, graph.value())?;
@@ -338,7 +341,15 @@ fn run_read_only(
                 &config,
             )?
         }
-        "status" => dtech_aidlc::status::status(root, &graph, string_flag(flags, "intent"))?,
+        "status" => {
+            let app = application::Project {
+                root: root.to_path_buf(),
+                graph,
+                engine: orchestrate::Engine::embedded(root),
+                caller: application::Caller::Cli,
+            };
+            application::status(&app, string_flag(flags, "intent"))?
+        }
         _ => dtech_aidlc::status::list_intents(root, &graph)?,
     };
     print_json(&output)?;
@@ -398,16 +409,6 @@ fn load_runtime_graph(engine: Option<&Path>) -> Result<dtech_aidlc::scope::Graph
     dtech_aidlc::scope::read_graph(engine)
 }
 
-/// The installed engine named by `DTECH_AIDLC_HOME` (Node `engineRoot()`), if any. Like
-/// Node's `path.resolve(home)`, the candidates are absolute and normalised.
-fn external_engine() -> Option<PathBuf> {
-    let home = env::var_os("DTECH_AIDLC_HOME").filter(|home| !home.is_empty())?;
-    let home = orchestrate::resolve_like_node(Path::new(&home)).ok()?;
-    [home.join("core"), home].into_iter().find(|candidate| {
-        candidate.join("data/phase-graph.json").exists() || candidate.join("methodology").exists()
-    })
-}
-
 /// Node `orchestrate next` / `orchestrate report` command handling.
 fn run_orchestrate(
     key: &str,
@@ -417,28 +418,16 @@ fn run_orchestrate(
     // Node resolves --project (path.resolve) before anything else, then checks the
     // state directory and reads the methodology graph; the project configuration is read
     // later, by each action, as Node's orchestrateNext / orchestrateReport do.
-    let root = orchestrate::resolve_like_node(project)?;
-    dtech_aidlc::audit::assert_safe_state_dir(&root)?;
-    let engine_root = external_engine();
-    let graph = load_runtime_graph(engine_root.as_deref())?;
-    let graph = graph.value();
-    let engine = match engine_root {
-        Some(engine) => orchestrate::Engine::external(engine),
-        None => orchestrate::Engine::embedded(&root),
-    };
+    let app = application::open(project, application::Caller::Cli)?;
     if key == "orchestrate report" {
         // Node orchestrateReport reads the configuration with loadConfig: unvalidated,
         // and `{}` when it is missing or malformed.
-        let config = dtech_aidlc::scope::load_config_unvalidated(&root);
         let units = list_flag(flags, "unit")?;
         if units.len() > 1 {
             return Err("--unit takes one work unit for orchestrate report".into());
         }
-        let mut result = orchestrate::orchestrate_report_with_engine(
-            &root,
-            graph,
-            &config,
-            &engine,
+        let result = application::report(
+            &app,
             &orchestrate::ReportOptions {
                 stage: string_flag(flags, "stage").map(str::to_owned),
                 result: string_flag(flags, "result").map(str::to_owned),
@@ -454,16 +443,13 @@ fn run_orchestrate(
                 unit: units.into_iter().next(),
             },
         )?;
-        orchestrate::finish_report(&root, &mut result)?;
         print_json(&result)?;
         return Ok(0);
     }
     // Node knowledgePreflight reads nothing for a project folder that does not exist
     // (no state directory, no manifest); orchestrateNext then reports it as having no
     // active intent, or as not initialized when an intent is given.
-    if root.exists() {
-        dtech_aidlc::knowledge::knowledge_preflight(&root)?;
-    }
+    application::knowledge_preflight(&app)?;
     let intent = intent_text(flags)?
         .map(|text| orchestrate::normalize_intent_text(&text))
         .transpose()?;
@@ -489,12 +475,8 @@ fn run_orchestrate(
         return Err("--claim and --unit continue the active intent; they cannot start one".into());
     }
     // Node orchestrateNext validates the configuration first (validateModelConfig).
-    let config = dtech_aidlc::scope::validate_model_config(&root, graph)?;
-    let outcome = orchestrate::orchestrate_next(
-        &root,
-        graph,
-        &config,
-        &engine,
+    let outcome = application::next(
+        &app,
         &orchestrate::NextOptions {
             intent,
             scope: string_flag(flags, "scope").map(str::to_owned),
@@ -513,8 +495,7 @@ fn run_orchestrate(
             print_json(&payload)?;
             Ok(orchestrate::BLOCKED_EXIT_CODE)
         }
-        orchestrate::NextOutcome::Directive(mut directive) => {
-            orchestrate::finish_directive(&root, &mut directive)?;
+        orchestrate::NextOutcome::Directive(directive) => {
             print_json(&directive)?;
             Ok(0)
         }
@@ -525,7 +506,7 @@ fn run_orchestrate(
     }
 }
 
-/// `orchestrate park`, `orchestrate queue` and `orchestrate revisit`, with the same root
+/// `orchestrate park` and `orchestrate revisit` (`queue` goes through `application`), with the same root
 /// resolution, state-directory check and methodology graph as `run_orchestrate`.
 fn run_unit_queue(
     key: &str,
@@ -534,7 +515,7 @@ fn run_unit_queue(
 ) -> Result<u8, String> {
     let root = orchestrate::resolve_like_node(project)?;
     dtech_aidlc::audit::assert_safe_state_dir(&root)?;
-    let graph = load_runtime_graph(external_engine().as_deref())?;
+    let graph = load_runtime_graph(application::external_engine().as_deref())?;
     let config = dtech_aidlc::scope::load_config_unvalidated(&root);
     let options = dtech_aidlc::unit_commands::UnitOptions {
         units: list_flag(flags, "unit")?,

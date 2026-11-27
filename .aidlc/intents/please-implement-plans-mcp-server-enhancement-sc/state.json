@@ -285,10 +285,14 @@
         "WU-006": {
           "status": "complete",
           "reportedAt": "2026-11-27T17:20:29.766Z"
+        },
+        "WU-003": {
+          "status": "complete",
+          "reportedAt": "2026-11-27T17:34:05.469Z"
         }
       },
       "detail": null,
-      "reportedAt": "2026-11-27T17:20:29.766Z",
+      "reportedAt": "2026-11-27T17:34:05.469Z",
       "reports": [
         {
           "at": "2026-11-27T16:47:10.186Z",
@@ -319,6 +323,12 @@
           "result": "complete",
           "detail": null,
           "unit": "WU-006"
+        },
+        {
+          "at": "2026-11-27T17:34:05.469Z",
+          "result": "complete",
+          "detail": null,
+          "unit": "WU-003"
         }
       ],
       "artifacts": [
@@ -381,6 +391,18 @@
           "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/red-tests/WU-006/red-evidence.md",
           "bytes": 1640,
           "sha256": "b2a306acb853f7e7985d770d32a30b8712e50dd52f7c895ef62fb9f57732326c"
+        },
+        {
+          "output": "failing-tests",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/red-tests/WU-003/failing-tests.md",
+          "bytes": 1360,
+          "sha256": "73263e6cdfac0415cb4654e7f0308a95fc5611203ab2f16191e97d14a1cf41d5"
+        },
+        {
+          "output": "red-evidence",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/red-tests/WU-003/red-evidence.md",
+          "bytes": 1485,
+          "sha256": "63a6f6843109b44244924b566d0a4ee48687c10c8321c0ed7b3b5786d3adab2f"
         }
       ]
     },
@@ -407,10 +429,14 @@
         "WU-006": {
           "status": "complete",
           "reportedAt": "2026-11-27T17:23:13.883Z"
+        },
+        "WU-003": {
+          "status": "complete",
+          "reportedAt": "2026-11-27T17:35:34.327Z"
         }
       },
       "detail": null,
-      "reportedAt": "2026-11-27T17:23:13.883Z",
+      "reportedAt": "2026-11-27T17:35:34.327Z",
       "reports": [
         {
           "at": "2026-11-27T16:48:31.139Z",
@@ -441,6 +467,12 @@
           "result": "complete",
           "detail": null,
           "unit": "WU-006"
+        },
+        {
+          "at": "2026-11-27T17:35:34.327Z",
+          "result": "complete",
+          "detail": null,
+          "unit": "WU-003"
         }
       ],
       "artifacts": [
@@ -563,6 +595,30 @@
           "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-006/known-limitations.md",
           "bytes": 935,
           "sha256": "236398a7e7f1cba3eeb9160408a5cbb621e63e47550c79c174a260e98483aaf2"
+        },
+        {
+          "output": "implementation",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-003/implementation.md",
+          "bytes": 1742,
+          "sha256": "83dde8c9ac37778794bfe9f600b85ff930b13def7abfe2432e4db9731f380349"
+        },
+        {
+          "output": "green-verification-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-003/green-verification-report.md",
+          "bytes": 2264,
+          "sha256": "38b1f6f1c4a31f41003d19bad80039fd0e66327185e54f0c3bca6da374b0f124"
+        },
+        {
+          "output": "regression-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-003/regression-report.md",
+          "bytes": 419,
+          "sha256": "5cdaa3639986b490d9810ce5bf599bd6833da19025874e260f8b41e963706bfe"
+        },
+        {
+          "output": "known-limitations",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-003/known-limitations.md",
+          "bytes": 878,
+          "sha256": "acded8e4e0448879f0b4296d57a1857bd9c0253c0fc9146c18b8a82a4268fb6d"
         }
       ]
     }
@@ -570,7 +626,7 @@
   "dependencies": {},
   "createdAt": "2026-11-27T14:29:23.464Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-27T17:23:13.885Z",
+  "updatedAt": "2026-11-27T17:35:34.328Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -628,8 +684,8 @@
       "WU-008",
       "WU-009"
     ],
-    "progressSeq": 5,
-    "syncedAt": "2026-11-27T17:23:13.883Z",
+    "progressSeq": 6,
+    "syncedAt": "2026-11-27T17:35:34.327Z",
     "units": {
       "WU-001": {
         "title": "Scaffold and packaging",
@@ -836,22 +892,36 @@
           "TS-010",
           "TS-011"
         ],
-        "status": "pending",
-        "selectedAt": "2026-11-27T17:18:31.729Z",
+        "status": "verified",
+        "selectedAt": "2026-11-27T17:34:05.469Z",
         "steps": {
-          "red-tests": null,
-          "build-and-verify": null
+          "red-tests": "complete",
+          "build-and-verify": "complete"
         },
-        "attempts": {},
+        "attempts": {
+          "red-tests": 1,
+          "build-and-verify": 1
+        },
         "blockedStreak": null,
         "park": null,
         "parkHistory": [],
         "inputFingerprint": "sha256:073b84eead84df5e438297698b91f385943ff0f93878271ea112df49b28f5202",
-        "history": [],
+        "history": [
+          {
+            "stage": "red-tests",
+            "result": "complete",
+            "at": "2026-11-27T17:34:05.469Z"
+          },
+          {
+            "stage": "build-and-verify",
+            "result": "complete",
+            "at": "2026-11-27T17:35:34.327Z"
+          }
+        ],
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-27T16:38:17.722Z"
+        "updatedAt": "2026-11-27T17:35:34.327Z"
       },
       "WU-005": {
         "title": "MCP tool adapter",
@@ -979,15 +1049,7 @@
     },
     "baselineTests": [],
     "rework": null,
-    "lastSatisfiedAt": "2026-11-27T17:23:13.883Z",
-    "parallelSince": "2026-11-27T16:51:09.601Z",
-    "claims": [
-      {
-        "unit": "WU-003",
-        "stage": "red-tests",
-        "claimedAt": "2026-11-27T17:18:31.729Z"
-      }
-    ]
+    "lastSatisfiedAt": "2026-11-27T17:35:34.327Z"
   },
   "units": [
     {
@@ -1023,7 +1085,7 @@
     },
     {
       "id": "WU-003",
-      "status": "in_progress",
+      "status": "complete",
       "dependsOn": [
         "WU-002"
       ]
