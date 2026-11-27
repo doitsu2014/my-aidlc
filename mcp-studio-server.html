@@ -141,7 +141,7 @@ footer { border-top: 1px solid var(--line); padding-top: 1rem; display: flex; fl
             <marker id="arrow-warm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--warm)"/></marker>
           </defs>
           <rect x="12" y="16" width="1176" height="576" rx="8" fill="none" stroke="var(--line)" stroke-dasharray="5 6"/>
-          <text x="30" y="39" class="small">LOCAL MACHINE · EXPLICIT PROJECT ROOT · TELEMETRY ENABLEMENT DEFAULT OPEN</text>
+          <text x="30" y="39" class="small">LOCAL MACHINE · EXPLICIT PROJECT ROOT · TELEMETRY DEFAULT UNDECIDED</text>
 
           <rect class="box" x="42" y="93" width="178" height="74" rx="5"/>
           <text x="60" y="121" class="label">Assistant harness</text><text x="60" y="145" class="sub">MCP client · configured tools</text>
@@ -169,7 +169,7 @@ footer { border-top: 1px solid var(--line); padding-top: 1rem; display: flex; fl
           <rect class="highlight" x="295" y="463" width="224" height="55" rx="5"/>
           <text x="313" y="486" class="label">Local telemetry store</text><text x="313" y="506" class="small">traces + lifecycle events</text>
           <rect class="box" x="894" y="463" width="246" height="55" rx="5"/>
-          <text x="916" y="486" class="label">Read-only local dashboard</text><text x="916" y="506" class="small">separate monitor · loopback HTTP</text>
+          <text x="916" y="486" class="label">Monitor process</text><text x="916" y="506" class="small">read-only dashboard · 127.0.0.1 HTTP</text>
 
           <path class="flow-accent" d="M220 130 H295" marker-end="url(#arrow-accent)"/>
           <text x="231" y="118" class="small">MCP requests / results</text>
@@ -210,7 +210,7 @@ footer { border-top: 1px solid var(--line); padding-top: 1rem; display: flex; fl
         <article class="tool"><code>aidlc_status</code><span class="tag">read</span><p>Current intent, stage, gate, and work-unit state.</p></article>
         <article class="tool"><code>aidlc_next</code><span class="tag write">state-affecting</span><p>Select the next directive using existing rules; selection may persist workflow state and audit events.</p></article>
         <article class="tool"><code>aidlc_queue</code><span class="tag">read</span><p>Ready, blocked, and parked work units.</p></article>
-        <article class="tool"><code>aidlc_report</code><span class="tag write">write · policy checked</span><p>Submit results and supported gate decisions only through existing report validation and configured human/AI rules. Approver names are caller-supplied labels, not authenticated identities.</p></article>
+        <article class="tool"><code>aidlc_report</code><span class="tag write">write · policy checked</span><p>Submit results and supported gate decisions only through existing report validation and configured human/AI rules. Human allowlists constrain caller-supplied names but do not authenticate them; host confirmation is not guaranteed.</p></article>
       </div>
     </div>
     <aside>
