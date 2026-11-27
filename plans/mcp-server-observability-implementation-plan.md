@@ -115,7 +115,7 @@ Refactor incrementally. Do not attempt to move every command handler before an M
 
 - Keep the current binary name `dtech-aidlc`.
 - Add a second Cargo binary, proposed name `dtech-aidlc-mcp`, with an explicit Cargo target in `Cargo.toml` and a source entry such as `rust-cli/mcp_main.rs`.
-- Install both binaries through the existing Cargo installation path; verify platform installers/distribution docs if they package one binary explicitly.
+- Install the two public binaries (`dtech-aidlc`, `dtech-aidlc-mcp`) through the existing Cargo path. The monitor child is a hidden mode in the installed `dtech-aidlc` executable, not a third public binary; test its self-launch from outside the checkout.
 - MCP process arguments: `--project <path>` (optional; defaults to startup current directory), `--telemetry on|off` (default on for local metadata-only events, with a documented opt-out), and `--help`/`--version`.
 - Project root is chosen at process launch, not supplied independently on each tool call. Do not accept arbitrary root paths as tool arguments.
 - The MCP process is foreground and host-managed. It is not a background daemon and does not open a network port.
@@ -159,22 +159,26 @@ Proposed event envelope:
 {
   "schemaVersion": 1,
   "eventId": "...",
-  "timestamp": "...",
-  "processId": 1234,
-  "sessionId": "...",
-  "traceId": "...",
-  "spanId": "...",
-  "parentSpanId": null,
+  "timestamp": "RFC3339 UTC",
   "component": "mcp|application|cli",
-  "event": "tool.completed|operation.completed|stage.selected|gate.decided",
+  "caller": "mcp|cli; omitted if unknown",
+  "processId": 1234,
+  "sessionId": "opaque process-session id",
+  "traceId": "opaque correlation id",
+  "spanId": "opaque span id",
+  "parentSpanId": null,
+  "event": "mcp.request.started|mcp.tool.completed|mcp.protocol.error|operation.started|operation.completed|workflow.stage_selected|workflow.stage_reported|workflow.unit_parked|workflow.unit_revisited|workflow.gate_decided",
   "name": "aidlc_next",
+  "intentId": "optional validated id",
+  "stageId": "optional graph id",
+  "unitId": "optional validated id",
   "durationMs": 42,
-  "outcome": "ok|error|blocked",
+  "outcome": "ok|blocked|error",
   "errorCode": null
 }
 ```
 
-Fields are illustrative; finalize one schema before implementation and keep it allowlisted. Never store prompt text, tool argument `detail`, artifact contents, full tool results, credentials, environment variables, or unredacted absolute project paths.
+This event envelope must stay field-for-field aligned with detailed-design §6.2; the producer table there is normative for names and coverage. `caller` is nullable/omitted only when the originating interface is unknown, consistently in both schema descriptions. Never store prompt text, tool argument `detail`, artifact contents, full tool results, credentials, environment variables, or unredacted absolute project paths.
 
 Storage decisions for MVP:
 
@@ -188,53 +192,53 @@ Storage decisions for MVP:
 
 ### 3.5 Instrumentation boundaries and event vocabulary
 
-Introduce an optional telemetry sink/context passed from the interface adapters into shared operations. Avoid hidden global state where practical.
+Introduce an optional telemetry sink/context passed from the interface adapters into shared operations. Avoid hidden global state where practical. The detailed-design §6.2–§6.3 event schema and producer table are normative for v1 event names, component values, producers, and coverage; update this section and schema together if they change. Do not claim process liveness or collector-off status from missing JSONL events; the dashboard defaults to “status unknown” unless a separate bounded heartbeat or trusted launch/config status is available.
 
 Minimum events:
 
-- Process lifecycle: `process.started`, `process.stopped` (best effort).
 - MCP request lifecycle: `mcp.request.started`, `mcp.tool.completed`, `mcp.protocol.error`.
 - Shared operation lifecycle: `operation.started`, `operation.completed`, with duration and bounded outcome/error code.
-- Explicitly instrument and test selected events only: MCP tool start/completion; façade operation start/completion; stage selected/reported after finalization; unit parked/revisited when exposed; and gate decision only after successful report persistence plus audit. Intent pause/resume/abandon remain out of v1 until those operations are routed through and instrumented at the shared façade. Do not scrape the audit log or imply telemetry mirrors all audit rows.
-- CLI events at the shared boundary carry `component: "cli"`; they do not pretend to be MCP tool calls.
+- Do not emit `process.started`/`process.stopped` in the v1 event schema; best-effort lifecycle rows cannot establish current liveness or disabled state. A separate bounded heartbeat/status mechanism is required if the dashboard reports that.
+- Explicitly instrument and test selected events only, using the detailed-design canonical names: MCP tool start/completion and protocol errors; façade operation start/completion; `workflow.stage_selected`/`workflow.stage_reported` after finalization; `workflow.unit_parked`/`workflow.unit_revisited` when exposed; and `workflow.gate_decided` only after successful report persistence plus audit. Dashboard examples use those same event strings; `name` carries the tool/operation identifier. Intent pause/resume/abandon remain out of v1 until routed through and instrumented at the shared façade. Do not scrape audit logs or imply telemetry mirrors all audit rows.
+- Set `component` to the emitting boundary (`mcp`, `application`, or `cli`). Add optional `caller` provenance (`mcp` or `cli`) when known. MCP adapter events use `mcp`; shared façade events use `application`; CLI-only adapter events use `cli`. The monitor emits no events in v1.
 
 Instrumentation must not duplicate or reinterpret audit events. Where an operation already emits a durable audit record, telemetry may reference the event type and a non-sensitive correlation id, but the audit log remains authoritative for the audited action.
 
 ### 3.6 MCP observability dashboard — product and interaction design
 
-The dashboard is a first-class local product surface, not an unspecified chart page. It is an operator console for answering three questions quickly: **Is the MCP server healthy? What is happening in the AIDLC workflow? Where did a tool call fail or slow down?** It is explicitly read-only and is separate from both the assistant conversation and the durable AIDLC audit record.
+The dashboard is a first-class local product surface, not an unspecified chart page. It is an operator console for answering three questions quickly: **What telemetry events have been observed? What is happening in the AIDLC workflow? Where did a tool call fail or slow down?** It does not claim MCP-process liveness from best-effort telemetry; liveness requires a separate bounded heartbeat/status mechanism. The dashboard is explicitly read-only and separate from both the assistant conversation and the durable AIDLC audit record.
 
 #### Information architecture
 
 Use one responsive page with four related views/regions, ordered by operational priority:
 
-1. **Health strip:** telemetry status (recording/off/degraded), selected time range, last event time, active MCP process/session count when known, and a clear “coverage is partial” indicator if some events are missing or only MCP-level spans are available.
+1. **Health strip:** last observed event, selected time range, and coverage by observed event type/source (`MCP spans`, `shared operation events`, `partial`, `stale`, `unknown`). Do not label the collector “recording” or show an active MCP process/session count from the best-effort event stream alone; report sessions observed within range unless a separate heartbeat/status mechanism exists.
 2. **Activity summary:** count completed MCP tool spans, their outcomes/error denominator, tool latency p50/p95 with sample count, and separately labeled shared-operation/workflow events. Never combine MCP requests and their child operation spans into one call count or latency population. Avoid vanity KPI tiles: each summary must link to or filter the underlying event rows.
 3. **Live/recent event stream:** time-ordered event list with time, component/source (`MCP`, `shared operation`, `CLI`), tool/operation, stage/unit when present, duration, and outcome. Use text and icon/label as well as color for status.
 4. **Selected event details:** a side panel on wide screens and inline disclosure on narrow screens. Show trace/session correlation, parent/child span relationship, event type, duration, outcome, safe error code/message, and permitted identifiers. Do not show prompt text, raw tool arguments, artifact contents, credentials, or unredacted paths.
 
 #### Primary screen layout
 
-Desktop: compact header and health strip, then a two-column workspace. The main column contains the activity summary and event stream; the secondary column contains filters and the selected-event detail. The timeline/list remains the central visual element. Mobile: stack health, summary, filters, and events; open event details inline so no side-scroll is required. Provide an “empty / no telemetry yet” view that explains how to launch MCP with telemetry enabled and how to run the monitor, without fabricating sample events as live records.
+Desktop: compact header and observed-coverage strip, then a two-column workspace. The main column contains the activity summary and event stream; the secondary column contains filters and the selected-event detail. The timeline/list remains the central visual element. Mobile: stack observed coverage, summary, filters, and events; open event details inline so no side-scroll is required. Provide an “empty / status unknown” view that explains how to check local telemetry configuration and make an MCP tool call, without fabricating sample events or asserting collection is off/on from missing files alone. Include a concise privacy/retention disclosure in the header/help area.
 
 Initial annotated wireframe (content and hierarchy, not final styling):
 
 ```text
 DESKTOP  ≥ 960 px
 ┌──────────────────────────────────────────────────────────────────────────┐
-│ AIDLC MONITOR   Project: <safe label>   Local only   [15m ▾] [Refresh]   │
+│ AIDLC MONITOR   local project   LOCAL ONLY   [15m ▾] [Refresh]          │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ ● COLLECTING   MCP: 1 session   Last event: 14:32:08   Coverage: PARTIAL │
+│ Last MCP event 14:32:08 · 1 session observed in range · coverage partial│
 ├──────────────────────────────────────────────┬───────────────────────────┤
 │ Activity · selected range                    │ Filters                   │
-│ Calls 128 · errors 3/128 · blocked 4          │ source [all ▾]             │
-│ p50 42 ms · p95 240 ms · n=124 completed     │ outcome [all ▾]            │
+│ MCP tools 128 · errors 3/128 · blocked 4      │ source [all ▾]             │
+│ tool p50 42 ms · p95 240 ms · n=124          │ outcome [all ▾]            │
 │ [latency distribution] [event volume timeline]│ tool/stage [search]        │
 │                                              │ trace/session [________]   │
 │ Events · newest first · 128 results          │ [Clear filters]            │
 │ TIME       SOURCE OPERATION   DUR   OUTCOME  │                           │
 │ 14:32:08   MCP    aidlc_next   42ms  OK       │ Selected event             │
-│ 14:31:51   APP    stage.select 18ms  OK       │ trace / span / parent       │
+│ 14:31:51   APP    workflow.stage_selected 18ms  OK │ trace / span / parent │
 │ 14:31:22   MCP    aidlc_report 86ms  BLOCKED  │ safe error + allowlisted    │
 │ [older events…] [Load more]                  │ metadata only               │
 └──────────────────────────────────────────────┴───────────────────────────┘
@@ -244,17 +248,17 @@ Mobile (≤ 680 px):
 
 ```text
 ┌─────────────────────────────┐
-│ AIDLC MONITOR     [15m ▾]   │
-│ Local only · ● collecting   │
-│ MCP 1 · last 14:32 · partial│
+│ AIDLC MONITOR   [15m ▾]     │
+│ LOCAL ONLY · status unknown │
+│ last MCP event 14:32        │
 ├─────────────────────────────┤
-│ Calls 128 · errors 3/128    │
-│ p50 42 ms · p95 240 ms      │
+│ MCP tools 128 · errors 3/128│
+│ tool p50 42 ms · p95 240 ms │
 │ [latency] [volume]          │
 ├─────────────────────────────┤
 │ [Filters (2)] [Refresh]     │
 │ 14:32 MCP aidlc_next 42ms OK│
-│ 14:31 APP stage.select 18ms │
+│ 14:31 APP workflow.stage_selected 18ms │
 │ 14:31 MCP aidlc_report      │
 │ BLOCKED · tap for details   │
 ├─────────────────────────────┤
@@ -263,7 +267,7 @@ Mobile (≤ 680 px):
 └─────────────────────────────┘
 ```
 
-Wireframe states: healthy data retains the above hierarchy; empty state replaces metrics/list with a concise explanation and launch instructions; degraded state keeps last-known events visible with a stale/degraded banner, skipped-record count and retry action; selected-event state opens the detail region without discarding filters or scroll position. These are design requirements, not claims that telemetry already exists.
+Wireframe states: recent data retains the above hierarchy; no-event state replaces metrics/list with a concise explanation and shows collector/process status as unknown unless backed by trusted configuration or a separate heartbeat; degraded state keeps last-known events visible with a stale/degraded banner, skipped-record count and retry action; selected-event state opens the detail region without discarding filters or scroll position. These are design requirements, not claims that telemetry already exists.
 
 #### Interaction model
 
@@ -298,11 +302,11 @@ Design and implement explicit states for: no telemetry observed/status unknown, 
 #### Dashboard implementation and security boundary
 
 - Add an optional `dtech-aidlc monitor --project <path>` command (name is provisional; settle after checking CLI naming and platform packaging).
-- The `dtech-aidlc monitor` CLI subcommand launches a separate foreground monitor process, independent of the stdio MCP server. The monitor binds only to `127.0.0.1` on an ephemeral port, prints its URL, and does not open a browser automatically.
+- The `dtech-aidlc monitor` CLI subcommand runs as a foreground supervisor: it launches the current installed `dtech-aidlc` executable via `current_exe` with a private monitor-child mode, prints its URL, and stays attached until interrupted/stopped, terminating the child cleanly. It does not daemonize or leave an orphan and never resolves the child through `PATH` or the checkout. The monitor is independent of the stdio MCP server, binds only to `127.0.0.1` on an ephemeral port, and does not open a browser automatically.
 - The dashboard exposes read-only pages/API. No POST/PUT/PATCH/DELETE routes and no workflow tool invocation.
 - Read only recognized event files below `.aidlc/telemetry/`; validate paths and cap file count, response size, event count, and query window. Do not traverse arbitrary user paths or follow symlinks.
 - Serve inline/static bundled assets or embedded HTML; no remote fonts, analytics, or external JS for the initial local dashboard.
-- Browser safety: loopback bind, strict Host/Origin validation, no permissive CORS, and no mutating routes are required. Choose the per-run token/bootstrap mechanism only after reviewing local same-user process access and browser-origin threats; do not put tokens in telemetry, URLs, or project files. Review DNS-rebinding and local browser cross-origin access.
+- Browser safety: loopback bind, strict Host/Origin validation, no permissive CORS, and no mutating routes are required. Document a per-run access-token/bootstrap threat model that accounts for same-user process access and browser-origin threats; do not put tokens in telemetry, URLs, project files, or MCP tool output. Review DNS-rebinding and local browser cross-origin access.
 - If the dashboard cannot start, report a clear local error; do not affect the MCP or CLI processes.
 
 #### Dashboard detail-design component and state matrix
@@ -310,11 +314,13 @@ Design and implement explicit states for: no telemetry observed/status unknown, 
 | Component | Healthy | Empty / disabled | Degraded / error | Interaction |
 |---|---|---|---|---|
 | Health strip | Last observed event, range, observed coverage; liveness only if a separately specified heartbeat exists | No events/status unknown unless trusted config says telemetry is off | Stale/degraded label, last successful refresh, safe reason | Never implies process liveness or workflow health from missing telemetry |
+| Privacy/retention | Effective collection setting or unknown, retained fields, storage location and limits | Explain no telemetry observed without assuming disabled | State gaps and expiry caveat | Link to local docs/config; no collection/delete controls |
 | Summary | Counts, p50/p95 with sample size, error numerator/denominator | “No data for range” without zero-as-healthy ambiguity | Preserve last-known summary and mark stale | Click metric to filter underlying rows |
 | Filters | Current filters, result count, sort and range | Available but clearly returns no records | Keep filters; show failed query separately | Keyboard-operable, clear/reset, bounded presets |
 | Event stream | Paginated newest-first rows | Instructions, no fabricated live rows | Show partial/corrupt-line count and stale marker | Select row, load more/cursor paging |
 | Trace detail | Correlated parent/child links and safe metadata | Not shown until selection | Missing/expired parent is explicit | Open detail and return to same query/scroll |
-| Refresh | Last-updated time and running state | Manual refresh can reveal first event | Retry with backoff; pause auto-refresh only | Pause is UI refresh only, not collection |
+| Refresh | Last successful refresh time | Manual refresh can reveal first event | Retry with backoff; preserve last-known data as stale | Pause is UI refresh only, not collection |
+| Privacy/retention disclosure | Effective collection setting or unknown, retained fields, storage path and limits | Explain no telemetry observed without assuming disabled | State gaps and expiry caveat | Link to local docs/config; no controls |
 | Latency/time plots | Units, selected range, counts, text alternative | Empty-range caption | Suppress invalid metrics and explain why | Click bin/point to filter the stream |
 
 #### Dashboard design deliverables
@@ -386,26 +392,28 @@ Before implementation, include a dashboard-specific design pack in this plan's e
 ### Phase 3 — Telemetry foundation
 
 1. Define the event schema and safe-field allowlist.
-2. Implement per-process/session JSONL writer, exclusive file creation, size limits, retention, and graceful disable/failure behavior.
-3. Add MCP spans and shared-operation lifecycle instrumentation, then add selected workflow transition events.
-4. Update managed `.gitignore` behavior and tests for `.aidlc/telemetry/`.
-5. Add privacy tests asserting prompts, details, artifact contents, environment values, and absolute paths are absent.
+2. Keep the implementation-plan and detailed-design event envelopes field-for-field identical; add a schema consistency test for version, component/caller enums, event names and optional IDs.
+3. Implement per-process/session JSONL writer, exclusive file creation, size limits, retention, and graceful disable/failure behavior.
+4. Add MCP spans and shared-operation lifecycle instrumentation, then add selected workflow transition events from the producer table.
+5. Update managed `.gitignore` behavior and tests for `.aidlc/telemetry/`.
+6. Add privacy tests asserting prompts, details, artifact contents, environment values, and absolute paths are absent.
 
 **Exit:** telemetry is distinct from audit; failed telemetry writes do not change command outcomes; concurrent CLI/MCP sessions create readable independent event files.
 
 ### Phase 4 — Read-only monitor dashboard
 
-1. Add monitor command and loopback-only server.
+1. Add the `monitor` CLI supervisor and hidden self-launch child mode in the existing CLI executable; do not add a third public Cargo binary.
 2. Implement bounded event-file reader and read-only summary/event endpoints.
 3. Build a locally bundled dashboard for tool activity, latency, errors, event coverage, and workflow timeline.
 4. Add Host/Origin validation, no-CORS policy, response limits, and tests for path traversal/symlink rejection.
-5. Document starting/stopping monitor and its local security boundary.
+5. Test `dtech-aidlc monitor` from an installed CLI outside the checkout: self-launch through `current_exe` private child mode, no third public binary or `PATH` lookup, foreground stop propagation and child cleanup.
+6. Document starting/stopping monitor and its local security boundary.
 
 **Exit:** dashboard can display real sample events and live local events without access to workflow mutation routes or project artifact bodies.
 
 ### Phase 5 — Hardening, docs, and release
 
-1. Run full test suite on Windows and POSIX; exercise Cargo install of both binaries.
+1. Run full test suite on Windows and POSIX; exercise Cargo install of the two public binaries.
 2. Run protocol conformance and host-compatibility tests for supported clients.
 3. Perform threat-model review for filesystem path handling, approval semantics, stdio leakage, dashboard loopback exposure, telemetry privacy, and retention.
 4. Add README installation/usage/configuration sections, MCP tool reference, telemetry schema/retention, dashboard usage, known coverage limits, and troubleshooting.
@@ -444,7 +452,7 @@ Before implementation, include a dashboard-specific design pack in this plan's e
 - Run `cargo fmt --check`, `cargo test --locked`, and the repository's documented lint/validation commands.
 - Run existing routing/golden tests without updating snapshots unless a separately reviewed intentional behavior change requires it.
 - Run on Windows and at least one POSIX CI environment.
-- Validate install/update/uninstall packaging for both binaries and verify the MCP server launches from an installed binary without a repository checkout.
+- Validate install/update/uninstall packaging for the two public binaries and verify MCP launches outside the checkout. Also verify `dtech-aidlc monitor` self-launches its hidden child from the installed CLI via `current_exe`, without a third binary or `PATH` lookup, and terminates the child cleanly on stop.
 
 ---
 
@@ -461,7 +469,7 @@ Before implementation, include a dashboard-specific design pack in this plan's e
 9. Dashboard is optional, read-only, local-only, and reports coverage limitations accurately.
 10. Dashboard design is reviewed before implementation and covers desktop/mobile layouts, healthy/empty/degraded/selected-event states, filters, event details, metric semantics, privacy, accessibility, and bounded read APIs.
 11. Telemetry directories are ignored by Git through safe managed `.gitignore` handling.
-12. Both binaries install and run on supported Windows/POSIX platforms.
+12. Both public binaries install on supported Windows/POSIX platforms; the monitor child is verified through the installed CLI's private self-launch path.
 13. MCP server, telemetry, and dashboard are labeled proposed until each phase is implemented and released.
 
 ---
@@ -488,9 +496,10 @@ Before implementation, include a dashboard-specific design pack in this plan's e
 These are implementation gates, not reasons to defer the architecture:
 
 1. **Telemetry default:** enable local metadata-only telemetry by default with an opt-out, or disabled until opted in. Proposed default is enabled with a clear opt-out; privacy review may choose the stricter disabled default.
-2. **Dashboard command name:** `dtech-aidlc monitor` is proposed; confirm it does not conflict with the intended CLI vocabulary.
+2. **Dashboard launch/process:** keep the monitor in the existing CLI crate, not a third public Cargo target. `dtech-aidlc monitor` launches the current executable via its current executable path with a private monitor-child flag, supervises it in foreground, prints the URL, and terminates the child on stop; test installed-package launch outside the repository.
 3. **MCP SDK/dependency policy:** choose the Rust SDK only after verifying maintenance, license, protocol version support, Windows support, a selected MSRV (the repository currently declares none), and `--locked` reproducibility; validate offline cache requirements separately.
-4. **Human approval UX:** MCP v1 does not submit human-mode gate approvals; owner uses existing CLI. Revisit only with a server-verifiable consent mechanism. AI-mode policy stays separate.
-5. **Dashboard access model:** retain strict Host/Origin allowlisting and no CORS; select a secure per-run token/bootstrap strategy after reviewing browser-origin and same-user process access.
+4. **Telemetry event schema:** detailed-design §6.2 is normative. Keep this plan's duplicate envelope field-for-field aligned, including optional workflow IDs and `caller`; do not add monitor events in v1.
+5. **Human approval UX:** MCP v1 does not submit human-mode gate approvals; owner uses existing CLI. Revisit only with a server-verifiable consent mechanism. AI-mode policy stays separate.
+6. **Dashboard access model:** retain strict Host/Origin allowlisting and no CORS; select a secure per-run token/bootstrap strategy after reviewing browser-origin and same-user process access.
 
 No phase-graph or intent-state schema change is proposed for the initial release.

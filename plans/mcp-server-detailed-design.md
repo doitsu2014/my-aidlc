@@ -25,9 +25,8 @@ Principles:
 
 ```text
 Cargo.toml
-  [[bin]] dtech-aidlc       -> rust-cli/main.rs       (existing)
+  [[bin]] dtech-aidlc       -> rust-cli/main.rs       (existing; add `monitor` subcommand)
   [[bin]] dtech-aidlc-mcp   -> rust-cli/mcp_main.rs   (proposed)
-  monitor subcommand        -> rust-cli/main.rs       (proposed; foreground, separate from MCP process)
 
 rust-cli/
   application.rs            shared request context and operation façade (new)
@@ -37,13 +36,13 @@ rust-cli/
     tools.rs                schemas and tool dispatch (new)
     errors.rs               domain-to-MCP-safe error mapping (new)
   monitor/
-    mod.rs                  local server/read-only routes (new)
+    mod.rs                  internal monitor-child mode and local read-only server (new)
     store.rs                bounded telemetry reader/query/pagination (new)
     ui.html                 bundled dashboard shell (new)
-  main.rs                   existing CLI adapter; refactor incrementally
+  main.rs                   existing CLI adapter; hidden monitor-child mode self-launches via current executable
 ```
 
-The module names are proposed. Avoid an unnecessary web framework or runtime unless required by the selected MCP SDK and monitor implementation. The repository does not currently declare `rust-version`; decide and document an MSRV as part of dependency review. Validate dependency maintenance, licensing, transport support, Windows support, lockfile reproducibility, and whether the selected dependency set can build with `--locked`; treat offline-cache availability as a separate deployment constraint, not an existing guarantee.
+The module names are proposed. Keep the package at two public binaries: `dtech-aidlc` and `dtech-aidlc-mcp`. The monitor subcommand launches the currently installed `dtech-aidlc` executable itself in a hidden internal monitor-child mode, resolving via the current executable path rather than `PATH` or the repository checkout. There is no third installable binary or sidecar requirement. Test the installed launcher from outside the checkout and verify child shutdown. Avoid an unnecessary web framework or runtime unless required by the selected MCP SDK and monitor implementation. The repository does not currently declare `rust-version`; decide and document an MSRV as part of dependency review. Validate dependency maintenance, licensing, transport support, Windows support, lockfile reproducibility, and whether the selected dependency set can build with `--locked`; treat offline-cache availability as a separate deployment constraint, not an existing guarantee.
 
 ## 3. Shared application façade
 
@@ -175,13 +174,14 @@ Version the schema independently from AIDLC state:
   "schemaVersion": 1,
   "eventId": "opaque-id",
   "timestamp": "RFC3339 UTC",
+  "component": "mcp|application|cli",
+  "caller": "mcp|cli; omitted if unknown",
   "processId": 1234,
   "sessionId": "opaque-process-session-id",
   "traceId": "opaque-correlation-id",
   "spanId": "opaque-span-id",
   "parentSpanId": null,
-  "component": "mcp|application|cli|monitor",
-  "event": "mcp.request.started|mcp.tool.completed|operation.started|operation.completed|workflow.stage_selected|workflow.stage_reported|workflow.unit_parked|workflow.unit_revisited|workflow.gate_decided",
+  "event": "mcp.request.started|mcp.tool.completed|mcp.protocol.error|operation.started|operation.completed|workflow.stage_selected|workflow.stage_reported|workflow.unit_parked|workflow.unit_revisited|workflow.gate_decided",
   "name": "aidlc_next",
   "intentId": "optional validated id",
   "stageId": "optional graph id",
@@ -206,9 +206,10 @@ These are proposed telemetry events, not a promise that existing audit rows auto
 | `workflow.stage_reported` | Explicit instrumentation after successful report finalization | Indicates report operation returned accepted; does not establish truth of reported evidence. |
 | `workflow.unit_parked` / `workflow.unit_revisited` | Explicit instrumentation at successful queue mutation result | Only if those operations are exposed through the façade/MCP scope. |
 | `workflow.gate_decided` | Explicit instrumentation after the existing report path has persisted state and audit successfully | Descriptive event only; not proof of approver identity, consent, or audit-log integrity. Human-mode approval is not accepted through MCP v1. |
+| `mcp.protocol.error` | MCP transport adapter | Bounded protocol/dispatch failures only; never include raw protocol frames or tool arguments. |
 | `workflow.intent_paused` / `workflow.intent_resumed` / `workflow.intent_abandoned` | Only if those intent operations are later moved into the shared façade and explicitly instrumented | Not covered merely because current CLI commands exist. Exclude from v1 event claims until wired and tested. |
 
-For every event, preserve `component`/`caller` (`mcp`, `cli`, or `application`) and source coverage. MCP request spans cover MCP only. Shared-operation events cover only invocations that pass through instrumented façade hooks. Legacy CLI routes bypassing the façade remain invisible to these events. Dashboard labels coverage as observed event types and source; never claim complete workflow/audit coverage from a generic “shared events available” flag.
+For every event, set `component` to the emitting boundary (`mcp`, `application`, or `cli`) and `caller` to `mcp` or `cli` when an originating interface is known. The monitor emits no telemetry events in v1; it is a read-only consumer. MCP request spans use `component: mcp`; façade operations use `component: application` and preserve caller provenance; CLI-only adapter events use `component: cli`. MCP request spans cover MCP only. Shared-operation events cover only invocations that pass through instrumented façade hooks. Legacy CLI routes bypassing the façade remain invisible to these events. Dashboard labels coverage as observed event types and source; never claim complete workflow/audit coverage from a generic “shared events available” flag.
 
 Propagate a generated `traceId`/parent span through one MCP call into the application operation. For direct CLI calls, generate a trace root with no MCP parent. Event IDs are deduplication keys only, and trace/session IDs are operational metadata, not authentication credentials.
 
@@ -218,9 +219,11 @@ Propagate a generated `traceId`/parent span through one MCP call into the applic
 
 A local operator/maintainer uses the dashboard to answer:
 
-1. Is telemetry collecting, disabled, degraded, or stale?
-2. Which tools/operations are active, slow, blocked, or failing in the selected range?
+1. What telemetry events have been observed, and how fresh is the last observation?
+2. Which tools/operations are slow, blocked, or failing in the selected range?
 3. What event sequence led to a specific failure or stage transition?
+
+The dashboard does not claim to establish collector or MCP-process liveness from the telemetry event stream. It may report a trusted launch configuration, but process presence requires a separate bounded heartbeat/status mechanism.
 
 The dashboard is a separately started, read-only local app. It cannot call MCP tools, mutate workflow state, approve gates, replay reports, change telemetry settings, or delete logs.
 
@@ -241,16 +244,16 @@ Desktop wireframe:
 ┌──────────────────────────────────────────────────────────────────────────┐
 │ AIDLC MONITOR  local project  LOCAL ONLY  [15m ▾]  [Refresh]             │
 ├──────────────────────────────────────────────────────────────────────────┤
-│ ● RECORDING  last event 14:32:08  MCP sessions 1  coverage: PARTIAL      │
+│ last MCP event 14:32:08 · 1 session observed in range · coverage partial│
 ├───────────────────────────────────────────────┬──────────────────────────┤
 │ MCP tools 128 · errors 3/128 · blocked 4      │ FILTERS                  │
-│ tool latency p50 42 ms · p95 240 ms · n=124   │ source / outcome          │
+│ tool p50 42 ms · p95 240 ms · n=124           │ source / outcome          │
 │ [latency distribution] [events by time]        │ tool / stage / trace      │
 │                                               │ [clear filters]           │
 │ EVENTS · newest first · 128 matches           ├──────────────────────────┤
 │ time       source  operation     duration status│ SELECTED EVENT           │
 │ 14:32:08   MCP     aidlc_next    42 ms    OK    │ trace/span/parent         │
-│ 14:31:51   APP     stage.selected 18 ms  OK    │ safe code + safe fields   │
+│ 14:31:51   APP     workflow.stage_selected 18 ms  OK │ safe code + safe fields │
 │ 14:31:22   MCP     aidlc_report  86 ms BLOCKED │ return to filtered list   │
 │ [Load more]                                    │                          │
 └───────────────────────────────────────────────┴──────────────────────────┘
@@ -261,16 +264,16 @@ Mobile wireframe (no horizontal page scroll):
 ```text
 ┌────────────────────────────┐
 │ AIDLC MONITOR   [15m ▾]   │
-│ LOCAL ONLY · ● RECORDING  │
-│ last event 14:32 · PARTIAL│
+│ LOCAL ONLY · status unknown│
+│ last MCP event observed 14:32│
 ├────────────────────────────┤
-│ MCP tools 128 · errors 3/128 │
+│ MCP tools 128 · errors 3/128  │
 │ tool p50 42 ms · p95 240 ms  │
 │ [latency] [event volume]  │
 ├────────────────────────────┤
 │ [Filters (2)] [Refresh]   │
 │ 14:32 MCP aidlc_next 42ms│
-│ 14:31 APP stage.selected │
+│ 14:31 APP workflow.stage_selected │
 │ 14:31 MCP aidlc_report   │
 │ BLOCKED · tap for details│
 ├────────────────────────────┤
@@ -284,7 +287,7 @@ Mobile wireframe (no horizontal page scroll):
 Event row fields:
 
 - Timestamp in local time with timezone/UTC offset; accessible exact timestamp available.
-- Source/component (`MCP`, `APP`, `CLI`, `MONITOR`).
+- Source/component (`MCP`, `APP`, `CLI`). The read-only monitor is not a telemetry event producer in v1.
 - Tool or operation/event name.
 - Optional validated intent/stage/unit identifiers.
 - Duration in milliseconds for span events; no fabricated duration for point events.
@@ -339,7 +342,7 @@ The best-effort event store cannot prove current process liveness, collection be
 
 ### 7.7 Dashboard process, API, and security
 
-- Separate monitor process, launched by the proposed `dtech-aidlc monitor --project <path>` subcommand. The CLI command acts as a thin launcher for a monitor child process and returns independently; the process serves the UI until stopped. The monitor remains separate from the MCP stdio process. Keep Cargo targets, router behavior, packaging and docs aligned; do not add a separate public monitor executable unless an ADR revises this contract.
+- Separate monitor process, launched by the `dtech-aidlc monitor --project <path>` CLI subcommand. The CLI is a foreground supervisor: it starts the currently installed `dtech-aidlc` executable with a hidden internal monitor-child mode using the current executable path, prints the URL, and remains attached until the user interrupts/stops it; it does not daemonize or leave an orphan. The monitor remains separate from the MCP stdio process. There is no third public binary or repository-relative child lookup. Test installed-package launch from outside the checkout and clean child shutdown.
 - Bind to `127.0.0.1` on an ephemeral port by default; print URL but do not open browser automatically. No `0.0.0.0` binding in v1.
 - Read-only GET endpoints only. No POST/PUT/PATCH/DELETE, no tool invocation, and no workflow-state or audit-log reads. Prefer a generic “local project” label; the dashboard reads telemetry files only.
 - Query interface accepts bounded time range, allowlisted filter values, sort and opaque cursor. It never accepts a filesystem path or filename from the browser and never returns raw JSONL lines.
@@ -397,7 +400,7 @@ Proposed flags/config (exact public names require owner review):
 
 - `cargo fmt --check`, `cargo test --locked`, documented repository checks.
 - Windows and at least one POSIX CI environment.
-- `cargo install`/packaging smoke test for CLI, MCP, and monitor binaries from outside checkout.
+- Install/package smoke test for the two public binaries (`dtech-aidlc`, `dtech-aidlc-mcp`) from outside the checkout; run `dtech-aidlc monitor` and verify its hidden self-launched child serves the UI and terminates cleanly with the supervisor.
 
 ## 10. Open decisions before implementation
 
