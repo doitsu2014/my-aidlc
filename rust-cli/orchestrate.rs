@@ -37,6 +37,8 @@ pub const AI_ORCHESTRATOR: &str = "AI Orchestrator";
 pub const DEFAULT_UNIT_SPLIT_THRESHOLD: i64 = 6;
 /// Process exit code for a `next` that is held back by a failing prerequisite.
 pub const BLOCKED_EXIT_CODE: u8 = 3;
+/// The exact error text for a workflow state that changed since it was loaded.
+pub const STATE_CHANGED: &str = "Workflow state changed while this command was running; no changes were made. Run the command again.";
 
 const PROJECTION_HISTORY: &str = include_str!("../core/data/projection-history.json");
 
@@ -242,6 +244,8 @@ pub struct NextOptions {
     pub claim: bool,
     /// `--unit`: print the directive of a work unit that is already in flight.
     pub unit: Option<String>,
+    /// Do not run prerequisite commands (the MCP server); a check that was not run fails.
+    pub skip_prerequisite_checks: bool,
 }
 
 /// Options of `orchestrate report`.
@@ -1068,6 +1072,137 @@ fn prerequisite_results(results: &[Value]) -> Value {
     )
 }
 
+/// What the last blocked report named plus the stage's preflight checks (the `needed`
+/// rule of `orchestrate next`, shared with [`pending_prerequisites`]).
+struct Needed {
+    last_report: Option<Value>,
+    was_blocked: bool,
+    last_needs: Option<Vec<Value>>,
+    needed: Vec<String>,
+}
+
+fn needed_prerequisites(
+    state: &Value,
+    next: &Value,
+    next_id: &str,
+    row: &Value,
+    selected_unit: Option<&str>,
+    sweep: bool,
+    config: &Value,
+) -> Needed {
+    let reports = row
+        .get("reports")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    // On a ledger intent "the last report" is the selected unit's (or the sweep's).
+    let last_report = match selected_unit {
+        Some(unit) => work_units::last_unit_report(state, next_id, unit).cloned(),
+        None if sweep => work_units::last_sweep_report(state, next_id).cloned(),
+        None => reports.last().cloned(),
+    };
+    let was_blocked = match selected_unit {
+        Some(unit) => {
+            work_units::unit(state, unit)
+                .and_then(|unit| unit.get("steps"))
+                .and_then(|steps| steps.get(next_id))
+                .and_then(Value::as_str)
+                == Some("blocked")
+        }
+        None if sweep => last_report
+            .as_ref()
+            .is_some_and(|report| str_of(report, "result") == Some("blocked")),
+        None => {
+            str_of(row, "status") == Some("blocked")
+                || last_report
+                    .as_ref()
+                    .is_some_and(|report| str_of(report, "result") == Some("blocked"))
+        }
+    };
+
+    // Named prerequisites: those the last blocked report named, plus preflight checks the
+    // owner attached to this stage or phase. Nothing is persisted while one still fails.
+    let last_needs = last_report
+        .as_ref()
+        .filter(|report| selected_unit.is_none() || str_of(report, "result") == Some("blocked"))
+        .and_then(|report| report.get("needs"))
+        .and_then(Value::as_array)
+        .cloned();
+    let mut needed: Vec<String> = if was_blocked {
+        last_needs
+            .clone()
+            .unwrap_or_default()
+            .iter()
+            .map(js_string)
+            .collect()
+    } else {
+        Vec::new()
+    };
+    needed.extend(crate::prerequisites::preflight_names(config, next));
+    Needed {
+        last_report,
+        was_blocked,
+        last_needs,
+        needed,
+    }
+}
+
+/// Read-only preview of the prerequisites the next `orchestrate next` would need.
+pub fn pending_prerequisites(
+    root: &Path,
+    graph: &Value,
+    config: &Value,
+) -> OrchestrateResult<Vec<Value>> {
+    let loaded = load_workflow(root, graph, false)?;
+    let Some(mut state) = loaded.state else {
+        return Ok(Vec::new());
+    };
+    if matches!(derive_status(&state, graph), "complete" | "abandoned") {
+        return Ok(Vec::new());
+    }
+    let stages: Vec<Value> = ordered_stages(graph, scope_of(&state), depth_of(&state))
+        .into_iter()
+        .cloned()
+        .collect();
+    // Predict on a clone; nothing is written.
+    let (next, unit, sweep) = if work_units::has_ledger(&state) {
+        match work_units::peek(&state, &stages) {
+            Selection::Stage(stage) => (stage, None, false),
+            Selection::Unit { stage, unit } => (stage, Some(unit), false),
+            Selection::Sweep(stage) => (stage, None, true),
+            Selection::Done | Selection::Stalled { .. } => return Ok(Vec::new()),
+        }
+    } else {
+        match select_next_stage(&mut state, &stages) {
+            Some(stage) => (stage, None, false),
+            None => return Ok(Vec::new()),
+        }
+    };
+    let next_id = str_of(&next, "id").unwrap_or("").to_owned();
+    let row = state
+        .get("stages")
+        .and_then(|rows| rows.get(&next_id))
+        .filter(|row| !row.is_null())
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    let needed = needed_prerequisites(
+        &state,
+        &next,
+        &next_id,
+        &row,
+        unit.as_deref(),
+        sweep,
+        config,
+    )
+    .needed;
+    Ok(crate::prerequisites::check_prerequisites(
+        &root.to_string_lossy(),
+        config,
+        &needed,
+        true,
+    ))
+}
+
 /// Refuse to write when the pointer (and the loaded intent state) changed since load.
 fn ensure_unchanged(
     root: &Path,
@@ -1079,13 +1214,12 @@ fn ensure_unchanged(
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
         Err(error) => Err(format!("{}: {error}", path.display())),
     };
-    let changed = "Workflow state changed while this command was running; no changes were made. Run the command again.";
     if read(&state_path(root))? != loaded.pointer_bytes {
-        return Err(changed.into());
+        return Err(STATE_CHANGED.into());
     }
     if let Some(id) = intent_id {
         if read(&crate::workflow::intent_state_path(root, id))? != loaded.state_bytes {
-            return Err(changed.into());
+            return Err(STATE_CHANGED.into());
         }
     }
     Ok(())
@@ -1467,10 +1601,11 @@ pub fn orchestrate_next(
                     }
                 }
                 if !needs.is_empty() && !options.force_resume {
-                    let results = crate::prerequisites::run_prerequisites(
+                    let results = crate::prerequisites::check_prerequisites(
                         &root.to_string_lossy(),
                         config,
                         &needs,
+                        options.skip_prerequisite_checks,
                     );
                     let failing: Vec<String> = results
                         .iter()
@@ -1541,10 +1676,11 @@ pub fn orchestrate_next(
                 if needs.is_empty() {
                     break;
                 }
-                let results = crate::prerequisites::run_prerequisites(
+                let results = crate::prerequisites::check_prerequisites(
                     &root.to_string_lossy(),
                     config,
                     &needs,
+                    options.skip_prerequisite_checks,
                 );
                 let failing: Vec<String> = results
                     .iter()
@@ -1569,12 +1705,14 @@ pub fn orchestrate_next(
                     "Work unit {unit} is held: its blocked report needs {}, and the check is failing; {other_unit} runs meanwhile. Fix the environment, and the next 'dtech-aidlc orchestrate next' after {other_unit} returns to {unit}.",
                     failing.join(", ")
                 ));
-                held_checks.push(json!({
-                    "intentId": intent_id,
-                    "stage": stage_id,
-                    "unit": unit,
-                    "results": prerequisite_results(&results),
-                }));
+                if !options.skip_prerequisite_checks {
+                    held_checks.push(json!({
+                        "intentId": intent_id,
+                        "stage": stage_id,
+                        "unit": unit,
+                        "results": prerequisite_results(&results),
+                    }));
+                }
                 selection = alternative;
             }
             warnings.extend(held_warnings);
@@ -1644,60 +1782,34 @@ pub fn orchestrate_next(
         .and_then(Value::as_array)
         .cloned()
         .unwrap_or_default();
-    // On a ledger intent "the last report" is the selected unit's (or the sweep's).
-    let last_report = match &selected_unit {
-        Some(unit) => work_units::last_unit_report(&state, &next_id, unit).cloned(),
-        None if sweep => work_units::last_sweep_report(&state, &next_id).cloned(),
-        None => reports.last().cloned(),
-    };
-    let was_blocked = match &selected_unit {
-        Some(unit) => {
-            work_units::unit(&state, unit)
-                .and_then(|unit| unit.get("steps"))
-                .and_then(|steps| steps.get(&next_id))
-                .and_then(Value::as_str)
-                == Some("blocked")
-        }
-        None if sweep => last_report
-            .as_ref()
-            .is_some_and(|report| str_of(report, "result") == Some("blocked")),
-        None => {
-            str_of(&row, "status") == Some("blocked")
-                || last_report
-                    .as_ref()
-                    .is_some_and(|report| str_of(report, "result") == Some("blocked"))
-        }
-    };
-
-    // Named prerequisites: those the last blocked report named, plus preflight checks the
-    // owner attached to this stage or phase. Nothing is persisted while one still fails.
-    let last_needs = last_report
-        .as_ref()
-        .filter(|report| selected_unit.is_none() || str_of(report, "result") == Some("blocked"))
-        .and_then(|report| report.get("needs"))
-        .and_then(Value::as_array)
-        .cloned();
-    let mut needed: Vec<String> = if was_blocked {
-        last_needs
-            .clone()
-            .unwrap_or_default()
-            .iter()
-            .map(js_string)
-            .collect()
-    } else {
-        Vec::new()
-    };
-    needed.extend(crate::prerequisites::preflight_names(config, &next));
+    let Needed {
+        last_report,
+        was_blocked,
+        last_needs,
+        needed,
+    } = needed_prerequisites(
+        &state,
+        &next,
+        &next_id,
+        &row,
+        selected_unit.as_deref(),
+        sweep,
+        config,
+    );
     let mut prerequisites: Option<Vec<Value>> = None;
     if !needed.is_empty() {
-        let results =
-            crate::prerequisites::run_prerequisites(&root.to_string_lossy(), config, &needed);
+        let results = crate::prerequisites::check_prerequisites(
+            &root.to_string_lossy(),
+            config,
+            &needed,
+            options.skip_prerequisite_checks,
+        );
         let failing: Vec<&Value> = results
             .iter()
             .filter(|item| item.get("ok") != Some(&Value::Bool(true)))
             .collect();
         if !failing.is_empty() && !options.force_resume {
-            if !is_new {
+            if !is_new && !options.skip_prerequisite_checks {
                 audit(
                     root,
                     "prerequisite.checked",
@@ -1733,13 +1845,18 @@ pub fn orchestrate_next(
                 payload.insert("currentUnit".into(), unit.clone());
             }
             payload.insert("needs".into(), Value::Array(results.clone()));
-            payload.insert(
-                "hint".into(),
-                json!(format!(
+            let hint = if options.skip_prerequisite_checks {
+                format!(
+                    "Stage {next_id} needs {hints}, but prerequisite checks are not run over MCP (not executed). Ask the owner to run `dtech-aidlc orchestrate next` in a terminal{}.",
+                    if is_new { " with the same request (the intent was not created yet)" } else { "" }
+                )
+            } else {
+                format!(
                     "Stage {next_id} needs {hints}, and its check is failing. Fix the environment and run 'dtech-aidlc orchestrate next' again{}. Only the owner may override with --force-resume --detail \"<reason>\".",
                     if is_new { " with the same request (the intent was not created yet)" } else { "" }
-                )),
-            );
+                )
+            };
+            payload.insert("hint".into(), json!(hint));
             return Ok(NextOutcome::Blocked(Value::Object(payload)));
         }
         if !failing.is_empty() && options.force_resume {
@@ -4387,6 +4504,118 @@ mod tests {
     }
 
     #[test]
+    fn ts007_stale_load_error_equals_state_changed() {
+        let root = temp();
+        write_config(&root, "{}");
+        let graph = graph();
+        start(&root, &graph, "stale load");
+        let loaded = load_workflow(&root, &graph, false).unwrap();
+        let state_path = root.join(".aidlc/intents/stale-load/state.json");
+        let changed = [fs::read(&state_path).unwrap().as_slice(), b" "].concat();
+        fs::write(&state_path, &changed).unwrap();
+        let mut state = loaded.state.clone().unwrap();
+        let error = persist_active(&root, &graph, &loaded, &mut state).unwrap_err();
+        assert_eq!(error, STATE_CHANGED);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    fn marker_config(root: &Path, name: &str) -> PathBuf {
+        let marker = root.join(name);
+        write_config(
+            root,
+            &json!({"prerequisites":{"toolchain":{
+                "check": format!("echo ran > \"{}\" && exit 7", marker.display()),
+                "hint":"Install it","stages":["work"]}}})
+            .to_string(),
+        );
+        marker
+    }
+
+    #[test]
+    fn ts010_skip_runs_no_command() {
+        let root = temp();
+        let marker = marker_config(&root, "ran-marker");
+        let before = snapshot(&root);
+        let options = NextOptions {
+            intent: Some("needs tools".into()),
+            skip_prerequisite_checks: true,
+            ..NextOptions::default()
+        };
+        let NextOutcome::Blocked(payload) = next(&root, &graph(), options).unwrap() else {
+            panic!("expected blocked")
+        };
+        assert!(!marker.exists(), "skip must not spawn the check");
+        assert_eq!(payload["needs"][0]["executed"], false);
+        assert_eq!(payload["needs"][0]["ok"], false);
+        assert!(payload["needs"][0].get("check").is_none());
+        let hint = payload["hint"].as_str().unwrap();
+        assert!(hint.contains("not run over MCP"), "{hint}");
+        assert_eq!(snapshot(&root), before);
+
+        // Without skip the same project runs the command (CLI behaviour unchanged).
+        let options = NextOptions {
+            intent: Some("needs tools".into()),
+            ..NextOptions::default()
+        };
+        let NextOutcome::Blocked(payload) = next(&root, &graph(), options).unwrap() else {
+            panic!("expected blocked")
+        };
+        assert!(marker.exists());
+        assert!(payload["needs"][0].get("executed").is_none());
+        assert!(!payload["hint"].as_str().unwrap().contains("MCP"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn ts010_skip_on_an_existing_intent_runs_no_command_and_writes_nothing() {
+        let root = temp();
+        write_config(&root, "{}");
+        let graph = graph();
+        start(&root, &graph, "mcp shape");
+        let marker = marker_config(&root, "mcp-marker");
+        let before = snapshot(&root);
+        let options = NextOptions {
+            skip_prerequisite_checks: true,
+            ..NextOptions::default()
+        };
+        let NextOutcome::Blocked(payload) = next(&root, &graph, options).unwrap() else {
+            panic!("expected blocked")
+        };
+        assert!(!marker.exists(), "skip must not spawn the check");
+        assert_eq!(payload["needs"][0]["executed"], false);
+        assert_eq!(
+            snapshot(&root),
+            before,
+            "audit.jsonl and state.json unchanged"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn ts010_pending_prerequisites_preview_is_read_only() {
+        let root = temp();
+        write_config(&root, "{}");
+        let graph = graph();
+        start(&root, &graph, "preview");
+        assert_eq!(
+            pending_prerequisites(&root, &graph, &config(&root)).unwrap(),
+            Vec::<Value>::new()
+        );
+        let marker = marker_config(&root, "preview-marker");
+        let before = snapshot(&root);
+        let rows = pending_prerequisites(&root, &graph, &config(&root)).unwrap();
+        assert_eq!(
+            rows,
+            vec![
+                json!({"name":"toolchain","ok":false,"hint":"Install it","exitCode":null,"executed":false})
+            ]
+        );
+        assert!(!marker.exists());
+        assert_eq!(snapshot(&root), before);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn active_update_keeps_pointer_and_refuses_concurrent_changes() {
         let root = temp();
         write_config(&root, "{}");
@@ -4402,10 +4631,7 @@ mod tests {
         fs::write(&state_path, &changed).unwrap();
         let mut state = loaded.state.clone().unwrap();
         let error = persist_active(&root, &graph, &loaded, &mut state).unwrap_err();
-        assert!(
-            error.contains("changed while this command was running"),
-            "{error}"
-        );
+        assert_eq!(error, STATE_CHANGED);
         assert_eq!(fs::read(&state_path).unwrap(), changed);
         fs::remove_dir_all(root).unwrap();
     }
@@ -4623,6 +4849,67 @@ mod tests {
                 stage,
                 unit: "WU-01".into()
             }
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn skip_does_not_hold_or_audit_a_unit_whose_needs_check_was_not_run() {
+        let root = temp();
+        let intent = root.join(".aidlc/intents/unit-replay");
+        let design = intent.join("develop/implementation-design");
+        fs::create_dir_all(&design).unwrap();
+        // WU-11 normally waits on WU-01; make it independent so a held WU-01 has an alternative.
+        let mut units: Value = serde_json::from_str(&unit_fixture("work-units.real.json")).unwrap();
+        for unit in units["units"].as_array_mut().unwrap() {
+            if unit["id"] == "WU-11" {
+                unit["dependsOn"] = json!([]);
+            }
+        }
+        fs::write(design.join("work-units.json"), units.to_string()).unwrap();
+        fs::write(design.join("ids.json"), unit_fixture("ids.json")).unwrap();
+        fs::write(intent.join("state.json"), unit_fixture("state-1.0.0.json")).unwrap();
+        fs::write(intent.join("intent.md"), "# unit-replay\n").unwrap();
+        fs::write(
+            root.join(".aidlc/state.json"),
+            "{\"version\":2,\"activeIntentId\":\"unit-replay\",\"updatedAt\":\"2026-11-26T02:17:34.449Z\"}\n",
+        )
+        .unwrap();
+        let marker = root.join("vpn-marker");
+        write_config(
+            &root,
+            &json!({"prerequisites":{"vpn":{"check": format!("echo ran > \"{}\" && exit 1", marker.display())}}})
+                .to_string(),
+        );
+        let graph = embedded_graph();
+        let skip = || NextOptions {
+            skip_prerequisite_checks: true,
+            ..NextOptions::default()
+        };
+        // Migrate the ledger and select the first unit.
+        let NextOutcome::Directive(first) = next(&root, &graph, skip()).unwrap() else {
+            panic!("expected directive")
+        };
+        let held = first["currentUnit"].as_str().unwrap().to_owned();
+        let blocked = ReportOptions {
+            detail: Some("vpn down".into()),
+            needs: vec!["vpn".into()],
+            ..result("blocked")
+        };
+        report(&root, &graph, blocked).unwrap();
+        let NextOutcome::Directive(second) = next(&root, &graph, skip()).unwrap() else {
+            panic!("expected directive")
+        };
+        assert_ne!(
+            second["currentUnit"].as_str().unwrap(),
+            held,
+            "other unit runs"
+        );
+        assert!(!marker.exists(), "skip must not spawn the check");
+        assert!(
+            !audit_events(&root).contains(&"prerequisite.checked".to_owned()),
+            "{:?}",
+            audit_events(&root)
         );
         fs::remove_dir_all(root).unwrap();
     }

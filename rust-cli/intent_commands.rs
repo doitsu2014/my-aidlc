@@ -38,6 +38,7 @@
 //!   after reading it).
 
 use crate::args::FlagValue;
+use crate::orchestrate::STATE_CHANGED;
 use crate::workflow::{
     depth_of, derive_status, intent_state_path, load_intent, load_workflow, ordered_stages,
     read_pointer, save_intent, save_pointer, state_path, valid_intent_id, validate_intent_state,
@@ -50,8 +51,6 @@ use std::path::{Path, PathBuf};
 
 const USE_MESSAGE: &str =
     "Use intent list, intent pause, intent resume, intent abandon, intent depth, or intent assign";
-const CHANGED: &str =
-    "Workflow state changed while this command was running; no changes were made. Run the command again.";
 
 /// Run one `intent` command. Returns the JSON to print and the exit code (always 0
 /// on success; Node uses no other exit code for these commands).
@@ -271,11 +270,11 @@ fn ensure_unchanged(
     intent: Option<(&str, &Option<Vec<u8>>)>,
 ) -> Result<(), String> {
     if &read_bytes(&state_path(root))? != pointer_bytes {
-        return Err(CHANGED.into());
+        return Err(STATE_CHANGED.into());
     }
     if let Some((id, bytes)) = intent {
         if &read_bytes(&intent_state_path(root, id))? != bytes {
-            return Err(CHANGED.into());
+            return Err(STATE_CHANGED.into());
         }
     }
     Ok(())
@@ -1058,12 +1057,12 @@ mod tests {
         fs::write(root.join(".aidlc/intents/alpha/state.json"), "c").unwrap();
         assert_eq!(
             ensure_unchanged(&root, &pointer, Some(("alpha", &state))),
-            Err(CHANGED.to_owned())
+            Err(STATE_CHANGED.to_owned())
         );
         fs::remove_file(root.join(".aidlc/state.json")).unwrap();
         assert_eq!(
             ensure_unchanged(&root, &pointer, None),
-            Err(CHANGED.to_owned())
+            Err(STATE_CHANGED.to_owned())
         );
         let _ = fs::remove_dir_all(&root);
     }

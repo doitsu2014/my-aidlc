@@ -505,6 +505,7 @@ fn run_orchestrate(
             force_resume,
             claim,
             unit,
+            skip_prerequisite_checks: false,
         },
     )?;
     match outcome {

@@ -276,6 +276,38 @@ pub fn run_prerequisites(root: &str, config: &Value, names: &[String]) -> Vec<Va
         .collect()
 }
 
+/// Like [`run_prerequisites`], but with `skip` nothing is spawned: every distinct name gets
+/// a not-run row (a declared check counts as failing, fail-closed). The command line is
+/// never included.
+pub fn check_prerequisites(root: &str, config: &Value, names: &[String], skip: bool) -> Vec<Value> {
+    if !skip {
+        return run_prerequisites(root, config, names);
+    }
+    let declared = prerequisites_of(config);
+    let mut seen = HashSet::new();
+    names
+        .iter()
+        .filter(|name| seen.insert(name.as_str()))
+        .map(|name| match declared.get(name) {
+            Some(definition) => serde_json::json!({
+                "name": name,
+                "ok": false,
+                "hint": definition.get("hint").cloned().unwrap_or(Value::Null),
+                "exitCode": null,
+                "executed": false,
+            }),
+            None => serde_json::json!({
+                "name": name,
+                "ok": true,
+                "hint": null,
+                "exitCode": null,
+                "undeclared": true,
+                "executed": false,
+            }),
+        })
+        .collect()
+}
+
 fn valid_name(name: &str) -> bool {
     let bytes = name.as_bytes();
     !bytes.is_empty()
@@ -473,6 +505,28 @@ mod tests {
         assert_eq!(results[0]["ok"], true);
         assert_eq!(results[1]["undeclared"], true);
         assert_eq!(results[2]["exitCode"], 7);
+    }
+
+    #[test]
+    fn ts010_skip_runs_no_command() {
+        let marker = std::env::temp_dir().join(format!("ts010-marker-{}", std::process::id()));
+        let _ = std::fs::remove_file(&marker);
+        let check = format!("echo ran > \"{}\"", marker.display());
+        let config = json!({"prerequisites":{"bad":{"check":check,"hint":"fix it"}}});
+        let names: Vec<String> = vec!["bad".into(), "bad".into(), "gone".into()];
+        let rows = check_prerequisites(".", &config, &names, true);
+        assert!(!marker.exists(), "skip must not spawn the check");
+        assert_eq!(
+            rows,
+            vec![
+                json!({"name":"bad","ok":false,"hint":"fix it","exitCode":null,"executed":false}),
+                json!({"name":"gone","ok":true,"hint":null,"exitCode":null,"undeclared":true,"executed":false}),
+            ]
+        );
+        // skip=false is identical to run_prerequisites.
+        let ran = check_prerequisites(".", &config, &["bad".into()], false);
+        assert_eq!(ran, run_prerequisites(".", &config, &["bad".into()]));
+        let _ = std::fs::remove_file(&marker);
     }
 
     #[test]
