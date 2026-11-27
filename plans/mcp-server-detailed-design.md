@@ -27,7 +27,7 @@ Principles:
 Cargo.toml
   [[bin]] dtech-aidlc       -> rust-cli/main.rs       (existing)
   [[bin]] dtech-aidlc-mcp   -> rust-cli/mcp_main.rs   (proposed)
-  [[bin]] dtech-aidlc-monitor -> rust-cli/monitor_main.rs (proposed; verify command naming)
+  monitor subcommand        -> rust-cli/main.rs       (proposed; separate child process implementation TBD)
 
 rust-cli/
   application.rs            shared request context and operation façade (new)
@@ -43,26 +43,25 @@ rust-cli/
   main.rs                   existing CLI adapter; refactor incrementally
 ```
 
-The module names are proposed. Avoid an unnecessary web framework or runtime unless required by the selected MCP SDK and monitor implementation. Validate dependency maintenance, licensing, MSRV, transport support, offline build constraints and lockfile reproducibility in a spike before selecting crates.
+The module names are proposed. Avoid an unnecessary web framework or runtime unless required by the selected MCP SDK and monitor implementation. The repository does not currently declare `rust-version`; decide and document an MSRV as part of dependency review. Validate dependency maintenance, licensing, transport support, Windows support, lockfile reproducibility, and whether the selected dependency set can build with `--locked`; treat offline-cache availability as a separate deployment constraint, not an existing guarantee.
 
 ## 3. Shared application façade
 
 ### 3.1 Context
 
-Proposed `ProjectContext` is immutable process configuration:
+`ProjectContext` contains immutable process configuration only:
 
 ```rust
 pub struct ProjectContext {
     pub project_root: PathBuf,       // canonicalized/normalized absolute root
     pub graph: scope::Graph,
-    pub config: Value,
     pub engine: orchestrate::Engine,
     pub telemetry: Option<TelemetryHandle>,
     pub caller: CallerKind,          // Cli | Mcp
 }
 ```
 
-Do not expose an arbitrary path argument on each MCP tool. Resolve once from startup CWD or explicit `--project`; use the existing `orchestrate::resolve_like_node` and `audit::assert_safe_state_dir` behavior. Reproduce the CLI's embedded/external engine handling using `DTECH_AIDLC_HOME` exactly; do not silently select an alternate engine.
+Do not cache policy-relevant `.aidlc/config.json` in this long-lived context. Reload and validate it using the same operation-specific behavior as the CLI on every call, especially immediately before gate checks, so a running MCP process cannot keep applying stale gate modes or approver allowlists. Do not expose an arbitrary path argument on each MCP tool. Resolve once from startup CWD or explicit `--project`; use the existing `orchestrate::resolve_like_node` and `audit::assert_safe_state_dir` behavior. Reproduce the CLI's embedded/external engine handling using `DTECH_AIDLC_HOME` exactly; do not silently select an alternate engine.
 
 The graph currently loads as `scope::Graph` in the CLI and handlers generally consume `graph.value()`. Keep graph parsing and config validation consistent rather than loading separate MCP-specific copies.
 
@@ -81,10 +80,11 @@ pub fn report(ctx: &ProjectContext, request: ReportRequest) -> Result<Value, App
 
 Mapping to current behavior:
 
-- `status`: `status::status(root, graph, intent)`.
-- `queue`: existing `unit_commands::run("orchestrate queue", root, graph, config, options)`.
-- `next`: existing `orchestrate::orchestrate_next(root, graph.value(), config, engine, options)` and convert `NextOutcome::value()` without dropping blocked/busy/completion fields.
-- `report`: existing `orchestrate::orchestrate_report_with_engine(root, graph.value(), config, engine, options)`.
+- `status`: `status::status(root, graph, intent)`; the MCP projection must omit or relativize `intentDir` because the existing CLI payload contains an absolute path.
+- `queue`: existing `unit_commands::run("orchestrate queue", root, graph, config, options)`; preserve and expose the non-persisted `migration: "pending"` preview marker on legacy state.
+- `next`: preserve the CLI's knowledge preflight, fresh `validate_model_config`, `orchestrate::orchestrate_next(root, graph.value(), config, engine, options)`, and `orchestrate::finish_directive` for directive outcomes. Convert `NextOutcome::value()` without dropping blocked/busy/completion fields, but redact/relativize every absolute path in the structured directive before returning it through MCP.
+- `report`: preserve the CLI's freshly loaded `load_config_unvalidated`, `orchestrate::orchestrate_report_with_engine(root, graph.value(), config, engine, options)`, and `orchestrate::finish_report` sequence. Return the same semantic result as the CLI after post-processing.
+- The shared façade is not behaviorally complete until it reproduces these route-specific preflights/finalizers and preserves their ordering. Test knowledge-writeback completion and directive projection/writeback cases, not only the core orchestration return values.
 
 Current CLI route setup in `main.rs` constructs these inputs in `run_read_only`, `run_orchestrate`, and `run_unit_queue`. Move operation setup/dispatch to the façade incrementally; preserve CLI-only help, parsing, formatting and process exit behavior. The MCP adapter must never synthesize argv, invoke the binary, or parse presentation output.
 
@@ -114,33 +114,40 @@ Initial tools are intentionally narrow:
 
 Input: optional `intent_id` only if the existing status operation supports selecting it. Otherwise use empty object with `additionalProperties: false`.
 
-Output: existing status projection as structured data. Avoid leaking full project absolute paths.
+Output: structured status data using the existing semantic projection. Explicitly omit or relativize the `intentDir` field returned by `status::status`; apply the same path-redaction policy to every nested field in every MCP result, including directive paths from `aidlc_next`. Do not assume that an instruction to avoid paths removes them from the existing serialized value.
 
-#### `aidlc_queue` (read)
+#### `aidlc_queue` (read; may be a migration preview)
 
 Input: empty object, `additionalProperties: false`.
 
-Output: existing queue representation of ready/waiting/blocked/parked/done units. This is not a state mutation; preserve the existing in-memory migration-preview behavior.
+Output: existing queue representation of ready/waiting/blocked/parked/done units. On legacy state, the current queue path may synthesize an in-memory migration preview marked `migration: "pending"`; it must not be presented as persisted state. Preserve and surface the preview marker clearly in MCP structured output and any UI that consumes it. Assert that queue reads write no project files.
 
-#### `aidlc_next` (state-affecting)
+#### `aidlc_next` (state-affecting; may run configured prerequisite commands)
 
-Input: begin with no assistant-supplied gate identity or arbitrary root. The narrowest MVP should only select the next step on an already onboarded project; creating a new intent through `next` is a separate scope decision because it accepts intent/scope/depth/mode and may create workflow state. If new-intent creation is included, make those fields explicit, bounded, and require the same existing validation as CLI.
+Input: begin with no assistant-supplied gate identity or arbitrary root. The current `orchestrate_next` behavior can create a new intent when no active intent exists, even when no explicit intent text is supplied, and can run owner-configured prerequisite checks before returning a directive. Merely omitting an MCP `intent` field does not constrain those effects.
 
-Output: full directive/complete/blocked/busy structure. Document that selecting a directive may persist current stage, perform existing migration, and append existing audit events.
+Before exposing this tool, add and test an enforceable application-level mode/guard that:
+
+1. requires an existing active intent and refuses without creating or selecting a new intent when none exists; and
+2. makes prerequisite execution explicit. The safer initial MCP contract is not to execute configured shell prerequisite checks implicitly. If prerequisites are needed, return their configured names/status without running their commands, or require a separately reviewed explicit opt-in that runs only owner-configured checks using the existing timeout/argument-safety behavior.
+
+Output: full directive/complete/blocked/busy structure, including any non-executed prerequisite requirements. Document that selecting a directive may persist current stage, perform existing migration, and append existing audit events. Test no-active-intent, active-intent, blocked prerequisite, and explicit prerequisite opt-in/refusal cases before publishing this tool.
 
 #### `aidlc_report` (state mutation)
 
-Inputs map only to current `ReportOptions`: `stage`, `result`, `detail`, `approval`, `approved_by`, `approval_note`, `needs`, and `unit`, subject to the exact existing conditions. Strict schema; bounded detail/list/string sizes; `result` enum from current CLI contract. Do not add fields the domain operation cannot enforce.
+Inputs map only to current `ReportOptions`: `stage`, `result`, `detail`, `approval`, `approved_by`, `approval_note`, `needs`, and `unit`, subject to the exact existing conditions. Strict schema; bounded detail/list/string sizes; `result` enum from current CLI contract. Do not add fields the domain operation cannot enforce. Completion artifacts/evidence are derived and verified by existing application logic; the current `ReportOptions` does not accept caller-supplied artifact/evidence fields.
 
 Output: the existing structured report result or safe error.
 
 ### 4.4 Gate and approval handling
 
 - Do not create a special tool that bypasses `orchestrate_report` or directly writes gate state.
-- Gate decision fields may be passed only through the same report path and only where existing gate rules accept them.
 - Preserve human/AI mode behavior, configured gate mode, allowed-approver checks, AI recommendation requirements and open-item checks.
-- `approved_by` is a supplied label, not authenticated identity. Neither MCP nor the dashboard may present it as proof of human approval.
-- MCP host user-confirmation UI may be recommended where available but is not guaranteed by protocol. Documentation must state this boundary.
+- **MCP must not submit `approval: "approved"` for a human-mode gate in v1.** The current report path accepts a caller-supplied approver value and does not receive authenticated human-consent evidence. A host UI confirmation that is not conveyed and independently verified by the server does not close this gap.
+- For human-mode gates, MCP may submit a report without approval where current rules permit; the project owner completes the approval through the existing direct CLI flow. If a supported host later provides verifiable, server-checkable consent, enable MCP human approvals only through a separately reviewed authorization design.
+- AI-mode approvals may be submitted only through existing AI-orchestrator policy and recommendation/open-item validation. The `AI Orchestrator` name is a policy value, not proof of a person.
+- Approver resolution in the CLI falls back from an explicit label to Git `user.name`, then OS username, then `unknown`; none is authenticated. An empty configured allowlist does not authenticate or restrict names. The MCP contract must not claim these names are caller-verified or authenticated.
+- Neither MCP nor the dashboard may present a caller-supplied/resolved name as authenticated identity or proof of human approval.
 
 ## 5. Error handling and idempotency
 
@@ -210,11 +217,15 @@ The dashboard is a separately started, read-only local app. It cannot call MCP t
 
 ### 7.2 Navigation and screen layout
 
+**Privacy notice:** The dashboard header/help disclosure names the effective telemetry setting, storage location (`.aidlc/telemetry/`), retention limits, and fields that may be retained (tool/operation names, timestamps, outcomes, durations, and selected intent/stage/unit/session/trace identifiers). It states that prompts, raw arguments/results, artifacts, credentials, and full project paths are excluded. The dashboard is read-only; the user changes collection settings through the documented local configuration/launch options, not from dashboard controls.
+
+**Privacy notice:** The dashboard header/help disclosure names the effective telemetry setting, storage location (`.aidlc/telemetry/`), retention limits, and fields that may be retained (tool/operation names, timestamps, outcomes, durations, and selected intent/stage/unit/session/trace identifiers). It states that prompts, raw arguments/results, artifacts, credentials, and full project paths are excluded. The dashboard is read-only; the user changes collection settings through the documented local configuration/launch options, not from dashboard controls.
+
 One responsive screen for v1, with a header and four regions:
 
-1. **Header:** “AIDLC Monitor”, selected safe project label (not full path), local-only indicator, bounded time-range picker, refresh button/status.
-2. **Health strip:** telemetry collection state, last event, selected interval, known MCP session count, and an explicit coverage status (`MCP-only`, `shared events available`, `partial`, `stale`, etc.). Do not infer server health merely from the absence of errors/events.
-3. **Activity summary:** request count, error numerator/denominator, blocked count, latency p50/p95 with units/sample count, and a compact event/outcome time series. Each metric is clickable and filters the event stream. Below a defined minimum sample count show “insufficient samples”.
+1. **Header:** “AIDLC Monitor”, generic “local project” label, local-only indicator, effective collection/retention disclosure, bounded time-range picker, refresh status.
+2. **Health strip:** last observed event, selected interval, and event coverage (`MCP spans`, `shared operation events`, `partial`, `stale`, `unknown`). Do not infer that a process is live, stopped, or telemetry is disabled from silence in the same best-effort event stream. Do not show active-session counts unless backed by a separately specified, bounded-lifecycle heartbeat/status signal; otherwise show sessions observed within the selected range.
+3. **Activity summary:** count MCP tool-completion spans as tool calls, count shared operations separately, report tool errors/blocked results only from MCP tool-completion spans, and calculate latency percentiles only from completed MCP tool spans. Never add operation spans to tool-call denominators or latency distributions, because one request may produce multiple operations. Show shared operation event counts in a separately labeled measure. Each metric filters its own event population. Below a defined minimum sample count show “insufficient samples”.
 4. **Event workspace:** central newest-first event list with filters; selected event details in a right panel on desktop and inline disclosure on mobile.
 
 Desktop wireframe:
@@ -225,8 +236,8 @@ Desktop wireframe:
 ├──────────────────────────────────────────────────────────────────────────┤
 │ ● RECORDING  last event 14:32:08  MCP sessions 1  coverage: PARTIAL      │
 ├───────────────────────────────────────────────┬──────────────────────────┤
-│ Calls 128 · errors 3/128 · blocked 4          │ FILTERS                  │
-│ p50 42 ms · p95 240 ms · n=124 completed      │ source / outcome          │
+│ MCP tools 128 · errors 3/128 · blocked 4      │ FILTERS                  │
+│ tool latency p50 42 ms · p95 240 ms · n=124   │ source / outcome          │
 │ [latency distribution] [events by time]        │ tool / stage / trace      │
 │                                               │ [clear filters]           │
 │ EVENTS · newest first · 128 matches           ├──────────────────────────┤
@@ -298,6 +309,8 @@ Detail panel fields:
 |---|---|---|
 | First run/no telemetry directory | Purposeful empty state; no invented events or zero-as-healthy metrics | Launch MCP with telemetry enabled and perform a tool call; run monitor in selected project. |
 | Telemetry disabled | Explicit disabled badge, no claim of server health | Enable telemetry in documented local configuration if desired. |
+
+The monitor cannot distinguish these states from the absence of telemetry files alone. Define a trustworthy local collector-status signal (for example, monitor launch configuration plus an explicit telemetry-enabled marker with bounded lifecycle semantics) before presenting distinct states. If that signal is unavailable or stale, show an honest “no telemetry observed / status unknown” state rather than inferring disabled or first-run.
 | Healthy data | Freshness, range, coverage, summary and event rows | Use filters/details. |
 | Partial/corrupt records | Keep valid rows; count skipped records and mark partial | Explain records were skipped; do not hide valid rows. |
 | Stale data/no recent event | Preserve last-known data with stale banner and timestamp | Refresh or check process/collection state; lack of events is not proof of failure. |
@@ -320,7 +333,7 @@ Detail panel fields:
 
 - Separate proposed command: `dtech-aidlc monitor --project <path>`; final name requires CLI naming review.
 - Bind to `127.0.0.1` on an ephemeral port by default; print URL but do not open browser automatically. No `0.0.0.0` binding in v1.
-- Read-only GET endpoints only. No POST/PUT/PATCH/DELETE, no tool invocation, no workflow state file access except a safe project label if separately approved; prefer telemetry-only reads.
+- Read-only GET endpoints only. No POST/PUT/PATCH/DELETE, no tool invocation, and no workflow-state or audit-log reads. Prefer a generic “local project” label; the dashboard reads telemetry files only.
 - Query interface accepts bounded time range, allowlisted filter values, sort and opaque cursor. It never accepts a filesystem path or filename from the browser and never returns raw JSONL lines.
 - Stable errors: `invalid_filter`, `range_too_large`, `cursor_stale`, `store_unavailable`, `query_limit_reached`.
 - Strict Host/Origin handling, no permissive CORS, bounded response sizes and event counts, loopback-only bind. Decide whether a per-run unguessable read token is required after browser security review; never store it in telemetry or project files.

@@ -29,7 +29,7 @@ Relevant current APIs and constraints:
 - Read-only status is available through `status::status`; work-unit queue/park/revisit behavior lives in `unit_commands::run` (`rust-cli/status.rs`, `rust-cli/unit_commands.rs:41-55`).
 - State writes check that pointer and intent bytes have not changed and use an atomic save path (`orchestrate.rs:1071-1109`). Existing operations preflight and append `.aidlc/audit.jsonl` (`rust-cli/audit.rs:98-117`, `153-193`).
 - The current audit log is durable workflow audit data. It is not telemetry, traces, or a live dashboard feed.
-- Approval names are caller-supplied entries under the existing CLI contract; they are not authenticated signatures. Human and AI gate modes have different existing rules. MCP must preserve those rules and must not claim it authenticates the approver.
+- Gate approver attribution is resolved from an explicit CLI value, Git `user.name`, or OS username (then `unknown`); none is authenticated identity. Existing human and AI gate modes have different rules. The proposed MCP v1 must not submit an approved decision for a human-mode gate; the owner completes that approval through the existing direct CLI path. AI-mode decisions remain subject to the existing recommendation/open-item policy.
 - Existing CLI behavior is guarded by Rust unit/integration tests and golden snapshots. `Cargo.lock` and offline/locked build expectations make dependency choice a deliberate design gate.
 
 All MCP, telemetry and dashboard components below are proposals, not current features.
@@ -132,6 +132,10 @@ Diagram is conceptual: existing operations determine the exact ordering of prefl
 ## 7. Observability architecture
 
 Two event layers serve different questions:
+
+- **Audit/log layer:** Existing `.aidlc/audit.jsonl` is the workflow audit record. Telemetry must not replace it or be presented as evidence that a gate decision was authentic or complete.
+- **Integrity boundary:** The proposed JSONL telemetry store is best-effort and may be incomplete, truncated, or locally modified. If stronger tamper evidence or completeness is required, design that separately (for example, chained integrity metadata and protected checkpoints); do not imply it is supplied by ordinary local telemetry files.
+- **Retention/visibility:** Telemetry may include validated intent, stage, unit, trace, and session identifiers. The monitor must disclose the effective collection setting and retention policy; default and exact limits remain release decisions.
 
 - **MCP spans:** tool name, request/response timing, protocol outcome, safe error code, and correlation identifiers. Only calls through MCP are represented.
 - **Shared operation/workflow events:** operation start/end and selected lifecycle transitions, emitted from shared code. These can cover both MCP and CLI paths once both call that code.
