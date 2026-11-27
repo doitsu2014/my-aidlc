@@ -1119,6 +1119,22 @@ fn harness_skills_share_the_workflow_contract_and_required_sections() {
             .replace("deepseek", "HARNESS")
     };
     assert_eq!(comparable(&files[0]), comparable(&files[1]));
+
+    let claude = &files[0];
+    for required in [
+        "### Workflow script safety",
+        "load Claude Code's `workflow-authoring` skill",
+        "plain JavaScript, not TypeScript",
+        "ordinary quoted strings joined with `.join(\"\\n\")`",
+        "].join(\"\\n\");",
+        "If using a JavaScript template literal, escape each literal backtick as `\\``.",
+        "Triple-backtick Markdown fences do not escape JavaScript backticks.",
+        "If Workflow returns `Invalid workflow script`, treat it as a script parse failure",
+        "agents have not started",
+        "do not retry the unchanged script",
+    ] {
+        assert!(claude.contains(required), "Claude skill missing {required}");
+    }
 }
 
 #[test]
@@ -1241,6 +1257,7 @@ fn projection_history_has_the_required_hashes_and_helpers_normalize() {
         "1b6aebe53308e796d0ac355ae067c142e8cdd220037ffa6e0c4cfdbb8154f637",
         "89b889881b09d4c665bef9a0accdfa85e20e5ef81cb6bdfaed10780a16c95b77",
         "cefb675bfd8665a0ad7be8e8ee36fb755b52e5b25f9673682d53fc870bf44199",
+        "773bc8f3f87ecc94793af96899bf383a2ee90b434229650e20e8a1eda73d61a3",
     ] {
         assert!(skill.contains(&json!(hash)), "{hash}");
     }

@@ -2,6 +2,10 @@
 
 Each release lists the behaviour changes a user or a script can notice.
 
+## 1.2.2
+
+- Harden Claude Code Workflow guidance against JavaScript prompt-quoting parse errors: load the workflow-authoring skill, use ordinary quoted strings for prompts containing Markdown backticks, and correct parse failures before retrying. Added regression checks and recognized the updated skill projection hash.
+
 ## 1.2.1
 
 - Fixed Windows prerequisite commands containing quoted paths or arguments: pass the configured check to `cmd.exe` without Rust's C-runtime argument escaping, preserving `cmd`'s native parsing. Unix shell invocation is unchanged. A Windows-only regression test checks a quoted path containing spaces and `&`, plus a quoted executable path.
