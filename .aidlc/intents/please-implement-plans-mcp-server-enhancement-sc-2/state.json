@@ -257,7 +257,7 @@
       ]
     },
     "red-tests": {
-      "status": "in_progress",
+      "status": "complete",
       "startedAt": "2026-11-28T04:03:14.955Z",
       "units": {
         "WU-011": {
@@ -303,10 +303,14 @@
         "WU-021": {
           "status": "complete",
           "reportedAt": "2026-11-28T06:25:11.521Z"
+        },
+        "WU-022": {
+          "status": "skipped",
+          "reportedAt": "2026-11-28T06:44:22.983Z"
         }
       },
-      "detail": null,
-      "reportedAt": "2026-11-28T06:25:11.521Z",
+      "detail": "No owned tests (work-units.json tests: []): WU-022 flips the README label and the repo_content needles that pin it; its preconditions (green windows-latest and macos-latest CI run 46117480020, live Claude Code tools/call 2026-11-28) are the evidence.",
+      "reportedAt": "2026-11-28T06:44:22.983Z",
       "reports": [
         {
           "at": "2026-11-28T04:34:32.255Z",
@@ -373,6 +377,12 @@
           "result": "complete",
           "detail": null,
           "unit": "WU-021"
+        },
+        {
+          "at": "2026-11-28T06:44:22.983Z",
+          "result": "skipped",
+          "detail": "No owned tests (work-units.json tests: []): WU-022 flips the README label and the repo_content needles that pin it; its preconditions (green windows-latest and macos-latest CI run 46117480020, live Claude Code tools/call 2026-11-28) are the evidence.",
+          "unit": "WU-022"
         }
       ],
       "artifacts": [
@@ -545,10 +555,14 @@
         "WU-021": {
           "status": "complete",
           "reportedAt": "2026-11-28T06:25:11.554Z"
+        },
+        "WU-022": {
+          "status": "pending",
+          "reportedAt": "2026-11-28T06:44:44.810Z"
         }
       },
       "detail": null,
-      "reportedAt": "2026-11-28T06:25:11.554Z",
+      "reportedAt": "2026-11-28T06:44:44.810Z",
       "reports": [
         {
           "at": "2026-11-28T04:34:57.819Z",
@@ -615,6 +629,12 @@
           "result": "complete",
           "detail": null,
           "unit": "WU-021"
+        },
+        {
+          "at": "2026-11-28T06:44:44.810Z",
+          "result": "complete",
+          "detail": null,
+          "unit": "WU-022"
         }
       ],
       "artifacts": [
@@ -881,6 +901,30 @@
           "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-021/known-limitations.md",
           "bytes": 766,
           "sha256": "8ca78ac87cac7f1b9b34666dafd34711d9001fbe9cdb048f7a573cde267ea4a1"
+        },
+        {
+          "output": "implementation",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-022/implementation.md",
+          "bytes": 2346,
+          "sha256": "15f7733e738a268aab3194a401ff728db27926baffe281f0c914c0843d3f0fb7"
+        },
+        {
+          "output": "green-verification-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-022/green-verification-report.md",
+          "bytes": 488,
+          "sha256": "874a81bb3057801cefb7b4210f86fb834ca2dc3e554bcd0c47149e51529ae459"
+        },
+        {
+          "output": "regression-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-022/regression-report.md",
+          "bytes": 300,
+          "sha256": "bedc7af83eb0d30520246c4a9e15228670835cc3d1221d0ba63a40608e343919"
+        },
+        {
+          "output": "known-limitations",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-022/known-limitations.md",
+          "bytes": 349,
+          "sha256": "50fe33056a73af7aec421b17a4645e8a339c5fb4102706116c67b3af82fca2c5"
         }
       ]
     }
@@ -888,7 +932,7 @@
   "dependencies": {},
   "createdAt": "2026-11-28T01:39:49.917Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T06:25:11.555Z",
+  "updatedAt": "2026-11-28T06:44:44.811Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -948,8 +992,8 @@
       "WU-021",
       "WU-022"
     ],
-    "progressSeq": 11,
-    "syncedAt": "2026-11-28T06:25:11.554Z",
+    "progressSeq": 12,
+    "syncedAt": "2026-11-28T06:44:44.810Z",
     "units": {
       "WU-011": {
         "title": "Flaky-test fixes",
@@ -1393,22 +1437,36 @@
           "WU-021"
         ],
         "tests": [],
-        "status": "pending",
-        "selectedAt": null,
+        "status": "verified",
+        "selectedAt": "2026-11-28T06:44:22.992Z",
         "steps": {
-          "red-tests": null,
-          "build-and-verify": null
+          "red-tests": "skipped",
+          "build-and-verify": "complete"
         },
-        "attempts": {},
+        "attempts": {
+          "red-tests": 1,
+          "build-and-verify": 1
+        },
         "blockedStreak": null,
         "park": null,
         "parkHistory": [],
         "inputFingerprint": "sha256:25fc3251bed4772f395a619077c4c48f01ca97e62b50578fca8739e5daf048a7",
-        "history": [],
+        "history": [
+          {
+            "stage": "red-tests",
+            "result": "skipped",
+            "at": "2026-11-28T06:44:22.983Z"
+          },
+          {
+            "stage": "build-and-verify",
+            "result": "complete",
+            "at": "2026-11-28T06:44:44.810Z"
+          }
+        ],
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-28T04:03:14.907Z"
+        "updatedAt": "2026-11-28T06:44:44.810Z"
       }
     },
     "deferredRegressions": [],
@@ -1511,5 +1569,5 @@
       ]
     }
   ],
-  "currentUnit": "WU-021"
+  "currentUnit": "WU-022"
 }

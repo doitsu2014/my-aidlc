@@ -365,9 +365,9 @@ dtech-aidlc harness add deepseek
 
 `harness status` reports whether projected files match this engine version. `harness refresh` updates unedited files and preserves your edits unless you pass `--force`, which saves backups first. `harness add` projects another supported harness. Review local changes before forcing an update.
 
-## MCP server (proposed)
+## MCP server
 
-This section is proposed. It describes the `dtech-aidlc-mcp` server as designed for this release; the host checks listed below have not all been run.
+Verified for 1.3.0: CI on Windows, macOS and Linux, and a live Claude Code `tools/call` against `dtech-aidlc-mcp` (2026-11-28). Not verified: DeepSeek Harness, and host launch of the `.exe` on Windows.
 
 `dtech-aidlc-mcp` is a local Model Context Protocol server. It talks to an AI host over stdio only: there is no HTTP transport and no network listener. It serves four tools, `status`, `queue`, `next` and `report`, over the same library behaviour as the matching CLI commands, which are unchanged.
 
@@ -418,7 +418,7 @@ Add the server as a `dsh-mcp-client` plugin entry in a user patch layer, `$DSH_H
         cwd: !!js process.cwd()
 ```
 
-The entry shape follows the DeepSeek Harness `dsh-mcp-client` documentation, and its pinned MCP client was exercised against a prototype server. Not verified: DeepSeek Harness itself has not been run against `dtech-aidlc-mcp`, and that `DTECH_AIDLC_HOME` survives its scrubbed environment is assumed. A launch-and-list check in each host is a manual release check, not yet run.
+The entry shape follows the DeepSeek Harness `dsh-mcp-client` documentation, and its pinned MCP client was exercised against a prototype server. Not verified: DeepSeek Harness itself has not been run against `dtech-aidlc-mcp`, and that `DTECH_AIDLC_HOME` survives its scrubbed environment is assumed. Claude Code was checked live with a model-driven `tools/call`; DeepSeek Harness was not run.
 
 ### Troubleshooting
 

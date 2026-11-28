@@ -1462,8 +1462,8 @@ fn ts036_readme_telemetry_and_monitor_sections() {
         );
     }
     assert!(
-        readme.contains("## MCP server (proposed)"),
-        "the proposed heading stays until the live check"
+        readme.contains("\n## MCP server\n") && !readme.contains("(proposed)"),
+        "the MCP section is no longer labelled proposed (WU-022)"
     );
     assert!(
         read_lf("CHANGELOG.md").contains("do not put names or secrets in intent text"),
@@ -2002,12 +2002,12 @@ fn ts015_ci_workflow_and_readme_mcp_section() {
     assert!(!ci.contains("secrets."), "ci.yml must not use secrets");
     let readme = read_lf("README.md");
     let at = readme
-        .find("## MCP server (proposed)")
+        .find("\n## MCP server\n")
         .expect("README MCP section");
     let rest = &readme[at + 3..];
     let section = &rest[..rest.find("\n## ").unwrap_or(rest.len())];
     for needle in [
-        "proposed",
+        "Verified for 1.3.0",
         "`status`",
         "`queue`",
         "`next`",
