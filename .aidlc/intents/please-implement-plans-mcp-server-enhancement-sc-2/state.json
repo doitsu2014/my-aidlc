@@ -7,7 +7,7 @@
   "projectScope": "solo",
   "depth": "standard",
   "mode": "ai",
-  "status": "active",
+  "status": "complete",
   "currentStage": null,
   "stages": {
     "problem-framing": {
@@ -968,12 +968,85 @@
           "sha256": "02b7a663f926b7ad81856821b865c0a89ceb462b24c34ad78ed382438831f125"
         }
       ]
+    },
+    "intent-record": {
+      "status": "complete",
+      "startedAt": "2026-11-28T07:14:55.581Z",
+      "detail": null,
+      "reportedAt": "2026-11-28T07:15:55.891Z",
+      "reports": [
+        {
+          "at": "2026-11-28T07:15:55.891Z",
+          "result": "complete",
+          "detail": null
+        }
+      ],
+      "units": {},
+      "artifacts": [
+        {
+          "output": "intent-summary",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/archived/intent-record/intent-summary.md",
+          "bytes": 6835,
+          "sha256": "0fda12fa8a60764792b47d64a7ff11a87ce4ea632878a16b1179fe664cc2088d"
+        },
+        {
+          "output": "completed-scope",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/archived/intent-record/completed-scope.md",
+          "bytes": 3089,
+          "sha256": "93ca463cd8e0ffbe83735a46120d7121166e3b90eed578cf0afe1a515156f23c"
+        },
+        {
+          "output": "artifact-index",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/archived/intent-record/artifact-index.md",
+          "bytes": 2299,
+          "sha256": "1620ddea5c41442bb43f443310c6b1943aa1b58e99ccb26329c0cbe9105a0e4e"
+        }
+      ]
+    },
+    "knowledge-writeback": {
+      "status": "complete",
+      "startedAt": "2026-11-28T07:15:55.907Z",
+      "detail": null,
+      "reportedAt": "2026-11-28T07:16:55.553Z",
+      "reports": [
+        {
+          "at": "2026-11-28T07:16:55.553Z",
+          "result": "complete",
+          "detail": null,
+          "approval": {
+            "decision": "approved",
+            "by": "AI Orchestrator",
+            "bySource": "flag",
+            "mode": "ai",
+            "note": null,
+            "openItems": {
+              "writtenApproval": 0,
+              "followUp": 5
+            }
+          }
+        }
+      ],
+      "units": {},
+      "artifacts": [
+        {
+          "output": "knowledge-record",
+          "path": ".aidlc/knowledge/please-implement-plans-mcp-server-enhancement-sc-2.md",
+          "bytes": 6268,
+          "sha256": "5ffa6507a9c1e8a448dae323bc38344a2c7805b78eb9ed83b4c0f5844535ac75"
+        },
+        {
+          "output": "next-intent-notes",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/archived/knowledge-writeback/next-intent-notes.md",
+          "bytes": 2502,
+          "sha256": "06597f62498b2038b31c6b57b05d954f352f5b9289ce555b9850abd00e443a65"
+        }
+      ]
     }
   },
   "dependencies": {},
   "createdAt": "2026-11-28T01:39:49.917Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T07:14:48.850Z",
+  "updatedAt": "2026-11-28T07:16:55.553Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -1028,6 +1101,24 @@
         "writtenApproval": 0,
         "followUp": 11
       }
+    },
+    "intent-closure": {
+      "phase": "archived",
+      "stage": "knowledge-writeback",
+      "decision": "approved",
+      "result": "complete",
+      "by": "AI Orchestrator",
+      "bySource": "flag",
+      "mode": "ai",
+      "at": "2026-11-28T07:16:55.553Z",
+      "note": null,
+      "detail": null,
+      "skippedStages": [],
+      "artifacts": [],
+      "openItems": {
+        "writtenApproval": 0,
+        "followUp": 5
+      }
     }
   },
   "workUnits": {
@@ -1052,7 +1143,7 @@
       "WU-022"
     ],
     "progressSeq": 12,
-    "syncedAt": "2026-11-28T07:14:48.846Z",
+    "syncedAt": "2026-11-28T07:16:55.553Z",
     "units": {
       "WU-011": {
         "title": "Flaky-test fixes",
