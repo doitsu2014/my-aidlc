@@ -38,7 +38,7 @@
 //!   after reading it).
 
 use crate::args::FlagValue;
-use crate::orchestrate::STATE_CHANGED;
+use crate::orchestrate::{with_state_lock, STATE_CHANGED};
 use crate::workflow::{
     depth_of, derive_status, intent_state_path, load_intent, load_workflow, ordered_stages,
     read_pointer, save_intent, save_pointer, state_path, valid_intent_id, validate_intent_state,
@@ -314,13 +314,15 @@ fn persist_workflow(
         ));
     }
     crate::workflow::assert_no_symlink_components(root, ".aidlc/state.json")?;
-    ensure_unchanged(
-        root,
-        &loaded.pointer_bytes,
-        Some((&id, &loaded.state_bytes)),
-    )?;
-    save_intent(root, state, Some(graph))?;
-    save_pointer(root, Some(&id))
+    with_state_lock(root, || {
+        ensure_unchanged(
+            root,
+            &loaded.pointer_bytes,
+            Some((&id, &loaded.state_bytes)),
+        )?;
+        save_intent(root, state, Some(graph))?;
+        save_pointer(root, Some(&id))
+    })
 }
 
 fn unknown_intent(id: &str) -> String {
@@ -781,9 +783,11 @@ fn pause(root: &Path, graph: &Value, detail: Option<&str>) -> Result<Value, Stri
         .or_else(|| loaded.active_intent_id.clone().map(Value::String))
         .unwrap_or(Value::Null);
     crate::workflow::assert_no_symlink_components(root, ".aidlc/state.json")?;
-    ensure_unchanged(root, &loaded.pointer_bytes, None)?;
-    crate::audit::preflight_audit(root)?;
-    save_pointer(root, None)?;
+    with_state_lock(root, || {
+        ensure_unchanged(root, &loaded.pointer_bytes, None)?;
+        crate::audit::preflight_audit(root)?;
+        save_pointer(root, None)
+    })?;
     crate::audit::audit(
         root,
         "intent.paused",
@@ -827,9 +831,11 @@ fn resume(root: &Path, graph: &Value, id: &str) -> Result<Value, String> {
         }
     }
     crate::workflow::assert_no_symlink_components(root, ".aidlc/state.json")?;
-    ensure_unchanged(root, &loaded.pointer_bytes, None)?;
-    crate::audit::preflight_audit(root)?;
-    save_pointer(root, Some(id))?;
+    with_state_lock(root, || {
+        ensure_unchanged(root, &loaded.pointer_bytes, None)?;
+        crate::audit::preflight_audit(root)?;
+        save_pointer(root, Some(id))
+    })?;
     crate::audit::audit(
         root,
         "intent.resumed",
@@ -874,16 +880,19 @@ fn abandon(root: &Path, graph: &Value, id: Option<&str>, detail: &str) -> Result
     if clear_pointer {
         crate::workflow::assert_no_symlink_components(root, ".aidlc/state.json")?;
     }
-    ensure_unchanged(
-        root,
-        &loaded.pointer_bytes,
-        Some((&target_id, &Some(target_bytes))),
-    )?;
-    crate::audit::preflight_audit(root)?;
-    save_intent(root, &mut target, Some(graph))?;
-    if clear_pointer {
-        save_pointer(root, None)?;
-    }
+    with_state_lock(root, || {
+        ensure_unchanged(
+            root,
+            &loaded.pointer_bytes,
+            Some((&target_id, &Some(target_bytes))),
+        )?;
+        crate::audit::preflight_audit(root)?;
+        save_intent(root, &mut target, Some(graph))?;
+        if clear_pointer {
+            save_pointer(root, None)?;
+        }
+        Ok(())
+    })?;
     crate::audit::audit(
         root,
         "intent.abandoned",

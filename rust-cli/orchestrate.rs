@@ -1225,6 +1225,124 @@ fn ensure_unchanged(
     Ok(())
 }
 
+/// Poll interval and total wait for the state write lock (IF-011).
+const STATE_LOCK_POLL_MS: u64 = 10;
+const STATE_LOCK_WAIT_MS: u64 = 5000;
+
+pub(crate) fn with_state_lock<T>(
+    root: &Path,
+    f: impl FnOnce() -> OrchestrateResult<T>,
+) -> OrchestrateResult<T> {
+    crate::audit::assert_safe_state_dir(root)?;
+    if !root.join(".aidlc").is_dir() {
+        return f();
+    }
+    with_state_lock_for(
+        root,
+        std::time::Duration::from_millis(STATE_LOCK_WAIT_MS),
+        f,
+    )
+}
+
+const STATE_LOCK_RETIRED: &[u8] = b"R";
+
+fn open_lock_file(path: &Path) -> std::io::Result<fs::File> {
+    if fs::symlink_metadata(path).is_ok_and(|meta| meta.file_type().is_symlink()) {
+        return Err(std::io::Error::other("refusing symlink lock file"));
+    }
+    let mut options = fs::OpenOptions::new();
+    options.create(true).truncate(false).read(true).write(true);
+    #[cfg(unix)]
+    std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
+    options.open(path)
+}
+
+fn with_state_lock_for<T>(
+    root: &Path,
+    wait: std::time::Duration,
+    f: impl FnOnce() -> OrchestrateResult<T>,
+) -> OrchestrateResult<T> {
+    acquire_and_run(root, wait, open_lock_file, f)
+}
+
+/// Removes the lock file while the lock is still held, then marks the handle retired
+/// (only when the unlink succeeded) so a waiter that holds the unlinked inode reopens.
+struct StateLockGuard {
+    file: fs::File,
+    path: PathBuf,
+}
+
+impl Drop for StateLockGuard {
+    fn drop(&mut self) {
+        if fs::remove_file(&self.path).is_ok() {
+            let _ = std::io::Write::write_all(&mut &self.file, STATE_LOCK_RETIRED);
+        }
+    }
+}
+
+fn acquire_and_run<T>(
+    root: &Path,
+    wait: std::time::Duration,
+    mut open: impl FnMut(&Path) -> std::io::Result<fs::File>,
+    f: impl FnOnce() -> OrchestrateResult<T>,
+) -> OrchestrateResult<T> {
+    use std::io::Read;
+    let path = root.join(".aidlc/state.lock");
+    let started = std::time::Instant::now();
+    let mut reopens = 0;
+    let guard = loop {
+        let timed_out = || started.elapsed() >= wait;
+        let file = match open(&path) {
+            Ok(file) => file,
+            Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
+                if timed_out() {
+                    return Err(STATE_CHANGED.into());
+                }
+                std::thread::sleep(std::time::Duration::from_millis(STATE_LOCK_POLL_MS));
+                continue;
+            }
+            Err(error) => return Err(format!("{}: {error}", path.display())),
+        };
+        loop {
+            match file.try_lock() {
+                Ok(()) => break,
+                Err(std::fs::TryLockError::WouldBlock) if !timed_out() => {
+                    std::thread::sleep(std::time::Duration::from_millis(STATE_LOCK_POLL_MS));
+                }
+                Err(std::fs::TryLockError::WouldBlock) => return Err(STATE_CHANGED.into()),
+                Err(std::fs::TryLockError::Error(error)) => {
+                    return Err(format!("{}: {error}", path.display()))
+                }
+            }
+        }
+        let mut marker = Vec::new();
+        (&file)
+            .read_to_end(&mut marker)
+            .map_err(|error| format!("{}: {error}", path.display()))?;
+        if marker.is_empty() {
+            break StateLockGuard {
+                file,
+                path: path.clone(),
+            };
+        }
+        // Retired by its previous holder (or stale): drop this handle and reopen.
+        // ponytail: counts every reopen, so a waiter queued behind 4+ successive holders that
+        // each retire their file gets the stale error; compare dev/ino before counting if many
+        // concurrent writers per project ever matter.
+        drop(file);
+        reopens += 1;
+        if reopens > 3 {
+            return Err(
+                ".aidlc/state.lock is stale; delete .aidlc/state.lock when no dtech-aidlc command is running"
+                    .into(),
+            );
+        }
+    };
+    let result = f();
+    drop(guard);
+    result
+}
+
 /// Write the active intent's state (Node `persistWorkflow`, without rewriting the pointer).
 pub(crate) fn persist_active(
     root: &Path,
@@ -1238,8 +1356,10 @@ pub(crate) fn persist_active(
             "Intent '{id}' is not the active intent; no changes were made"
         ));
     }
-    ensure_unchanged(root, loaded, Some(&id))?;
-    save_intent(root, state, Some(graph))
+    with_state_lock(root, || {
+        ensure_unchanged(root, loaded, Some(&id))?;
+        save_intent(root, state, Some(graph))
+    })
 }
 
 /// Write a new intent: folder, `intent.md`, `state.json`, then the pointer.
@@ -1253,18 +1373,20 @@ fn persist_new(
     if !valid_intent_id(&id) {
         return Err("intentId is not a safe identifier".into());
     }
-    ensure_unchanged(root, loaded, None)?;
-    let dir = intent_dir_path(root, &id);
-    if fs::symlink_metadata(&dir).is_ok() {
-        return Err(format!(
-            "Intent folder .aidlc/intents/{id} appeared while this command was running; no changes were made. Run the command again."
-        ));
-    }
-    crate::workflow::assert_no_symlink_components(root, &format!(".aidlc/intents/{id}"))?;
-    fs::create_dir_all(&dir).map_err(|error| format!("{}: {error}", dir.display()))?;
-    write_intent_markdown(root, &id, str_of(state, "intent").unwrap_or(""))?;
-    save_intent(root, state, Some(graph))?;
-    save_pointer(root, Some(&id))
+    with_state_lock(root, || {
+        ensure_unchanged(root, loaded, None)?;
+        let dir = intent_dir_path(root, &id);
+        if fs::symlink_metadata(&dir).is_ok() {
+            return Err(format!(
+                "Intent folder .aidlc/intents/{id} appeared while this command was running; no changes were made. Run the command again."
+            ));
+        }
+        crate::workflow::assert_no_symlink_components(root, &format!(".aidlc/intents/{id}"))?;
+        fs::create_dir_all(&dir).map_err(|error| format!("{}: {error}", dir.display()))?;
+        write_intent_markdown(root, &id, str_of(state, "intent").unwrap_or(""))?;
+        save_intent(root, state, Some(graph))?;
+        save_pointer(root, Some(&id))
+    })
 }
 
 // ---------------------------------------------------------------------------
@@ -5017,6 +5139,214 @@ mod tests {
         assert!(projection_notices(&root, "0.7.2").is_empty());
         write_artifact(&root, ".claude/skills/dtech-aidlc/SKILL.md", "edited");
         assert!(projection_notices(&root, "0.7.2")[0].contains("is modified relative to engine"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    // -- TS-020 state write lock (FN-022, IF-011) ---------------------------------
+
+    fn lock_path(root: &Path) -> PathBuf {
+        root.join(".aidlc/state.lock")
+    }
+
+    #[test]
+    fn ts020_racing_persist_active_calls_land_exactly_one_write() {
+        use std::sync::{Arc, Barrier};
+        let graph = graph();
+        for round in 0..4 {
+            let root = temp();
+            write_config(&root, "{}");
+            start(&root, &graph, "lock race");
+            let path = root.join(".aidlc/intents/lock-race/state.json");
+            let mut padded: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+            padded["padding"] = Value::String("x".repeat(8 << 20));
+            fs::write(&path, serde_json::to_vec(&padded).unwrap()).unwrap();
+
+            let barrier = Arc::new(Barrier::new(2));
+            let racers: Vec<_> = ["a", "b"]
+                .into_iter()
+                .map(|who| {
+                    let (root, graph, barrier) = (root.clone(), graph.clone(), barrier.clone());
+                    std::thread::spawn(move || {
+                        let loaded = load_workflow(&root, &graph, false).unwrap();
+                        let mut state = loaded.state.clone().unwrap();
+                        state["racer"] = json!(who);
+                        barrier.wait();
+                        let outcome = persist_active(&root, &graph, &loaded, &mut state);
+                        if outcome.is_ok() {
+                            crate::audit::audit(&root, "test.landed", json!({"who": who})).unwrap();
+                        }
+                        (who, outcome)
+                    })
+                })
+                .collect();
+            let results: Vec<_> = racers.into_iter().map(|r| r.join().unwrap()).collect();
+            let winners: Vec<_> = results.iter().filter(|(_, o)| o.is_ok()).collect();
+            assert_eq!(winners.len(), 1, "round {round}: {results:?}");
+            for (_, outcome) in results.iter().filter(|(_, o)| o.is_err()) {
+                assert_eq!(outcome.as_ref().unwrap_err(), STATE_CHANGED);
+            }
+            let rows = audit_events(&root);
+            let landed = rows.iter().filter(|event| *event == "test.landed").count();
+            assert_eq!(landed, 1, "round {round}: {rows:?}");
+            let stored: Value = serde_json::from_slice(&fs::read(&path).unwrap()).unwrap();
+            assert_eq!(stored["racer"], winners[0].0);
+            assert!(!lock_path(&root).exists());
+            fs::remove_dir_all(root).unwrap();
+        }
+    }
+
+    #[test]
+    fn ts020_lock_file_never_survives_a_command() {
+        let root = temp();
+        write_config(&root, "{}");
+        let graph = graph();
+        start(&root, &graph, "lock files");
+        assert!(!lock_path(&root).exists(), "after a success");
+        let loaded = load_workflow(&root, &graph, false).unwrap();
+        let state_path = root.join(".aidlc/intents/lock-files/state.json");
+        fs::write(
+            &state_path,
+            [fs::read(&state_path).unwrap().as_slice(), b" "].concat(),
+        )
+        .unwrap();
+        let mut state = loaded.state.clone().unwrap();
+        assert_eq!(
+            persist_active(&root, &graph, &loaded, &mut state).unwrap_err(),
+            STATE_CHANGED
+        );
+        assert!(!lock_path(&root).exists(), "after STATE_CHANGED");
+        let error = with_state_lock(&root, || Err::<(), _>("boom".to_owned())).unwrap_err();
+        assert_eq!(error, "boom");
+        assert!(!lock_path(&root).exists(), "after an error");
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn ts020_held_lock_times_out_with_state_changed_without_running_f() {
+        let root = temp();
+        let held = fs::OpenOptions::new()
+            .create(true)
+            .truncate(false)
+            .read(true)
+            .write(true)
+            .open(lock_path(&root))
+            .unwrap();
+        held.lock().unwrap();
+        let started = std::time::Instant::now();
+        let mut ran = false;
+        let error = with_state_lock_for(&root, std::time::Duration::from_millis(50), || {
+            ran = true;
+            Ok(())
+        })
+        .unwrap_err();
+        assert_eq!(error, STATE_CHANGED);
+        assert!(!ran, "f must not run without the lock");
+        assert!(started.elapsed() < std::time::Duration::from_secs(4));
+        drop(held);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn ts020_retired_marker_is_not_a_held_lock_and_is_reopened() {
+        let root = temp();
+        let held = fs::OpenOptions::new()
+            .create(true)
+            .truncate(false)
+            .read(true)
+            .write(true)
+            .open(lock_path(&root))
+            .unwrap();
+        held.lock().unwrap();
+        let waiter = {
+            let root = root.clone();
+            std::thread::spawn(move || with_state_lock(&root, || Ok("ran")))
+        };
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        // Retire the file the way a finishing holder does: unlink, mark, release.
+        fs::remove_file(lock_path(&root)).unwrap();
+        std::io::Write::write_all(&mut &held, STATE_LOCK_RETIRED).unwrap();
+        drop(held);
+        assert_eq!(waiter.join().unwrap().unwrap(), "ran");
+        assert!(!lock_path(&root).exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn ts020_still_marked_file_gives_the_stale_hint_not_state_changed() {
+        let root = temp();
+        fs::write(lock_path(&root), STATE_LOCK_RETIRED).unwrap();
+        let mut ran = false;
+        let error = with_state_lock(&root, || {
+            ran = true;
+            Ok(())
+        })
+        .unwrap_err();
+        assert!(!ran);
+        assert_ne!(error, STATE_CHANGED);
+        assert_eq!(
+            error,
+            ".aidlc/state.lock is stale; delete .aidlc/state.lock when no dtech-aidlc command is running"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ts020_failed_unlink_leaves_no_marker_so_the_next_writer_succeeds() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = temp();
+        let aidlc = root.join(".aidlc");
+        with_state_lock(&root, || {
+            fs::set_permissions(&aidlc, fs::Permissions::from_mode(0o555)).unwrap();
+            Ok(())
+        })
+        .unwrap();
+        fs::set_permissions(&aidlc, fs::Permissions::from_mode(0o755)).unwrap();
+        if !lock_path(&root).exists() {
+            // Running as a user that ignores directory permissions: nothing to simulate.
+            fs::remove_dir_all(root).unwrap();
+            return;
+        }
+        assert_eq!(
+            fs::read(lock_path(&root)).unwrap(),
+            b"",
+            "no marker after a failed unlink"
+        );
+        assert_eq!(with_state_lock(&root, || Ok(7)).unwrap(), 7);
+        assert!(!lock_path(&root).exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn ts020_permission_denied_on_open_is_retried_within_the_budget() {
+        let root = temp();
+        let mut attempts = 0;
+        let open = |path: &Path| {
+            attempts += 1;
+            if attempts < 3 {
+                Err(std::io::Error::from(std::io::ErrorKind::PermissionDenied))
+            } else {
+                open_lock_file(path)
+            }
+        };
+        let value = acquire_and_run(&root, std::time::Duration::from_secs(2), open, || Ok(5));
+        assert_eq!(value.unwrap(), 5);
+        assert_eq!(attempts, 3);
+        let always = |_: &Path| Err(std::io::Error::from(std::io::ErrorKind::PermissionDenied));
+        let error = acquire_and_run(&root, std::time::Duration::from_millis(50), always, || {
+            Ok(5)
+        })
+        .unwrap_err();
+        assert_eq!(error, STATE_CHANGED);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn ts020_root_without_aidlc_runs_unlocked_and_creates_nothing() {
+        let root = temp();
+        fs::remove_dir_all(root.join(".aidlc")).unwrap();
+        assert_eq!(with_state_lock(&root, || Ok(1)).unwrap(), 1);
+        assert!(!root.join(".aidlc").exists());
         fs::remove_dir_all(root).unwrap();
     }
 }

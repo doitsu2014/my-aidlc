@@ -89,6 +89,141 @@ fn cargo_install_and_update_produce_self_contained_cli() {
     fs::remove_dir_all(root).unwrap();
 }
 
+/// TS-009: both executables install together from the package, run from outside the
+/// checkout (the MCP server over stdio, the CLI over its arguments), and one
+/// `cargo uninstall` removes both without touching unrelated files.
+#[test]
+fn ts009_cargo_install_and_uninstall_both_binaries() {
+    use std::io::Write;
+    use std::process::Stdio;
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "aidlc-cargo-install-mcp-{}-{unique}",
+        std::process::id()
+    ));
+    fs::create_dir_all(root.join("bin")).unwrap();
+    let unrelated = root.join("bin").join("unrelated-tool");
+    fs::write(&unrelated, b"existing unrelated file").unwrap();
+    let repo = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    let install = Command::new("cargo")
+        .args(["install", "--offline", "--locked", "--path"])
+        .arg(&repo)
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(
+        install.status.success(),
+        "{}",
+        String::from_utf8_lossy(&install.stderr)
+    );
+    let exe = |name: &str| {
+        root.join("bin").join(if cfg!(windows) {
+            format!("{name}.exe")
+        } else {
+            name.to_owned()
+        })
+    };
+    assert!(exe("dtech-aidlc").is_file());
+    assert!(exe("dtech-aidlc-mcp").is_file());
+    assert_eq!(fs::read(&unrelated).unwrap(), b"existing unrelated file");
+
+    // Run the installed server against a throwaway project, outside the checkout.
+    let project = root.join("project");
+    fs::create_dir(&project).unwrap();
+    let cli = Command::new(exe("dtech-aidlc"))
+        .args([
+            "onboard",
+            "--harness",
+            "claude",
+            "--scope",
+            "solo",
+            "--project",
+        ])
+        .arg(&project)
+        .env_remove("DTECH_AIDLC_HOME")
+        .output()
+        .unwrap();
+    assert!(
+        cli.status.success(),
+        "{}",
+        String::from_utf8_lossy(&cli.stderr)
+    );
+    let version = Command::new(exe("dtech-aidlc"))
+        .arg("--version")
+        .output()
+        .unwrap();
+    assert!(version.status.success());
+    assert!(String::from_utf8_lossy(&version.stdout).contains(env!("CARGO_PKG_VERSION")));
+    let help = Command::new(exe("dtech-aidlc"))
+        .arg("--help")
+        .output()
+        .unwrap();
+    assert_eq!(help.status.code(), Some(0));
+    let mut server = Command::new(exe("dtech-aidlc-mcp"))
+        .arg("--project")
+        .arg(&project)
+        .current_dir(&root)
+        .env_remove("DTECH_AIDLC_HOME")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    {
+        let mut stdin = server.stdin.take().unwrap();
+        for frame in [
+            serde_json::json!({"jsonrpc": "2.0", "id": 1, "method": "initialize",
+                "params": {"protocolVersion": "2025-11-25", "capabilities": {}}}),
+            serde_json::json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}),
+        ] {
+            writeln!(stdin, "{frame}").unwrap();
+        }
+    }
+    let out = server.wait_with_output().unwrap();
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let replies: Vec<serde_json::Value> = String::from_utf8(out.stdout)
+        .unwrap()
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    assert_eq!(replies.len(), 2);
+    assert_eq!(
+        replies[0]["result"]["serverInfo"]["name"],
+        "dtech-aidlc-mcp"
+    );
+    let names: Vec<&str> = replies[1]["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|tool| tool["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names, ["status", "queue", "next", "report"]);
+
+    let uninstall = Command::new("cargo")
+        .args(["uninstall", "dtech-aidlc", "--root"])
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(
+        uninstall.status.success(),
+        "{}",
+        String::from_utf8_lossy(&uninstall.stderr)
+    );
+    assert!(!exe("dtech-aidlc").exists());
+    assert!(!exe("dtech-aidlc-mcp").exists());
+    assert_eq!(fs::read(&unrelated).unwrap(), b"existing unrelated file");
+    fs::remove_dir_all(root).unwrap();
+}
+
 // ---------------------------------------------------------------------------
 // scripts/rust-install/install.{sh,ps1} (formerly scripts/rust-install/test.mjs)
 // ---------------------------------------------------------------------------
