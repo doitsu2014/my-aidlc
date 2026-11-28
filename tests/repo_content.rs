@@ -1323,6 +1323,7 @@ const COMMAND_KEYS: &[&str] = &[
     "knowledge index",
     "harness status",
     "harness refresh",
+    "monitor",
 ];
 
 fn completion_text() -> String {

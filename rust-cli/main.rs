@@ -128,6 +128,7 @@ fn run() -> Result<u8, String> {
         "knowledge" => dtech_aidlc::knowledge_commands::run(&key, &root, rest, flags)?,
         "repos" => dtech_aidlc::dependencies::run_repos(&key, &root, rest, flags)?,
         "deps" => dtech_aidlc::dependencies::run_deps(&key, &root, rest, flags)?,
+        "monitor" => return dtech_aidlc::monitor::run(&root),
         _ => return Err(format!("Unknown command {cmd}; use dtech-aidlc help")),
     };
     print_output(&value)?;

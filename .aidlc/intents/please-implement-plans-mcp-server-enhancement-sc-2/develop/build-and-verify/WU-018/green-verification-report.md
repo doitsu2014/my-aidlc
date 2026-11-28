@@ -1,0 +1,7 @@
+# Green verification: WU-018
+
+- Status: Complete (2026-11-28). Cites TS-029, TS-037.
+- Observed (worktree): `cargo test --locked --test monitor_http` 19 passed, 20 of 20 consecutive runs; `cargo test --lib monitor` 3 passed; full suite 645 / 0 after the review fixes (at ddf97ca + patch); re-review ok with no issues.
+- Observed (conductor, main tree at ddf97ca + WU-018): `cargo fmt --check` clean; `monitor_http` 19 passed in 3 of 3 runs; full suite 645 passed / 0 failed; golden diffs checked: every changed golden line is a `monitor` help or completion line or one of the two new monitor validation steps; `unsafe.json` word-diff is exactly `+'monitor:Serve the read-only telemetry dashboard on 127.0.0.1'`.
+- Measurements (Observed, macOS loopback): 17th connection gets 503 busy in 0.38 ms; idle connections get 408 and free their slots after about 4.5 s; 40 rounds of abandoned connections leak no slot; a head dripped one byte per second gets 408 at 5.0 s (total deadline); a 64 MiB POST still receives its 405 (drain stops at about 1 MiB).
+- Trace: US-005 AC-013 FN-033 startup/ports/unsafe-start tests PASS; AC-014 FN-034 method, drain, static-route tests PASS; AC-015 FN-034 bearer, ct_eq, Host, Origin tests PASS; AC-016 FN-033/FN-034 api, filter-status, store-unavailable tests PASS; AC-025 FN-035 repo_content and command-table tests PASS; AC-027 FN-035 TS-037 golden procedure PASS; AC-030 FN-034 404/traversal, 400, 431, 408, 503, slot, no-CORS, panic-guard tests PASS.

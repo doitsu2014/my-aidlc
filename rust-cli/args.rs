@@ -314,7 +314,7 @@ pub fn command_flags(command: &str) -> Option<&'static [OptionSpec]> {
         "doctor" | "orchestrate queue" | "intent list" | "intent resume" | "intent assign"
         | "config agents" | "config scope" | "config mode" | "config gate-mode" | "harness add"
         | "repos list" | "repos remove" | "deps add" | "deps list" | "deps pull"
-        | "completion zsh" | "knowledge init" | "knowledge list" | "knowledge show"
+        | "completion zsh" | "monitor" | "knowledge init" | "knowledge list" | "knowledge show"
         | "knowledge check" | "knowledge index" | "harness status" => &[],
         "intent pause" | "intent abandon" => INTENT_DETAIL_FLAGS,
         "intent rework" => INTENT_REWORK_FLAGS,
@@ -344,6 +344,7 @@ pub fn command_max_args(command: &str) -> Option<usize> {
         | "repos list"
         | "deps list"
         | "completion zsh"
+        | "monitor"
         | "ids check"
         | "intent list"
         | "intent pause"
@@ -521,6 +522,7 @@ const COMMANDS: &[&str] = &[
     "knowledge index",
     "harness status",
     "harness refresh",
+    "monitor",
 ];
 
 #[cfg(test)]
@@ -682,6 +684,7 @@ mod tests {
             ("knowledge index", 0, &[]),
             ("harness status", 0, &[]),
             ("harness refresh", 1, &["dry-run", "force"]),
+            ("monitor", 0, &[]),
         ];
         assert_eq!(spec.len(), COMMANDS.len());
         for (key, max, flags) in spec {

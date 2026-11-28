@@ -42,6 +42,7 @@ _dtech-aidlc() {
         'intent:List, pause, resume, abandon, rework or split intents'
         'knowledge:Manage project knowledge and sources'
         'harness:Inspect and refresh projected skill files'
+        'monitor:Serve the read-only telemetry dashboard on 127.0.0.1'
         'completion:Print shell completion'
       )
       _describe 'command' commands

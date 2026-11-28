@@ -588,6 +588,7 @@ const COMMAND_KEYS: &[(&str, Option<usize>)] = &[
     ("knowledge index", Some(0)),
     ("harness status", Some(0)),
     ("harness refresh", Some(1)),
+    ("monitor", Some(0)),
 ];
 
 #[test]

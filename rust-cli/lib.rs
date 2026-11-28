@@ -17,6 +17,7 @@ pub mod intent_commands;
 pub mod knowledge;
 pub mod knowledge_commands;
 pub mod mcp;
+pub mod monitor;
 pub mod onboarding;
 pub mod orchestrate;
 pub mod orchestration_assets;
