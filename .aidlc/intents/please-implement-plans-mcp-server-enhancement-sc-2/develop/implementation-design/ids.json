@@ -1,0 +1,530 @@
+{
+  "schemaVersion": 1,
+  "ids": {
+    "FN": [
+      {
+        "id": "FN-023",
+        "title": "Telemetry schema v1: Event, EventKind, to_line, parse_line",
+        "traces": [
+          "AC-002",
+          "AC-003",
+          "AC-005"
+        ]
+      },
+      {
+        "id": "FN-024",
+        "title": "os_random and hex (OS random source, fail closed)",
+        "traces": [
+          "AC-010",
+          "AC-015"
+        ]
+      },
+      {
+        "id": "FN-025",
+        "title": "Telemetry store location, StoreState and file-name pattern",
+        "traces": [
+          "AC-008",
+          "AC-012",
+          "AC-016"
+        ]
+      },
+      {
+        "id": "FN-026",
+        "title": "Sink producer: bounded queue, sessionId, id counter, failure isolation",
+        "traces": [
+          "AC-004",
+          "AC-010",
+          "AC-018",
+          "AC-020",
+          "AC-028"
+        ]
+      },
+      {
+        "id": "FN-027",
+        "title": "FileStore writer thread: lazy create, rotation, prune",
+        "traces": [
+          "AC-008",
+          "AC-009",
+          "AC-012"
+        ]
+      },
+      {
+        "id": "FN-028",
+        "title": "Managed .gitignore line /telemetry/",
+        "traces": [
+          "AC-008"
+        ]
+      },
+      {
+        "id": "FN-029",
+        "title": "MCP launch v2: --project and --telemetry on|off",
+        "traces": [
+          "AC-001"
+        ]
+      },
+      {
+        "id": "FN-030",
+        "title": "Protocol-error observer (ToolHost on_error)",
+        "traces": [
+          "AC-005",
+          "AC-028"
+        ]
+      },
+      {
+        "id": "FN-031",
+        "title": "traced_call adapter, workflow events and on_protocol_error",
+        "traces": [
+          "AC-002",
+          "AC-004",
+          "AC-006",
+          "AC-007"
+        ]
+      },
+      {
+        "id": "FN-032",
+        "title": "Query engine: reader, caps, summary, cursor, parse cache",
+        "traces": [
+          "AC-003",
+          "AC-016",
+          "AC-017",
+          "AC-018",
+          "AC-019"
+        ]
+      },
+      {
+        "id": "FN-033",
+        "title": "Monitor server: start, accept loop, slots, routes",
+        "traces": [
+          "AC-013",
+          "AC-014",
+          "AC-016"
+        ]
+      },
+      {
+        "id": "FN-034",
+        "title": "HTTP layer: head reader, checks, ct_eq, response writer",
+        "traces": [
+          "AC-014",
+          "AC-015",
+          "AC-030"
+        ]
+      },
+      {
+        "id": "FN-035",
+        "title": "monitor command wiring: args, main, help, completion, COMMAND_KEYS",
+        "traces": [
+          "AC-013",
+          "AC-025",
+          "AC-027"
+        ]
+      },
+      {
+        "id": "FN-036",
+        "title": "Dashboard assets: index.html, app.js, app.css",
+        "traces": [
+          "AC-011",
+          "AC-016",
+          "AC-017",
+          "AC-018",
+          "AC-019",
+          "AC-020",
+          "AC-021"
+        ]
+      },
+      {
+        "id": "FN-037",
+        "title": "deps add under the state lock",
+        "traces": [
+          "AC-027"
+        ]
+      },
+      {
+        "id": "FN-038",
+        "title": "Flaky-test fixes (test modules only)",
+        "traces": [
+          "AC-027",
+          "AC-029"
+        ]
+      },
+      {
+        "id": "FN-039",
+        "title": "Installers for both binaries (sh and ps1)",
+        "traces": [
+          "AC-026"
+        ]
+      },
+      {
+        "id": "FN-040",
+        "title": "Release 1.3.0 preparation: version, lock, badge, hash, CHANGELOG, golden re-bless",
+        "traces": [
+          "AC-023",
+          "AC-024",
+          "AC-027"
+        ]
+      },
+      {
+        "id": "FN-041",
+        "title": "README telemetry, monitor and troubleshooting docs",
+        "traces": [
+          "AC-020",
+          "AC-025",
+          "AC-030"
+        ]
+      },
+      {
+        "id": "FN-042",
+        "title": "Studio mock update and dashboard design pack",
+        "traces": [
+          "AC-011",
+          "AC-022"
+        ]
+      },
+      {
+        "id": "FN-043",
+        "title": "Drop the proposed label (conditional on evidence)",
+        "traces": [
+          "AC-025"
+        ]
+      },
+      {
+        "id": "FN-044",
+        "title": "Intent-1 MCP follow-up characterisation tests (test file only)",
+        "traces": [
+          "AC-027",
+          "AC-029"
+        ]
+      }
+    ],
+    "IF": [
+      {
+        "id": "IF-012",
+        "title": "Telemetry JSONL line contract v1 and file layout",
+        "traces": [
+          "FN-023",
+          "FN-025",
+          "FN-027",
+          "FN-032"
+        ]
+      },
+      {
+        "id": "IF-013",
+        "title": "os_random and hex signatures",
+        "traces": [
+          "FN-024"
+        ]
+      },
+      {
+        "id": "IF-014",
+        "title": "Sink API and fixed stderr lines",
+        "traces": [
+          "FN-026",
+          "FN-027"
+        ]
+      },
+      {
+        "id": "IF-015",
+        "title": "ToolHost v2, on_error code table and traced_call signatures",
+        "traces": [
+          "FN-030",
+          "FN-031"
+        ]
+      },
+      {
+        "id": "IF-016",
+        "title": "MCP launch contract v2 (--telemetry)",
+        "traces": [
+          "FN-029"
+        ]
+      },
+      {
+        "id": "IF-017",
+        "title": "Query contract: Rust function and GET /api/events response",
+        "traces": [
+          "FN-032"
+        ]
+      },
+      {
+        "id": "IF-018",
+        "title": "Monitor HTTP contract: routes, ADR-032 status table, headers",
+        "traces": [
+          "FN-033",
+          "FN-034"
+        ]
+      },
+      {
+        "id": "IF-019",
+        "title": "Monitor CLI contract: startup line, exit codes",
+        "traces": [
+          "FN-033",
+          "FN-035"
+        ]
+      },
+      {
+        "id": "IF-020",
+        "title": "Installer contract v2 (sh and ps1)",
+        "traces": [
+          "FN-039"
+        ]
+      }
+    ],
+    "TS": [
+      {
+        "id": "TS-021",
+        "title": "Telemetry schema unit tests",
+        "traces": [
+          "AC-002",
+          "AC-003",
+          "FN-023"
+        ]
+      },
+      {
+        "id": "TS-022",
+        "title": "os_random unit tests",
+        "traces": [
+          "AC-010",
+          "AC-015",
+          "FN-024"
+        ]
+      },
+      {
+        "id": "TS-023",
+        "title": "Sink unit tests: stall, panic, first-drop line; Q1 guards: Sink only under mcp/, stdout guard, CLI run writes no telemetry",
+        "traces": [
+          "AC-006",
+          "AC-010",
+          "AC-012",
+          "AC-028",
+          "FN-026"
+        ]
+      },
+      {
+        "id": "TS-024",
+        "title": "FileStore tests: gating, modes, rotation, prune, collision",
+        "traces": [
+          "AC-008",
+          "AC-009",
+          "AC-012",
+          "FN-025",
+          "FN-027"
+        ]
+      },
+      {
+        "id": "TS-025",
+        "title": "Lifecycle golden diff contains only /telemetry/",
+        "traces": [
+          "AC-008",
+          "AC-027",
+          "FN-028"
+        ]
+      },
+      {
+        "id": "TS-026",
+        "title": "on_error table test in protocol.rs",
+        "traces": [
+          "AC-005",
+          "FN-030"
+        ]
+      },
+      {
+        "id": "TS-027",
+        "title": "MCP telemetry integration tests (tests/mcp_telemetry.rs)",
+        "traces": [
+          "AC-001",
+          "AC-002",
+          "AC-004",
+          "AC-005",
+          "AC-006",
+          "AC-007",
+          "AC-008",
+          "AC-010",
+          "AC-012",
+          "AC-028",
+          "FN-029",
+          "FN-031"
+        ]
+      },
+      {
+        "id": "TS-028",
+        "title": "Query engine unit tests",
+        "traces": [
+          "AC-003",
+          "AC-016",
+          "AC-017",
+          "AC-018",
+          "AC-019",
+          "FN-032"
+        ]
+      },
+      {
+        "id": "TS-029",
+        "title": "Monitor HTTP contract and lifecycle tests (tests/monitor_http.rs)",
+        "traces": [
+          "AC-013",
+          "AC-014",
+          "AC-015",
+          "AC-016",
+          "AC-030",
+          "FN-033",
+          "FN-034"
+        ]
+      },
+      {
+        "id": "TS-030",
+        "title": "Dashboard asset static checks and AI design-review evidence",
+        "traces": [
+          "AC-011",
+          "AC-016",
+          "AC-017",
+          "AC-019",
+          "AC-020",
+          "AC-021",
+          "AC-022",
+          "FN-036",
+          "FN-042"
+        ]
+      },
+      {
+        "id": "TS-031",
+        "title": "deps add concurrent lock test",
+        "traces": [
+          "AC-027",
+          "FN-037"
+        ]
+      },
+      {
+        "id": "TS-032",
+        "title": "Flake verification record (40-run loops)",
+        "traces": [
+          "AC-029",
+          "FN-038"
+        ]
+      },
+      {
+        "id": "TS-033",
+        "title": "Missing intent-1 MCP tests (tests/mcp_followups.rs)",
+        "traces": [
+          "AC-027",
+          "AC-029",
+          "FN-044"
+        ]
+      },
+      {
+        "id": "TS-034",
+        "title": "Installer round trip with real binaries",
+        "traces": [
+          "AC-026",
+          "FN-039"
+        ]
+      },
+      {
+        "id": "TS-035",
+        "title": "Release consistency: goldens, lock hash, changelog, badge",
+        "traces": [
+          "AC-023",
+          "AC-024",
+          "AC-027",
+          "FN-040"
+        ]
+      },
+      {
+        "id": "TS-036",
+        "title": "README telemetry and monitor sections",
+        "traces": [
+          "AC-020",
+          "AC-025",
+          "AC-030",
+          "FN-041"
+        ]
+      },
+      {
+        "id": "TS-037",
+        "title": "monitor routing: validation golden, help and completion parity",
+        "traces": [
+          "AC-025",
+          "AC-027",
+          "FN-035"
+        ]
+      }
+    ],
+    "WU": [
+      {
+        "id": "WU-011",
+        "title": "Flaky-test fixes"
+      },
+      {
+        "id": "WU-012",
+        "title": "deps add lock"
+      },
+      {
+        "id": "WU-013",
+        "title": "Telemetry core plus managed ignore line"
+      },
+      {
+        "id": "WU-014",
+        "title": "MCP telemetry wiring"
+      },
+      {
+        "id": "WU-015",
+        "title": "Missing intent-1 MCP tests"
+      },
+      {
+        "id": "WU-016",
+        "title": "Dashboard design pack, AI design review, Studio mock"
+      },
+      {
+        "id": "WU-017",
+        "title": "Query engine"
+      },
+      {
+        "id": "WU-018",
+        "title": "Monitor server and CLI wiring"
+      },
+      {
+        "id": "WU-019",
+        "title": "Dashboard build"
+      },
+      {
+        "id": "WU-020",
+        "title": "Installers for both binaries"
+      },
+      {
+        "id": "WU-021",
+        "title": "Release candidate: docs, AI threat review, 1.3.0 prep"
+      },
+      {
+        "id": "WU-022",
+        "title": "Drop the proposed label (conditional)"
+      }
+    ],
+    "CFG": [
+      {
+        "id": "CFG-007",
+        "title": "--telemetry on|off (MCP flag, default on)"
+      },
+      {
+        "id": "CFG-008",
+        "title": "Telemetry storage and retention constants"
+      },
+      {
+        "id": "CFG-009",
+        "title": "Telemetry writer constants (queue, EOF wait)"
+      },
+      {
+        "id": "CFG-010",
+        "title": "Monitor server limits"
+      },
+      {
+        "id": "CFG-011",
+        "title": "Query limits and defaults"
+      },
+      {
+        "id": "CFG-012",
+        "title": "Dashboard timing constants"
+      },
+      {
+        "id": "CFG-013",
+        "title": "Release identifiers (version 1.3.0, installer marker v2)"
+      }
+    ]
+  }
+}

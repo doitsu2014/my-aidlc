@@ -1,0 +1,16 @@
+{
+  "units": [
+    { "id": "WU-011", "title": "Flaky-test fixes", "criteria": ["AC-027", "AC-029"], "dependsOn": [], "tests": ["TS-032"] },
+    { "id": "WU-012", "title": "deps add lock", "criteria": ["AC-027"], "dependsOn": [], "tests": ["TS-031"] },
+    { "id": "WU-013", "title": "Telemetry core plus managed ignore line", "criteria": ["AC-002", "AC-003", "AC-005", "AC-008", "AC-009", "AC-010", "AC-012", "AC-027", "AC-028"], "dependsOn": [], "tests": ["TS-021", "TS-022", "TS-023", "TS-024", "TS-025"] },
+    { "id": "WU-016", "title": "Dashboard design pack, AI design review, Studio mock", "criteria": ["AC-011", "AC-022"], "dependsOn": [], "tests": [] },
+    { "id": "WU-020", "title": "Installers for both binaries", "criteria": ["AC-026"], "dependsOn": [], "tests": ["TS-034"] },
+    { "id": "WU-014", "title": "MCP telemetry wiring", "criteria": ["AC-001", "AC-002", "AC-004", "AC-005", "AC-006", "AC-007", "AC-008", "AC-010", "AC-012", "AC-028"], "dependsOn": ["WU-013"], "tests": ["TS-026", "TS-027"] },
+    { "id": "WU-017", "title": "Query engine", "criteria": ["AC-003", "AC-016", "AC-017", "AC-018", "AC-019"], "dependsOn": ["WU-013", "WU-016"], "tests": ["TS-028"] },
+    { "id": "WU-015", "title": "Missing intent-1 MCP tests", "criteria": ["AC-027", "AC-029"], "dependsOn": ["WU-014"], "tests": ["TS-033"] },
+    { "id": "WU-018", "title": "Monitor server and CLI wiring", "criteria": ["AC-013", "AC-014", "AC-015", "AC-016", "AC-025", "AC-027", "AC-030"], "dependsOn": ["WU-017"], "tests": ["TS-029", "TS-037"] },
+    { "id": "WU-019", "title": "Dashboard build", "criteria": ["AC-011", "AC-016", "AC-017", "AC-018", "AC-019", "AC-020", "AC-021"], "dependsOn": ["WU-016", "WU-018"], "tests": ["TS-030"] },
+    { "id": "WU-021", "title": "Release candidate: docs, AI threat review, 1.3.0 prep", "criteria": ["AC-020", "AC-023", "AC-024", "AC-025", "AC-026", "AC-027", "AC-029", "AC-030"], "dependsOn": ["WU-011", "WU-012", "WU-013", "WU-014", "WU-015", "WU-016", "WU-017", "WU-018", "WU-019", "WU-020"], "tests": ["TS-034", "TS-035", "TS-036"] },
+    { "id": "WU-022", "title": "Drop the proposed label (conditional)", "criteria": ["AC-025"], "dependsOn": ["WU-021"], "tests": [] }
+  ]
+}

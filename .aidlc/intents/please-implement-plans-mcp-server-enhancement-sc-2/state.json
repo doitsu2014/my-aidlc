@@ -197,12 +197,70 @@
           "sha256": "4ee57a073db695d0a71f414ad5c0f0df7c72ce25d5af17d68ce3fde81127b263"
         }
       ]
+    },
+    "implementation-design": {
+      "status": "complete",
+      "startedAt": "2026-11-28T03:35:24.225Z",
+      "detail": null,
+      "reportedAt": "2026-11-28T04:03:14.907Z",
+      "reports": [
+        {
+          "at": "2026-11-28T04:03:14.907Z",
+          "result": "complete",
+          "detail": null
+        }
+      ],
+      "units": {},
+      "artifacts": [
+        {
+          "output": "implementation-plan",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/implementation-design/implementation-plan.md",
+          "bytes": 10157,
+          "sha256": "6b0985650d8d53dbd486428640e9cfe22887c31ecd51c429e9ec62f9305eff6b"
+        },
+        {
+          "output": "interfaces-and-contracts",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/implementation-design/interfaces-and-contracts.md",
+          "bytes": 20937,
+          "sha256": "a54e312d0032681fcc6e8cd3305604c4f91728ed8499df46b957e54e738eb5c2"
+        },
+        {
+          "output": "functional-design",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/implementation-design/functional-design.md",
+          "bytes": 27662,
+          "sha256": "e535d8663fc1605c789f005a042ccd548648b44b0b3c314556272ebabcf5bc5f"
+        },
+        {
+          "output": "test-strategy",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/implementation-design/test-strategy.md",
+          "bytes": 15973,
+          "sha256": "4e384d0e52cb5dbdb1d210159d13a77458bc65813e156dc22d797d642f1e7471"
+        },
+        {
+          "output": "work-units",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/implementation-design/work-units.md",
+          "bytes": 15655,
+          "sha256": "57bdd1fce6ef0ae533c21c70b8dbb11cc5799ee7f2c5e67426a7bd38a2ce6dd1"
+        },
+        {
+          "output": "work-units-json",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/implementation-design/work-units.json",
+          "bytes": 2208,
+          "sha256": "78fa05536a314356f9378ac79d598277083e5b2d38153a955e92527c381763fa"
+        },
+        {
+          "output": "id-registry",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/implementation-design/ids.json",
+          "bytes": 11639,
+          "sha256": "515cadaeaa62620af96426157654ac9c4627771fedc8b66f67958238513c4cdb"
+        }
+      ]
     }
   },
   "dependencies": {},
   "createdAt": "2026-11-28T01:39:49.917Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T03:35:18.124Z",
+  "updatedAt": "2026-11-28T04:03:14.911Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -240,5 +298,434 @@
         "followUp": 12
       }
     }
-  }
+  },
+  "workUnits": {
+    "schemaVersion": 1,
+    "source": {
+      "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/implementation-design/work-units.json",
+      "sha256": "78fa05536a314356f9378ac79d598277083e5b2d38153a955e92527c381763fa",
+      "registrySha256": "515cadaeaa62620af96426157654ac9c4627771fedc8b66f67958238513c4cdb"
+    },
+    "order": [
+      "WU-011",
+      "WU-012",
+      "WU-013",
+      "WU-016",
+      "WU-020",
+      "WU-014",
+      "WU-017",
+      "WU-015",
+      "WU-018",
+      "WU-019",
+      "WU-021",
+      "WU-022"
+    ],
+    "progressSeq": 0,
+    "syncedAt": "2026-11-28T04:03:14.907Z",
+    "units": {
+      "WU-011": {
+        "title": "Flaky-test fixes",
+        "dependsOn": [],
+        "tests": [
+          "TS-032"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:41efc4c2a59f325ad61b070aff7cf497dd8f1d0ca36856cbdfbb42080af23f80",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-28T04:03:14.907Z"
+      },
+      "WU-012": {
+        "title": "deps add lock",
+        "dependsOn": [],
+        "tests": [
+          "TS-031"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:87c2c996774af35c6d405f723951d086a7b057cb1375c3d63e4fda47d4543588",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-28T04:03:14.907Z"
+      },
+      "WU-013": {
+        "title": "Telemetry core plus managed ignore line",
+        "dependsOn": [],
+        "tests": [
+          "TS-021",
+          "TS-022",
+          "TS-023",
+          "TS-024",
+          "TS-025"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:cb5de4a7d83d2c8a114aa93e2e0f632a632cc0d6c8f4904278f352fdbde684b0",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-28T04:03:14.907Z"
+      },
+      "WU-016": {
+        "title": "Dashboard design pack, AI design review, Studio mock",
+        "dependsOn": [],
+        "tests": [],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:f866287159ec651517826460560f20a8063688dcc3d34533a806c48084e09db3",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-28T04:03:14.907Z"
+      },
+      "WU-020": {
+        "title": "Installers for both binaries",
+        "dependsOn": [],
+        "tests": [
+          "TS-034"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:e2a72b4920c2c4b1651488a502e56ce5e641171d0ccafbe2e05a92b8060093b1",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-28T04:03:14.907Z"
+      },
+      "WU-014": {
+        "title": "MCP telemetry wiring",
+        "dependsOn": [
+          "WU-013"
+        ],
+        "tests": [
+          "TS-026",
+          "TS-027"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:25c11a55e5f1f3d06e49d6e976c840e1033f36fe6654c84176e3a41be5806b3a",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-28T04:03:14.907Z"
+      },
+      "WU-017": {
+        "title": "Query engine",
+        "dependsOn": [
+          "WU-013",
+          "WU-016"
+        ],
+        "tests": [
+          "TS-028"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:22410171e32b8ad1690639af9f16b058f9746253c263e07a322c828d501e8990",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-28T04:03:14.907Z"
+      },
+      "WU-015": {
+        "title": "Missing intent-1 MCP tests",
+        "dependsOn": [
+          "WU-014"
+        ],
+        "tests": [
+          "TS-033"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:b6a316fc086a776a5a2d4542fdb6507c12343da072962f031aea4d2a717dfe56",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-28T04:03:14.907Z"
+      },
+      "WU-018": {
+        "title": "Monitor server and CLI wiring",
+        "dependsOn": [
+          "WU-017"
+        ],
+        "tests": [
+          "TS-029",
+          "TS-037"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:c2d671bf206694f5e8a2d103a0971ad8796c4f5662856f82952699f0b603c2aa",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-28T04:03:14.907Z"
+      },
+      "WU-019": {
+        "title": "Dashboard build",
+        "dependsOn": [
+          "WU-016",
+          "WU-018"
+        ],
+        "tests": [
+          "TS-030"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:c536e6cf78a851622ff71374bab85b3828b7582bbb8a365417181f231be84fac",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-28T04:03:14.907Z"
+      },
+      "WU-021": {
+        "title": "Release candidate: docs, AI threat review, 1.3.0 prep",
+        "dependsOn": [
+          "WU-011",
+          "WU-012",
+          "WU-013",
+          "WU-014",
+          "WU-015",
+          "WU-016",
+          "WU-017",
+          "WU-018",
+          "WU-019",
+          "WU-020"
+        ],
+        "tests": [
+          "TS-034",
+          "TS-035",
+          "TS-036"
+        ],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:0695d0062ddf99e79f1923a056237a02aa4f91514f683e03819c0ac8c943c295",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-28T04:03:14.907Z"
+      },
+      "WU-022": {
+        "title": "Drop the proposed label (conditional)",
+        "dependsOn": [
+          "WU-021"
+        ],
+        "tests": [],
+        "status": "pending",
+        "selectedAt": null,
+        "steps": {
+          "red-tests": null,
+          "build-and-verify": null
+        },
+        "attempts": {},
+        "blockedStreak": null,
+        "park": null,
+        "parkHistory": [],
+        "inputFingerprint": "sha256:25fc3251bed4772f395a619077c4c48f01ca97e62b50578fca8739e5daf048a7",
+        "history": [],
+        "reopened": [],
+        "removed": false,
+        "splitInto": null,
+        "updatedAt": "2026-11-28T04:03:14.907Z"
+      }
+    },
+    "deferredRegressions": [],
+    "sweep": {
+      "status": "pending",
+      "selectedAt": null,
+      "at": null,
+      "failures": [],
+      "attempts": 0,
+      "via": null
+    },
+    "baselineTests": [],
+    "rework": null
+  },
+  "units": [
+    {
+      "id": "WU-011",
+      "status": "in_progress",
+      "dependsOn": []
+    },
+    {
+      "id": "WU-012",
+      "status": "in_progress",
+      "dependsOn": []
+    },
+    {
+      "id": "WU-013",
+      "status": "in_progress",
+      "dependsOn": []
+    },
+    {
+      "id": "WU-016",
+      "status": "in_progress",
+      "dependsOn": []
+    },
+    {
+      "id": "WU-020",
+      "status": "in_progress",
+      "dependsOn": []
+    },
+    {
+      "id": "WU-014",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-013"
+      ]
+    },
+    {
+      "id": "WU-017",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-013",
+        "WU-016"
+      ]
+    },
+    {
+      "id": "WU-015",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-014"
+      ]
+    },
+    {
+      "id": "WU-018",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-017"
+      ]
+    },
+    {
+      "id": "WU-019",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-016",
+        "WU-018"
+      ]
+    },
+    {
+      "id": "WU-021",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-011",
+        "WU-012",
+        "WU-013",
+        "WU-014",
+        "WU-015",
+        "WU-016",
+        "WU-017",
+        "WU-018",
+        "WU-019",
+        "WU-020"
+      ]
+    },
+    {
+      "id": "WU-022",
+      "status": "in_progress",
+      "dependsOn": [
+        "WU-021"
+      ]
+    }
+  ]
 }

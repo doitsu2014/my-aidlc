@@ -1,0 +1,94 @@
+{
+ "WU-011": [
+  "#[cfg(test)]",
+  "rust-cli/artifacts.rs",
+  "rust-cli/onboarding/projection.rs",
+  "rust-cli/prerequisites.rs",
+  "rust-cli/scope.rs"
+ ],
+ "WU-012": [
+  "rust-cli/dependencies.rs",
+  "tests/deps_lock.rs"
+ ],
+ "WU-013": [
+  "/telemetry/",
+  "pub",
+  "rust-cli/knowledge.rs",
+  "rust-cli/lib.rs",
+  "rust-cli/telemetry/mod.rs",
+  "rust-cli/telemetry/sink.rs",
+  "tests/golden/routing_golden/lifecycle-embedded.json",
+  "tests/golden/routing_golden/lifecycle.json",
+  "tests/telemetry_guards.rs"
+ ],
+ "WU-014": [
+  "--telemetry",
+  "run_mcp_env",
+  "rust-cli/mcp/mod.rs",
+  "rust-cli/mcp/protocol.rs",
+  "rust-cli/mcp/tools.rs",
+  "tests/fixtures/mcp/common.rs",
+  "tests/mcp_parity.rs",
+  "tests/mcp_stdio.rs",
+  "tests/mcp_telemetry.rs"
+ ],
+ "WU-015": [
+  "tests/mcp_followups.rs"
+ ],
+ "WU-016": [
+  "plans/mcp-server-enhancement/mcp-studio-server.html"
+ ],
+ "WU-017": [
+  "pub",
+  "rust-cli/telemetry/mod.rs",
+  "rust-cli/telemetry/query.rs"
+ ],
+ "WU-018": [
+  "pub",
+  "rust-cli/args.rs",
+  "rust-cli/completion.zsh",
+  "rust-cli/help.txt",
+  "rust-cli/lib.rs",
+  "rust-cli/main.rs",
+  "rust-cli/monitor/assets/app.css",
+  "rust-cli/monitor/assets/app.js",
+  "rust-cli/monitor/assets/index.html",
+  "rust-cli/monitor/http.rs",
+  "rust-cli/monitor/mod.rs",
+  "tests/golden/routing_golden/validation.json",
+  "tests/golden/utility_golden/help-and-completion.json",
+  "tests/monitor_http.rs",
+  "tests/repo_content.rs",
+  "tests/routing_golden.rs"
+ ],
+ "WU-019": [
+  "rust-cli/monitor/assets/app.css",
+  "rust-cli/monitor/assets/app.js",
+  "rust-cli/monitor/assets/index.html",
+  "tests/monitor_assets.rs"
+ ],
+ "WU-020": [
+  "README.md",
+  "scripts/rust-install/install.ps1",
+  "scripts/rust-install/install.sh",
+  "tests/rust_cargo_install.rs"
+ ],
+ "WU-021": [
+  ".github/badges/version.svg",
+  "CHANGELOG.md",
+  "Cargo.lock",
+  "Cargo.toml",
+  "README.md",
+  "tests/mcp_packaging.rs",
+  "tests/repo_content.rs",
+  "tests/rust_cargo_install.rs",
+  "ts034_installed_cli_starts_monitor_from_its_own_location"
+ ],
+ "WU-022": [
+  "##",
+  "README.md",
+  "plans/mcp-server-enhancement/mcp-studio-server.html",
+  "repo_content.rs:1941-1946",
+  "tests/repo_content.rs"
+ ]
+}
