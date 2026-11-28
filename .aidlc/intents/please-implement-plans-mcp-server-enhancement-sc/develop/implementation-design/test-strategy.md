@@ -40,6 +40,7 @@ Framework: Rust built-in `cargo test` (lib unit tests, integration tests under `
 | TS-017 | AC-001 | FN-009 | regression gate |
 | TS-018 | AC-003, AC-008 | FN-013 | unit |
 | TS-019 | AC-001 | none (existing code, test-only fix) | unit |
+| TS-020 | AC-012 | FN-022 | unit |
 
 Threat coverage: TH-01/02 -> TS-006, TS-010; TH-06/07 -> TS-004, TS-014; TH-08/09 -> TS-003, TS-014; TH-11/12 -> TS-008; TH-13 -> TS-006, TS-010; TH-14 -> TS-005; TH-15 -> TS-007; TH-18 -> TS-016; TH-19/21/22 -> TS-001..TS-003.
 
@@ -52,7 +53,7 @@ Threat coverage: TH-01/02 -> TS-006, TS-010; TH-06/07 -> TS-004, TS-014; TH-08/0
 | WU-004 | TS-001, TS-002, TS-003 |
 | WU-005 | TS-004, TS-018 |
 | WU-006 | TS-008 |
-| WU-007 | TS-005, TS-006, TS-007, TS-008, TS-009, TS-014 |
+| WU-007 | TS-005, TS-006, TS-007, TS-008, TS-009, TS-014, TS-020 |
 | WU-008 | TS-012, TS-015 |
 | WU-009 | TS-013, TS-015 |
 
@@ -67,9 +68,14 @@ Test names start with their id (for example `ts010_skip_runs_no_command`) so the
 | WU-004 | test-first | the transcripts are the public wire contract |
 | WU-005 | test-first for validation-before-access and error classification | TH-06, TH-07 |
 | WU-006 | test-first | pure function with explicit cases, Windows forms cannot be run for real on macOS |
-| WU-007 | alongside | tests are the unit's deliverable |
+| WU-007 | test-first for TS-020 and the existing `ts007_concurrent_reports_never_lose_an_update` (both fail before the lock exists, pass after); the rest alongside | the lock closes a confirmed lost-update race (12/12 rounds); a test that cannot fail proves nothing |
 | WU-008 | alongside | only verifiable by a real run (TS-012) |
 | WU-009 | alongside | text with repo_content checks |
+
+## TS-020 and TS-007 lock evidence (WU-007)
+- TS-020 (`ts020_*` library tests in `rust-cli/orchestrate.rs` `#[cfg(test)]`, no new crate): (a) two threads each `load_workflow` the same padded state (8 MiB `padding` field so the write window is wide), release together through a `Barrier`, call `persist_active` and append an audit row only on `Ok`; over repeated rounds exactly one `Ok`, the other is exactly `STATE_CHANGED`, exactly one audit row per round, `state.json` equals the winner's bytes and parses. It fails without `with_state_lock` (both succeed, two audit rows), which is verified by temporarily bypassing the lock once. (b) `.aidlc/state.lock` does not exist after a success, after a `STATE_CHANGED` and after an error. (c) with the lock held on a separate handle, `with_state_lock_for(root, 50 ms, ..)` returns `STATE_CHANGED` within a bounded time and `f` is not run. (d) a retired marker file is not mistaken for a held lock (reopen path), a still-marked file after 3 reopens gives the distinct `operation_failed` delete hint (not `STATE_CHANGED`), a failed `remove_file` leaves no marker (simulated by a read-only-directory or injected seam) so the next writer succeeds, `PermissionDenied` on open is retried (seam), and `with_state_lock` on a root without `.aidlc` runs `f` and creates nothing.
+- Existing `ts007_concurrent_reports_never_lose_an_update` (tests/mcp_parity.rs) stays as written apart from one added `assert!(conflicts >= 1)` after the rounds loop (the reviewer's request; today `conflicts` is only counted and printed). It must pass with that assertion. Flake risk: under the lock a conflict occurs only when the second racer loads before the first one's save lands; 4 rounds with 8 MiB padding should achieve that but it is not guaranteed on a fast CI runner, so the fix for a flake is more rounds or padding, not removing the assertion. With the assertion, a lock that serialises everything but never conflicts, or a test that never races, cannot pass.
+- Goldens: the lock file exists only during a write, so no golden changes; any golden diff blocks the unit (TS-011). Windows: Unverified locally; first CI run.
 
 ## Transcript tests
 - Frames are exact `serde_json::Value` equality, each reviewed once against the saved 2025-11-25 and 2026-07-28 schemas. Fixtures are JSONL under `tests/fixtures/mcp/` (new files only, autocrlf-safe, no existing golden touched). The server writes `\n` only and accepts `\n` or `\r\n`.

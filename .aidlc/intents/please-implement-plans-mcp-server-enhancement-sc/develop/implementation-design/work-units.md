@@ -69,14 +69,14 @@ Every unit that edits `rust-cli/*.rs` outside `rust-cli/mcp/` must end with the 
 - Focused checks: `cargo test --lib mcp::tools`.
 - Done when: four tools only (no doctor or config tool), validation runs before the project opens, error classification is by exact equality, redaction is applied to values and keys, the `report` description says self-asserted and not authentication, and the CLI stage and result enums were read once from the CLI parser.
 
-## WU-007 Integration, parity and install tests
+## WU-007 Integration, parity, install tests and state write lock
 - Stories: US-001, US-002, US-003, US-004, US-006, US-007, US-008, US-009
-- Criteria: AC-002, AC-003, AC-004, AC-005, AC-008, AC-009, AC-010, AC-011, AC-012, AC-013
+- Criteria: AC-001, AC-002, AC-003, AC-004, AC-005, AC-008, AC-009, AC-010, AC-011, AC-012, AC-013
 - Depends on: WU-003, WU-005, WU-006
-- Tests: TS-005, TS-006, TS-007, TS-008, TS-009, TS-014
-- Owned files: `tests/mcp_stdio.rs`, `tests/mcp_parity.rs`, `tests/mcp_redaction.rs`, `tests/fixtures/mcp/*`, the MCP additions in `tests/rust_cargo_install.rs` (TS-009 two-binary install only; TS-016 lives solely in WU-001's `tests/mcp_packaging.rs`). No source files.
-- Focused checks: `cargo test --test mcp_stdio --test mcp_parity --test mcp_redaction --test rust_cargo_install`. Projects use the CFG-004 canonical base.
-- Done when: the TS-006 queue case asserts `state.json` and `audit.jsonl` bytes are unchanged after `queue` (AC-007, read-only preview); child-process sessions per era are stdout-pure, CLI and MCP parity holds with no prerequisite executed, the interleaving test yields exactly one `state_conflict`, two-binary install and uninstall pass, no existing golden changed.
+- Tests: TS-005, TS-006, TS-007, TS-008, TS-009, TS-014, TS-020
+- Owned files: `tests/mcp_stdio.rs`, `tests/mcp_parity.rs`, `tests/mcp_redaction.rs`, `tests/fixtures/mcp/*`, the MCP additions in `tests/rust_cargo_install.rs` (TS-009 two-binary install only; TS-016 lives solely in WU-001's `tests/mcp_packaging.rs`). Owner decision 2026-11-28 (ADR-015 superseded) adds the lock implementation (FN-022, IF-011): `rust-cli/orchestrate.rs` (`with_state_lock`, `with_state_lock_for`, two constants, wrap `persist_active` and `persist_new`, TS-020 tests in its test module) and `rust-cli/intent_commands.rs` (wrap the compare-then-write in `persist_workflow`, `pause`, `resume`, `abandon`). No other source file; no golden, `Cargo.toml` or `Cargo.lock` change.
+- Focused checks: `cargo test --test mcp_stdio --test mcp_parity --test mcp_redaction --test rust_cargo_install` and `cargo test --lib ts020`; then the TS-011 gate (full suite, goldens untouched) because persist paths changed. Projects use the CFG-004 canonical base.
+- Done when: the TS-006 queue case asserts `state.json` and `audit.jsonl` bytes are unchanged after `queue` (AC-007, read-only preview); child-process sessions per era are stdout-pure, CLI and MCP parity holds with no prerequisite executed, the interleaving test yields exactly one `state_conflict`, two-binary install and uninstall pass, no existing golden changed. Lock: TS-020 is written first and fails without the lock; `ts007_concurrent_reports_never_lose_an_update` is unchanged apart from one added `assert!(conflicts >= 1)` after its 4-round loop (8 MiB padding widens the race window; under the lock a conflict happens only when the second racer loads before the first one's save lands, likely but not guaranteed on a fast CI runner, so if it flakes raise the round count or padding rather than drop the assertion); the loser gets exactly `STATE_CHANGED` and no audit row; `.aidlc/state.lock` never exists after a command and appears in no golden; no new crate; CLI output without contention is byte-identical.
 
 ## WU-008 CI workflow
 - Stories: US-001, US-009

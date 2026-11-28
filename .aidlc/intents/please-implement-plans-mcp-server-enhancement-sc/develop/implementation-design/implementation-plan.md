@@ -28,12 +28,14 @@ Direction: Option A. A thin `application` facade in the library, a second `[[bin
 | rust-cli/mcp/protocol.rs | new | WU-004 |
 | rust-cli/mcp/tools.rs | new | WU-005 |
 | rust-cli/mcp/redact.rs | new | WU-006 |
+| rust-cli/orchestrate.rs | `with_state_lock`, `with_state_lock_for`, two constants; wrap `persist_active` and `persist_new`; TS-020 tests in the existing test module | WU-007 |
+| rust-cli/intent_commands.rs | wrap the compare-then-write in `persist_workflow`, `pause`, `resume`, `abandon`; import `with_state_lock` | WU-007 |
 | tests/mcp_packaging.rs, mcp_stdio.rs, mcp_parity.rs, mcp_redaction.rs, tests/fixtures/mcp/*, tests/rust_cargo_install.rs | new or extended | WU-001, WU-007 |
 | .github/workflows/ci.yml, tests/repo_content.rs | new workflow; one text check | WU-008 |
 | rust-cli/onboarding/mod.rs, rust-cli/onboarding/projection.rs | `#[cfg(test)]` modules only: two pre-existing Unix test bugs fixed, no product code | WU-010 |
 | README.md | proposed MCP section (WU-009); line 191 platform sentence is not edited in Develop | WU-009 |
 
-Untouched: CHANGELOG, version, PROJECT.md, help.txt, completion.zsh, COMMAND_KEYS, args.rs, scripts/rust-install/*, `.github/badges`, every existing golden.
+Untouched (apart from the lock rows above): CHANGELOG, version, PROJECT.md, help.txt, completion.zsh, COMMAND_KEYS, args.rs, scripts/rust-install/*, `.github/badges`, every existing golden.
 
 ## How CLI parity is protected
 - The facade extraction is mechanical and keeps the CLI order: resolve, assert safe state dir, external engine, read graph, engine, then validate_model_config, orchestrate_next, finish_directive. Exit code 3 and printing stay in `main.rs`.
@@ -52,11 +54,12 @@ Untouched: CHANGELOG, version, PROJECT.md, help.txt, completion.zsh, COMMAND_KEY
 - `pending_prerequisites` is new, unspiked, and a preview that can disagree with `next`.
 - Windows is unmeasured locally; first CI run is the baseline. Rename over a held `state.json` can surface as non-retryable `operation_failed` (documented in the README).
 - macOS is green only after WU-010; if WU-010 is skipped the CI macOS leg fails on the two known lib tests (no allowlist exists).
+- State write lock (WU-007): touches the persist path of every state-changing command, so TS-011 (full suite, goldens untouched) is the gate. Risks: lock file lingering (it must be removed on every exit; TS-020b), delete-on-release race (retired marker written only after a successful unlink, TS-020d), a stale marked file (non-retryable `operation_failed` delete hint), a wedged holder (5 s cap returns `STATE_CHANGED`), Windows mandatory locking and delete-while-open (unmeasured until first CI run), network filesystems that ignore locks, advisory scope (only dtech-aidlc processes honour it), Windows `PermissionDenied` during delete-pending (retried, Unverified), a ts007 flake if the race window is too narrow (4 rounds, 8 MiB padding; raise rounds or padding), and a remaining known gap: `deps add` (dependencies.rs ~1305) saves intent state and pointer with no `ensure_unchanged` and without `state.lock` (`deps.lock` only excludes other deps commands), so it can still overwrite a concurrent report; outside scope and not reachable over MCP. The lock does not extend to audit appends, so two concurrent winners of different writes can interleave audit rows, as before.
 - Estimates (1 MiB line cap, field caps, `result` enum) to confirm in WU-004 and WU-005.
 - Ten units exceed the split threshold of 6. Owner accepted this on 2026-11-27: all nine existing units are kept, plus WU-010. No recombination.
 
 ## Rollback
-All work is additive except `main.rs` routing, `orchestrate.rs` and `prerequisites.rs`. Roll back per unit by reverting its commit; removing WU-003 restores the old `main.rs` inline path, and removing the second `[[bin]]` returns the package to CLI only. The Cargo.lock is unchanged, so no dependency cleanup is needed.
+All work is additive except `main.rs` routing, `orchestrate.rs` and `prerequisites.rs`. Roll back per unit by reverting its commit (reverting the WU-007 lock commit restores the compare-then-rename window and ts007 fails again; owner decision 2026-11-28 supersedes ADR-015 so that is a deliberate regression only); removing WU-003 restores the old `main.rs` inline path, and removing the second `[[bin]]` returns the package to CLI only. The Cargo.lock is unchanged, so no dependency cleanup is needed.
 
 ## Out of scope (intent 2 and others)
 Telemetry events, workflow event instrumentation, monitor dashboard, hardening and release work (US-010..US-013); any CLI `mcp` subcommand or help change; install scripts for the MCP binary (N2); version bump and CHANGELOG; the clippy warning (separate owner decision); the two known lib failures are fixed by WU-010, not out of scope; pushing to run CI (needs owner authorization); real authentication of the approver label.

@@ -175,6 +175,15 @@
         "traces": [
           "AC-014"
         ]
+      },
+      {
+        "id": "FN-022",
+        "title": "State write lock (advisory, process-exclusive, around the workflow-state check-and-write)",
+        "traces": [
+          "AC-001",
+          "AC-011",
+          "AC-012"
+        ]
       }
     ],
     "IF": [
@@ -258,6 +267,13 @@
         "title": "CI workflow contract",
         "traces": [
           "FN-018"
+        ]
+      },
+      {
+        "id": "IF-011",
+        "title": "State write lock contract (with_state_lock)",
+        "traces": [
+          "FN-022"
         ]
       }
     ],
@@ -447,6 +463,14 @@
         "title": "Pre-existing Unix test bugs fixed (two lib tests pass on Unix, Windows assertion preserved)",
         "traces": [
           "AC-001"
+        ]
+      },
+      {
+        "id": "TS-020",
+        "title": "Lock race unit test (loser gets STATE_CHANGED, no audit row, lock file removed, bounded wait)",
+        "traces": [
+          "AC-012",
+          "FN-022"
         ]
       }
     ],

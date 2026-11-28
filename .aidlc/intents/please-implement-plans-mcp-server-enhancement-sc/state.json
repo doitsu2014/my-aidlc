@@ -208,10 +208,15 @@
       "status": "complete",
       "startedAt": "2026-11-27T16:22:57.836Z",
       "detail": null,
-      "reportedAt": "2026-11-27T16:38:17.722Z",
+      "reportedAt": "2026-11-28T00:32:01.768Z",
       "reports": [
         {
           "at": "2026-11-27T16:38:17.722Z",
+          "result": "complete",
+          "detail": null
+        },
+        {
+          "at": "2026-11-28T00:32:01.768Z",
           "result": "complete",
           "detail": null
         }
@@ -259,8 +264,51 @@
           "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/ids.json",
           "bytes": 11488,
           "sha256": "cb9c18764c7d3e2d67c8d9178844a8cca22cd43a9dceb8537dbef5e51a5ccea7"
+        },
+        {
+          "output": "implementation-plan",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/implementation-plan.md",
+          "bytes": 8211,
+          "sha256": "8c699a4dee7619a24c6596c29ff4d9680268dc816a31c3d778745cc160b9dbde"
+        },
+        {
+          "output": "interfaces-and-contracts",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/interfaces-and-contracts.md",
+          "bytes": 17789,
+          "sha256": "1d79c359fb28ee7e5f9004074269b03b382ef13b4500993259ea725407337887"
+        },
+        {
+          "output": "functional-design",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/functional-design.md",
+          "bytes": 22180,
+          "sha256": "d37cf7fc2e3da2f3ea5806629f4c85377c10f07c56e3a40bcb541a78b9848123"
+        },
+        {
+          "output": "test-strategy",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/test-strategy.md",
+          "bytes": 11139,
+          "sha256": "4b5cad812e084557c6a4d73863abe54cb647c2c71b213b55cd5adb1026a36149"
+        },
+        {
+          "output": "work-units",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/work-units.md",
+          "bytes": 10302,
+          "sha256": "38c825f458ea104b0e57a7dcd1c34ba498cae4c4640c688101e8149f5eb922cd"
+        },
+        {
+          "output": "work-units-json",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/work-units.json",
+          "bytes": 1848,
+          "sha256": "4ceee6d4515c446369ecb8475ca4e73dc84586eb28ba1d71eed3474d033bec35"
+        },
+        {
+          "output": "id-registry",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/ids.json",
+          "bytes": 12106,
+          "sha256": "d24c6df4f81d37785e3319c5594857f66abf9ae7ba1065ba0a05f0eee13bb62b"
         }
-      ]
+      ],
+      "reworkRequestedAt": "2026-11-28T00:24:39.075Z"
     },
     "red-tests": {
       "status": "in_progress",
@@ -293,10 +341,14 @@
         "WU-005": {
           "status": "complete",
           "reportedAt": "2026-11-27T17:52:14.748Z"
+        },
+        "WU-007": {
+          "status": "pending",
+          "reportedAt": "2026-11-28T00:24:35.095Z"
         }
       },
-      "detail": null,
-      "reportedAt": "2026-11-27T17:52:14.748Z",
+      "detail": "WU-007 test ts007_concurrent_reports_never_lose_an_update exposes a lost update under concurrent state writers (ensure_unchanged then persist with no lock; two recorded:true replies and two stage.reported rows, one report kept). Owner decided 2026-11-28 to add an advisory file lock now (ADR-015 superseded). Needs a new work unit for the lock in orchestrate.rs before WU-007 can pass.",
+      "reportedAt": "2026-11-28T00:24:35.095Z",
       "reports": [
         {
           "at": "2026-11-27T16:47:10.186Z",
@@ -339,6 +391,17 @@
           "result": "complete",
           "detail": null,
           "unit": "WU-005"
+        },
+        {
+          "at": "2026-11-28T00:24:35.095Z",
+          "result": "blocked",
+          "detail": "WU-007 test ts007_concurrent_reports_never_lose_an_update exposes a lost update under concurrent state writers (ensure_unchanged then persist with no lock; two recorded:true replies and two stage.reported rows, one report kept). Owner decided 2026-11-28 to add an advisory file lock now (ADR-015 superseded). Needs a new work unit for the lock in orchestrate.rs before WU-007 can pass.",
+          "unit": "WU-007",
+          "parked": {
+            "kind": "design-defect",
+            "blockedBy": [],
+            "auto": false
+          }
         }
       ],
       "artifacts": [
@@ -426,7 +489,8 @@
           "bytes": 1666,
           "sha256": "84216004a84e0c52f4b40ae4c715a823956707a554950104818d2dd4d50eb5f2"
         }
-      ]
+      ],
+      "reworkResetAt": "2026-11-28T00:24:39.075Z"
     },
     "build-and-verify": {
       "status": "in_progress",
@@ -676,13 +740,14 @@
           "bytes": 804,
           "sha256": "056ed8310574262c79cb0a3084ab6c4b14e538f576a63974cbdb8b6c121a683f"
         }
-      ]
+      ],
+      "reworkResetAt": "2026-11-28T00:24:39.075Z"
     }
   },
   "dependencies": {},
   "createdAt": "2026-11-27T14:29:23.464Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-27T17:53:43.041Z",
+  "updatedAt": "2026-11-28T00:32:01.772Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -725,8 +790,8 @@
     "schemaVersion": 1,
     "source": {
       "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/implementation-design/work-units.json",
-      "sha256": "a4904e026de15ffea1473df9d172cb188ce16f304340906e03c3286705540878",
-      "registrySha256": "cb9c18764c7d3e2d67c8d9178844a8cca22cd43a9dceb8537dbef5e51a5ccea7"
+      "sha256": "4ceee6d4515c446369ecb8475ca4e73dc84586eb28ba1d71eed3474d033bec35",
+      "registrySha256": "d24c6df4f81d37785e3319c5594857f66abf9ae7ba1065ba0a05f0eee13bb62b"
     },
     "order": [
       "WU-001",
@@ -741,7 +806,7 @@
       "WU-009"
     ],
     "progressSeq": 7,
-    "syncedAt": "2026-11-27T17:53:43.039Z",
+    "syncedAt": "2026-11-28T00:32:01.768Z",
     "units": {
       "WU-001": {
         "title": "Scaffold and packaging",
@@ -1022,7 +1087,7 @@
         "updatedAt": "2026-11-27T17:53:43.039Z"
       },
       "WU-007": {
-        "title": "Integration, parity and install tests",
+        "title": "Integration, parity, install tests and state write lock",
         "dependsOn": [
           "WU-003",
           "WU-005",
@@ -1034,10 +1099,11 @@
           "TS-007",
           "TS-008",
           "TS-009",
-          "TS-014"
+          "TS-014",
+          "TS-020"
         ],
         "status": "pending",
-        "selectedAt": null,
+        "selectedAt": "2026-11-27T17:53:50.015Z",
         "steps": {
           "red-tests": null,
           "build-and-verify": null
@@ -1045,13 +1111,43 @@
         "attempts": {},
         "blockedStreak": null,
         "park": null,
-        "parkHistory": [],
-        "inputFingerprint": "sha256:2015da208b7ec5c98181e9cdefb77b2a70531aa28863680d5b3ae0dbffa4643e",
-        "history": [],
-        "reopened": [],
+        "parkHistory": [
+          {
+            "kind": "design-defect",
+            "blockedBy": [],
+            "blockedByUnits": [],
+            "signature": "baa202f6b626ce79525b90143521b13b1eea2feb2789b3ab03733f3407691b34",
+            "attempts": 1,
+            "detail": "WU-007 test ts007_concurrent_reports_never_lose_an_update exposes a lost update under concurrent state writers (ensure_unchanged then persist with no lock; two recorded:true replies and two stage.reported rows, one report kept). Owner decided 2026-11-28 to add an advisory file lock now (ADR-015 superseded). Needs a new work unit for the lock in orchestrate.rs before WU-007 can pass.",
+            "at": "2026-11-28T00:24:35.095Z",
+            "step": "red-tests",
+            "auto": false,
+            "resumeStatus": "pending",
+            "seq": 7,
+            "revisitedAt": "2026-11-28T00:32:01.768Z",
+            "revisitReason": "rework",
+            "revisitDetail": null,
+            "decidedBy": null
+          }
+        ],
+        "inputFingerprint": "sha256:1f63b6d843c6ed638dded0f9f578473bb1a8755ab2609f9c8dd9df64193e77b9",
+        "history": [
+          {
+            "stage": "red-tests",
+            "result": "blocked",
+            "at": "2026-11-28T00:24:35.095Z"
+          }
+        ],
+        "reopened": [
+          {
+            "at": "2026-11-28T00:32:01.768Z",
+            "by": "rework",
+            "tests": []
+          }
+        ],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-27T16:38:17.722Z"
+        "updatedAt": "2026-11-28T00:32:01.768Z"
       },
       "WU-008": {
         "title": "CI workflow",
@@ -1091,7 +1187,7 @@
           "TS-015"
         ],
         "status": "pending",
-        "selectedAt": null,
+        "selectedAt": "2026-11-27T17:53:50.032Z",
         "steps": {
           "red-tests": null,
           "build-and-verify": null
@@ -1194,6 +1290,5 @@
         "WU-005"
       ]
     }
-  ],
-  "currentUnit": "WU-005"
+  ]
 }

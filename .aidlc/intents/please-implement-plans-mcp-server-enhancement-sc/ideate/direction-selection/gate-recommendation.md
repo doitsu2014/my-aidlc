@@ -85,3 +85,7 @@ This approval covers the solution direction and the decisions ADR-001..ADR-018 a
 ## Post-approval amendment (2026-11-27)
 
 After this gate was approved, the owner added Windows and macOS support with verification through a new GitHub Actions CI workflow (windows-latest, macos-latest). Recorded in scope-boundary.md "Amendment after the solution-direction gate". It extends scope within the approved direction (Option A, ADR-001..ADR-018) and does not change any ADR. A green CI run on both platforms becomes a release-candidate gate condition; pushing the branch to run CI needs separate owner authorization.
+
+## Post-approval amendment 2 (2026-11-28)
+
+The owner reopened ADR-015 during Develop after WU-007 reproduced a lost update under concurrent writers (two `recorded: true` replies, two audit rows, one report in state). New owner decision: add an advisory file lock around the state check-and-write now (no new crate), so the loser gets the retryable `state_conflict`. Recorded in decision-record.md ADR-015. Delivered through `intent rework --unit WU-007` and a new work unit; it does not change any other ADR.

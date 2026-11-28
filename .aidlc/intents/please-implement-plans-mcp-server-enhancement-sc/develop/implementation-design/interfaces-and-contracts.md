@@ -1,6 +1,6 @@
 # Interfaces and contracts
 
-Signatures are Rust-like prose. Registered identifiers: IF-001 to IF-010, FN-001 to FN-021, CFG-001 to CFG-006. ADR and TH labels are Ideate labels.
+Signatures are Rust-like prose. Registered identifiers: IF-001 to IF-011, FN-001 to FN-022, CFG-001 to CFG-006. ADR and TH labels are Ideate labels.
 
 ## IF-001 application facade (rust-cli/application.rs, new)
 Traces: FN-001, FN-002, FN-003, FN-004, FN-005, FN-006. Serves AC-001, AC-002, AC-006 to AC-010 (ADR-006).
@@ -159,6 +159,21 @@ Traces: FN-018. Serves the post-gate amendment, AC-001, AC-003, AC-013.
 - macOS environment: `TMPDIR=/private/tmp/aidlc-test` (created first) and `target/debug` appended to `GITHUB_PATH`. Windows: `target\debug` appended to `GITHUB_PATH`; PowerShell for environment steps, bash for cargo lines.
 - Never runs `scripts/rust-install/*`; no secrets; no deployment; no push or run happens without separate owner authorization.
 - Known gap: macOS carries two pre-existing lib-test failures (onboarding path and symlink tests). The owner chooses between a fix intent, a named expected-failure list, or a documented skip; the MCP step is never skipped.
+
+## IF-011 State write lock contract (rust-cli/orchestrate.rs)
+Traces: FN-022. Serves AC-001, AC-011, AC-012 and the owner decision of 2026-11-28 (ADR-015 superseded).
+- Signature: `pub(crate) fn with_state_lock<T>(root: &Path, f: impl FnOnce() -> OrchestrateResult<T>) -> OrchestrateResult<T>`, plus a test seam `with_state_lock_for(root, wait: Duration, f)`; the public wrapper passes `Duration::from_millis(STATE_LOCK_WAIT_MS)` (5000). Poll `STATE_LOCK_POLL_MS` (10). Constants, not configuration (no CFG key). `intent_commands.rs` imports it with `STATE_CHANGED`.
+- Contract: at most one dtech-aidlc process (or thread) runs `f` for a given project at a time. `f` is the compare-then-write only: `ensure_unchanged` plus `save_intent` and `save_pointer`. It never contains an audit append and never calls `with_state_lock` (no re-entrancy).
+- Errors: wait exceeded gives exactly `STATE_CHANGED` (maps to `state_conflict`, `retryable: true`, ADR-008); an open error of kind `PermissionDenied` is retried inside the same wait budget and ends with `STATE_CHANGED` on timeout; a lock file that is still marked after 3 reopens gives `operation_failed` with the text `.aidlc/state.lock is stale; delete .aidlc/state.lock when no dtech-aidlc command is running` (not retryable, a private string in orchestrate.rs, not an exported constant); other io errors give `<path>: <error>` (maps to `operation_failed`). No new public error constant.
+- Lock target decision (evidence): a dedicated `.aidlc/state.lock`, created on demand, removed before release, never read by anything else.
+  - Chosen over a persistent lock file: every golden helper walks `.aidlc` recursively (tests/rust_intent_commands.rs `snapshot`, rust_config_commands, rust_harness_commands, rust_knowledge_commands, rust_repos_deps_ids, rust_doctor, routing_golden), so a lingering file would appear in the goldens, and listing it in the managed `.gitignore` block (knowledge.rs `IGNORE_BLOCK`) would change `routing_golden/lifecycle*.json` and need an upgrade path. The file only exists during a write, as `deps.lock` already does, so snapshots taken after a command are unchanged.
+  - Chosen over locking `.aidlc/audit.jsonl`: it does not exist before the first audit (first-write cases, and `preflight_audit` plus tests assert it is absent after failures), creating it to lock it would change goldens; on Windows `LockFileEx` is mandatory, so an exclusive lock would make `doctor`, the `application.rs` audit read and `audit()`'s own append (a second handle in the same process) fail with a lock violation; and the check and write do not need the audit file at all.
+  - Chosen over locking the intent directory: `File::lock` does not work on directories on Windows, and the pointer-only operations (pause, resume, new-intent) have no intent directory.
+  - Chosen over locking `intents/<id>/state.json`, `state.json`, `config.json` or `intent.md`: the state files are replaced by rename (the locked inode changes, so two writers can lock different inodes), config and intent files are read by other commands and a mandatory Windows lock would make those reads fail.
+  - Rejected: a lock file in the OS temp dir (TMPDIR can differ between the CLI and the MCP host, so the two would not exclude each other); a pid-file with `create_new` like `deps.lock` (needs stale-pid heuristics; the owner asked for `File::lock`).
+- Delete-on-release safety: the holder deletes the path and only if `remove_file` succeeds writes a retired marker (one byte) through its still-open handle, then releases; if the delete fails it writes no marker and leaves a plain reusable file. A waiter that acquires the lock reads the marker through its own handle, drops that handle and reopens, so it never works on an unlinked inode while another process creates and locks a new file. Reading through the locking handle is permitted on Windows.
+- Windows: `try_lock` is `LockFileEx` with `LOCKFILE_FAIL_IMMEDIATELY`; deleting an open file works because std opens with delete sharing. If the delete fails the guard ignores the error, writes no marker and leaves a reusable file (never a permanent block). Unverified: on file systems where `remove_file` falls back to delete-pending semantics (FAT, some network or ReFS volumes) a waiter opening the file during the pending delete gets `ERROR_ACCESS_DENIED` (`PermissionDenied`); that is retried within the wait budget, ending in `STATE_CHANGED`. First CI run is the only Windows evidence.
+- Blocking `lock()` was rejected: an MCP call must not hang if a writer is wedged; `try_lock` with a 5 s cap bounds it.
 
 ## Configuration keys
 - CFG-001 `[[bin]] name="dtech-aidlc-mcp" path="rust-cli/mcp_main.rs"`; no features, no dependencies; Cargo.lock byte-identical (ADR-002).
