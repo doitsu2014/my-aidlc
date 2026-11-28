@@ -21,6 +21,8 @@
 
 **dtech-aidlc** is a local-first workflow engine that takes a request to your AI coding assistant and runs it through a disciplined lifecycle: **analysis → options → implementation → release → lessons learned → durable knowledge**. Your assistant does the heavy lifting at every stage. The phase gates belong to you, so the assistant never makes your decisions silently.
 
+![dtech-aidlc architecture: the assistant drives the CLI over a shell or the MCP server over stdio; both share one Rust library; MCP telemetry feeds the read-only monitor; all state lives under .aidlc/](.github/architecture.svg)
+
 ```text
 /dtech-aidlc Add pagination to the customer API
 ```
@@ -513,7 +515,7 @@ The tests drive the built binary on isolated project fixtures and compare its ou
 
 ```text
 my-aidlc/
-├── rust-cli/     The dtech-aidlc CLI (Rust library and binary)
+├── rust-cli/     Rust library plus the dtech-aidlc and dtech-aidlc-mcp binaries
 ├── core/         Phase graph, methodology, agent guidance and templates, embedded at build time
 ├── harness/      Claude Code and DeepSeek Harness projections and onboarding guidance
 ├── guidelines/   Practical guidance for humans and assistants using the workflow
