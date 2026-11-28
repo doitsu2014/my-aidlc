@@ -8,7 +8,7 @@
   "depth": "fast",
   "mode": "ai",
   "status": "active",
-  "currentStage": null,
+  "currentStage": "red-tests",
   "stages": {
     "problem-framing": {
       "status": "complete",
@@ -70,12 +70,16 @@
           "sha256": "13a9db1806337e5a93669216b5f511e130e1586ad62d2873f15c96c2ce40b717"
         }
       ]
+    },
+    "red-tests": {
+      "status": "in_progress",
+      "startedAt": "2026-11-28T07:41:32.189Z"
     }
   },
   "dependencies": {},
   "createdAt": "2026-11-28T07:28:49.571Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T07:41:32.143Z",
+  "updatedAt": "2026-11-28T07:41:32.195Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
