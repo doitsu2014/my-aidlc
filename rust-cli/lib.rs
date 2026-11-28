@@ -28,6 +28,7 @@ pub mod regression;
 pub mod scope;
 pub mod state_migration;
 pub mod status;
+pub mod telemetry;
 pub mod unit_commands;
 pub mod work_units;
 pub mod workflow;

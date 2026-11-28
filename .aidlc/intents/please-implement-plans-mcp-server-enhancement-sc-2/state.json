@@ -267,10 +267,14 @@
         "WU-012": {
           "status": "complete",
           "reportedAt": "2026-11-28T04:34:32.292Z"
+        },
+        "WU-013": {
+          "status": "complete",
+          "reportedAt": "2026-11-28T04:43:35.600Z"
         }
       },
       "detail": null,
-      "reportedAt": "2026-11-28T04:34:32.292Z",
+      "reportedAt": "2026-11-28T04:43:35.600Z",
       "reports": [
         {
           "at": "2026-11-28T04:34:32.255Z",
@@ -283,6 +287,12 @@
           "result": "complete",
           "detail": null,
           "unit": "WU-012"
+        },
+        {
+          "at": "2026-11-28T04:43:35.600Z",
+          "result": "complete",
+          "detail": null,
+          "unit": "WU-013"
         }
       ],
       "artifacts": [
@@ -309,6 +319,18 @@
           "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/red-tests/WU-012/red-evidence.md",
           "bytes": 1041,
           "sha256": "866b3fef5c201d5dc8b8de2d84857fef3d0ee268da65a5f6620589cef32b2c3d"
+        },
+        {
+          "output": "failing-tests",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/red-tests/WU-013/failing-tests.md",
+          "bytes": 2295,
+          "sha256": "87dfb7a2fe11945c53071e3774e83cec7e948cf7b1de82d6241472e1a74e3fbe"
+        },
+        {
+          "output": "red-evidence",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/red-tests/WU-013/red-evidence.md",
+          "bytes": 1679,
+          "sha256": "5b4b5aa0cc061f6d56059c932af545dce2c76b5057efcddde60c9bd4310de302"
         }
       ]
     },
@@ -323,10 +345,14 @@
         "WU-012": {
           "status": "complete",
           "reportedAt": "2026-11-28T04:35:54.255Z"
+        },
+        "WU-013": {
+          "status": "complete",
+          "reportedAt": "2026-11-28T04:43:35.629Z"
         }
       },
       "detail": null,
-      "reportedAt": "2026-11-28T04:35:54.255Z",
+      "reportedAt": "2026-11-28T04:43:35.629Z",
       "reports": [
         {
           "at": "2026-11-28T04:34:57.819Z",
@@ -339,6 +365,12 @@
           "result": "complete",
           "detail": null,
           "unit": "WU-012"
+        },
+        {
+          "at": "2026-11-28T04:43:35.629Z",
+          "result": "complete",
+          "detail": null,
+          "unit": "WU-013"
         }
       ],
       "artifacts": [
@@ -389,6 +421,30 @@
           "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-012/known-limitations.md",
           "bytes": 294,
           "sha256": "03f8d59f432c7dbd427db07aaa9dbc4d84acdec4ccef7465de1281cfe815a772"
+        },
+        {
+          "output": "implementation",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-013/implementation.md",
+          "bytes": 1459,
+          "sha256": "830169e190e2ddc18e2e784ec4b239f16402a0e77fa5c0b2b0f73cccfd74dc95"
+        },
+        {
+          "output": "green-verification-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-013/green-verification-report.md",
+          "bytes": 1286,
+          "sha256": "256780bd0d25ae0fa3d8aecb3eb6bbf742c7a9b137763a719d3b0bb094e5920a"
+        },
+        {
+          "output": "regression-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-013/regression-report.md",
+          "bytes": 378,
+          "sha256": "96400637be59f31c0636e154e0eb0e7d598f77b3d131e0caf567f9fedf35c2c7"
+        },
+        {
+          "output": "known-limitations",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-013/known-limitations.md",
+          "bytes": 972,
+          "sha256": "7380db5d135c7aee295cb42db66ff7135f686b58f6eac3115cdb6efa3fb86820"
         }
       ]
     }
@@ -396,7 +452,7 @@
   "dependencies": {},
   "createdAt": "2026-11-28T01:39:49.917Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T04:35:54.256Z",
+  "updatedAt": "2026-11-28T04:43:35.630Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -456,8 +512,8 @@
       "WU-021",
       "WU-022"
     ],
-    "progressSeq": 2,
-    "syncedAt": "2026-11-28T04:35:54.255Z",
+    "progressSeq": 3,
+    "syncedAt": "2026-11-28T04:43:35.629Z",
     "units": {
       "WU-011": {
         "title": "Flaky-test fixes",
@@ -543,29 +599,43 @@
           "TS-024",
           "TS-025"
         ],
-        "status": "pending",
-        "selectedAt": "2026-11-28T04:04:36.173Z",
+        "status": "verified",
+        "selectedAt": "2026-11-28T04:43:35.600Z",
         "steps": {
-          "red-tests": null,
-          "build-and-verify": null
+          "red-tests": "complete",
+          "build-and-verify": "complete"
         },
-        "attempts": {},
+        "attempts": {
+          "red-tests": 1,
+          "build-and-verify": 1
+        },
         "blockedStreak": null,
         "park": null,
         "parkHistory": [],
         "inputFingerprint": "sha256:cb5de4a7d83d2c8a114aa93e2e0f632a632cc0d6c8f4904278f352fdbde684b0",
-        "history": [],
+        "history": [
+          {
+            "stage": "red-tests",
+            "result": "complete",
+            "at": "2026-11-28T04:43:35.600Z"
+          },
+          {
+            "stage": "build-and-verify",
+            "result": "complete",
+            "at": "2026-11-28T04:43:35.629Z"
+          }
+        ],
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-28T04:03:14.907Z"
+        "updatedAt": "2026-11-28T04:43:35.629Z"
       },
       "WU-016": {
         "title": "Dashboard design pack, AI design review, Studio mock",
         "dependsOn": [],
         "tests": [],
         "status": "pending",
-        "selectedAt": null,
+        "selectedAt": "2026-11-28T04:36:02.667Z",
         "steps": {
           "red-tests": null,
           "build-and-verify": null
@@ -588,7 +658,7 @@
           "TS-034"
         ],
         "status": "pending",
-        "selectedAt": null,
+        "selectedAt": "2026-11-28T04:36:02.698Z",
         "steps": {
           "red-tests": null,
           "build-and-verify": null
@@ -804,15 +874,20 @@
     },
     "baselineTests": [],
     "rework": null,
+    "lastSatisfiedAt": "2026-11-28T04:43:35.629Z",
+    "parallelSince": "2026-11-28T04:04:36.122Z",
     "claims": [
       {
-        "unit": "WU-013",
+        "unit": "WU-016",
         "stage": "red-tests",
-        "claimedAt": "2026-11-28T04:04:36.173Z"
+        "claimedAt": "2026-11-28T04:36:02.667Z"
+      },
+      {
+        "unit": "WU-020",
+        "stage": "red-tests",
+        "claimedAt": "2026-11-28T04:36:02.698Z"
       }
-    ],
-    "parallelSince": "2026-11-28T04:04:36.122Z",
-    "lastSatisfiedAt": "2026-11-28T04:35:54.255Z"
+    ]
   },
   "units": [
     {
@@ -827,7 +902,7 @@
     },
     {
       "id": "WU-013",
-      "status": "in_progress",
+      "status": "complete",
       "dependsOn": []
     },
     {
@@ -901,5 +976,5 @@
       ]
     }
   ],
-  "currentUnit": "WU-011"
+  "currentUnit": "WU-013"
 }

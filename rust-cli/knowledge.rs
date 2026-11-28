@@ -19,7 +19,7 @@ pub const SOURCE_KINDS: &[&str] = &[
     "conventions",
     "readme",
 ];
-const IGNORE_BLOCK: &str = "# >>> dtech-aidlc managed block v1\n/state.json\n/state.v1.bak.json\n/audit.jsonl\n/config.json\n/shared/\n/repos/\n*.tmp\n# <<< dtech-aidlc managed block";
+const IGNORE_BLOCK: &str = "# >>> dtech-aidlc managed block v1\n/state.json\n/state.v1.bak.json\n/audit.jsonl\n/config.json\n/shared/\n/repos/\n/telemetry/\n*.tmp\n# <<< dtech-aidlc managed block";
 
 fn err<T>(message: impl Into<String>) -> Result<T, String> {
     Err(message.into())
