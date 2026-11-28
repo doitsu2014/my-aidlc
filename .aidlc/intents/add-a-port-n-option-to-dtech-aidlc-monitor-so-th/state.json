@@ -48,12 +48,34 @@
           "sha256": "50eadd4d878e143afeac8d47ce274aa476c83aedd87c97e9826eee47f52818de"
         }
       ]
+    },
+    "implementation-design": {
+      "status": "complete",
+      "startedAt": "2026-11-28T07:36:45.989Z",
+      "detail": null,
+      "reportedAt": "2026-11-28T07:41:32.141Z",
+      "reports": [
+        {
+          "at": "2026-11-28T07:41:32.141Z",
+          "result": "complete",
+          "detail": null
+        }
+      ],
+      "units": {},
+      "artifacts": [
+        {
+          "output": "implementation-plan",
+          "path": ".aidlc/intents/add-a-port-n-option-to-dtech-aidlc-monitor-so-th/develop/implementation-design/implementation-plan.md",
+          "bytes": 21566,
+          "sha256": "13a9db1806337e5a93669216b5f511e130e1586ad62d2873f15c96c2ce40b717"
+        }
+      ]
     }
   },
   "dependencies": {},
   "createdAt": "2026-11-28T07:28:49.571Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T07:36:45.940Z",
+  "updatedAt": "2026-11-28T07:41:32.143Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
