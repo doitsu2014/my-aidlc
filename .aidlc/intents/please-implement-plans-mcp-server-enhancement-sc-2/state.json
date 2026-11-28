@@ -8,7 +8,7 @@
   "depth": "standard",
   "mode": "ai",
   "status": "active",
-  "currentStage": "option-generation",
+  "currentStage": null,
   "stages": {
     "problem-framing": {
       "status": "complete",
@@ -114,14 +114,95 @@
       ]
     },
     "option-generation": {
-      "status": "in_progress",
-      "startedAt": "2026-11-28T02:19:46.358Z"
+      "status": "complete",
+      "startedAt": "2026-11-28T02:19:46.358Z",
+      "detail": null,
+      "reportedAt": "2026-11-28T02:52:27.379Z",
+      "reports": [
+        {
+          "at": "2026-11-28T02:52:27.379Z",
+          "result": "complete",
+          "detail": null
+        }
+      ],
+      "units": {},
+      "artifacts": [
+        {
+          "output": "solution-options",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/ideate/option-generation/solution-options.md",
+          "bytes": 56599,
+          "sha256": "ae6ecfb460ed64fc3c3feb5480b313e17fb341c922bb0280de0d5202741b78b9"
+        },
+        {
+          "output": "trade-off-matrix",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/ideate/option-generation/trade-off-matrix.md",
+          "bytes": 15904,
+          "sha256": "52a8620bb56575e9808929e256945f519f0b84d56b3e11e7ca10b868ff866614"
+        }
+      ]
+    },
+    "direction-selection": {
+      "status": "complete",
+      "startedAt": "2026-11-28T02:52:27.388Z",
+      "detail": null,
+      "reportedAt": "2026-11-28T03:35:18.123Z",
+      "reports": [
+        {
+          "at": "2026-11-28T03:35:18.123Z",
+          "result": "complete",
+          "detail": null,
+          "approval": {
+            "decision": "approved",
+            "by": "AI Orchestrator",
+            "bySource": "flag",
+            "mode": "ai",
+            "note": null,
+            "openItems": {
+              "writtenApproval": 0,
+              "followUp": 12
+            }
+          }
+        }
+      ],
+      "units": {},
+      "artifacts": [
+        {
+          "output": "recommended-direction",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/ideate/direction-selection/recommended-direction.md",
+          "bytes": 10097,
+          "sha256": "b1c7ceac51c6ab9695811ad28414b2d1dbf5ab04a6bf2942de28b83950237be5"
+        },
+        {
+          "output": "decision-record",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/ideate/direction-selection/decision-record.md",
+          "bytes": 63592,
+          "sha256": "db7ec4ab3106bf16e60f06ef6419893831eff02b35dd769a322b2b73b866b4f8"
+        },
+        {
+          "output": "scope-boundary",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/ideate/direction-selection/scope-boundary.md",
+          "bytes": 8134,
+          "sha256": "7e62daf48078f655c9f41b3a68ceb67c34b57c7f1812e8802e1852c7f906965a"
+        },
+        {
+          "output": "architecture-design",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/ideate/direction-selection/architecture-design.md",
+          "bytes": 45856,
+          "sha256": "27bc54bc58fc5da7b6a8670cb34b4da30edc7873b84099733d7577232707ca23"
+        },
+        {
+          "output": "threat-model",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/ideate/direction-selection/threat-model.md",
+          "bytes": 23519,
+          "sha256": "4ee57a073db695d0a71f414ad5c0f0df7c72ce25d5af17d68ce3fde81127b263"
+        }
+      ]
     }
   },
   "dependencies": {},
   "createdAt": "2026-11-28T01:39:49.917Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T02:19:46.364Z",
+  "updatedAt": "2026-11-28T03:35:18.124Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -139,6 +220,24 @@
       "openItems": {
         "writtenApproval": 0,
         "followUp": 14
+      }
+    },
+    "solution-direction": {
+      "phase": "ideate",
+      "stage": "direction-selection",
+      "decision": "approved",
+      "result": "complete",
+      "by": "AI Orchestrator",
+      "bySource": "flag",
+      "mode": "ai",
+      "at": "2026-11-28T03:35:18.123Z",
+      "note": null,
+      "detail": null,
+      "skippedStages": [],
+      "artifacts": [],
+      "openItems": {
+        "writtenApproval": 0,
+        "followUp": 12
       }
     }
   }
