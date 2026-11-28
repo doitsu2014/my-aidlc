@@ -7,7 +7,7 @@
   "projectScope": "solo",
   "depth": "fast",
   "mode": "ai",
-  "status": "active",
+  "status": "complete",
   "currentStage": null,
   "stages": {
     "problem-framing": {
@@ -153,12 +153,45 @@
           "sha256": "5859242a53a4ec4403598fb1d9f63f66c314079ccbb51bc4ee32ed4d80e73567"
         }
       ]
+    },
+    "knowledge-writeback": {
+      "status": "complete",
+      "startedAt": "2026-11-28T08:16:41.771Z",
+      "detail": null,
+      "reportedAt": "2026-11-28T08:17:06.788Z",
+      "reports": [
+        {
+          "at": "2026-11-28T08:17:06.788Z",
+          "result": "complete",
+          "detail": null,
+          "approval": {
+            "decision": "approved",
+            "by": "AI Orchestrator",
+            "bySource": "flag",
+            "mode": "ai",
+            "note": null,
+            "openItems": {
+              "writtenApproval": 0,
+              "followUp": 2
+            }
+          }
+        }
+      ],
+      "units": {},
+      "artifacts": [
+        {
+          "output": "knowledge-record",
+          "path": ".aidlc/knowledge/add-a-port-n-option-to-dtech-aidlc-monitor-so-th.md",
+          "bytes": 3110,
+          "sha256": "6070afabd2c854dd627f86dd0e6bf7300dc29a0aad271bf325f4e33777aee79f"
+        }
+      ]
     }
   },
   "dependencies": {},
   "createdAt": "2026-11-28T07:28:49.571Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T08:16:41.722Z",
+  "updatedAt": "2026-11-28T08:17:06.788Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -194,6 +227,24 @@
       "openItems": {
         "writtenApproval": 0,
         "followUp": 5
+      }
+    },
+    "intent-closure": {
+      "phase": "archived",
+      "stage": "knowledge-writeback",
+      "decision": "approved",
+      "result": "complete",
+      "by": "AI Orchestrator",
+      "bySource": "flag",
+      "mode": "ai",
+      "at": "2026-11-28T08:17:06.788Z",
+      "note": null,
+      "detail": null,
+      "skippedStages": [],
+      "artifacts": [],
+      "openItems": {
+        "writtenApproval": 0,
+        "followUp": 2
       }
     }
   }
