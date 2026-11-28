@@ -4,7 +4,7 @@ set -eu
 
 usage() {
   printf '%s\n' 'Usage: rust-install.sh [--from SOURCE_DIR] [--prefix PREFIX] [--upgrade | --uninstall]' \
-    '  SOURCE_DIR must contain target/release/dtech-aidlc[.exe] and assets/' \
+    '  SOURCE_DIR must contain target/release/dtech-aidlc[.exe], dtech-aidlc-mcp[.exe] and assets/' \
     '  --prefix defaults to ~/.local; --upgrade replaces a recognised installation' \
     '  --uninstall removes only recognised files'
 }
@@ -32,6 +32,7 @@ case $prefix in /*) ;; *) prefix=$(pwd -P)/$prefix ;; esac
 install_root=$prefix/lib/dtech-aidlc
 bin_dir=$prefix/bin
 launcher=$bin_dir/dtech-aidlc
+mcp_launcher=$bin_dir/dtech-aidlc-mcp
 
 # Recognise the Rust install via a private marker. Never infer ownership from a
 # generic executable name or remove the legacy Node layout.
@@ -49,14 +50,18 @@ launcher_is_ours() {
       grep -Fq 'lib/dtech-aidlc/core/tools/dtech-aidlc.mjs' "$launcher"
   }
 }
+mcp_launcher_is_ours() {
+  [ -f "$mcp_launcher" ] && [ ! -L "$mcp_launcher" ] && grep -Fq 'lib/dtech-aidlc/dtech-aidlc-mcp' "$mcp_launcher"
+}
 check_recognised() {
   if present "$install_root" && ! is_ours; then fail "$install_root exists but is not a recognised Rust installation; not touching it"; fi
   if present "$launcher" && ! launcher_is_ours; then fail "$launcher exists but is not a recognised Rust launcher; not touching it"; fi
+  if present "$mcp_launcher" && ! mcp_launcher_is_ours; then fail "$mcp_launcher exists but is not a recognised Rust launcher; not touching it"; fi
 }
 if [ "$uninstall" -eq 1 ]; then
   [ ! -d "$prefix" ] && { printf 'nothing to uninstall under %s\n' "$prefix"; exit 0; }
   check_recognised
-  if [ -f "$install_root/.dtech-aidlc-rust-install" ]; then rm -f "$launcher"; rm -rf "$install_root"; printf 'Removed Rust installation under %s\n' "$prefix"; exit 0; fi
+  if [ -f "$install_root/.dtech-aidlc-rust-install" ]; then rm -f "$launcher" "$mcp_launcher"; rm -rf "$install_root"; printf 'Removed Rust installation under %s\n' "$prefix"; exit 0; fi
   # A Node install is not a Rust install: never remove its runtime or launcher.
   printf '%s\n' 'No Rust installation found; existing Node installation left unchanged.'
   exit 0
@@ -67,12 +72,15 @@ source_dir=$(CDPATH= cd -- "$source_dir" && pwd -P)
 binary=$source_dir/target/release/dtech-aidlc
 [ -f "$binary" ] || binary=$source_dir/target/release/dtech-aidlc.exe
 [ -f "$binary" ] || fail 'missing target/release/dtech-aidlc executable; build it before installing'
+mcp_binary=$source_dir/target/release/dtech-aidlc-mcp
+[ -f "$mcp_binary" ] || mcp_binary=$source_dir/target/release/dtech-aidlc-mcp.exe
+[ -f "$mcp_binary" ] || fail 'missing target/release/dtech-aidlc-mcp executable; build it before installing'
 [ -d "$source_dir/assets" ] || fail 'missing assets/ directory'
 [ -f "$source_dir/assets/phase-graph.json" ] || fail 'missing assets/phase-graph.json'
 if [ "$upgrade" -eq 1 ]; then check_recognised
 else
   existing=
-  for path in "$install_root" "$launcher"; do present "$path" && existing="$existing${existing:+ }$path"; done
+  for path in "$install_root" "$launcher" "$mcp_launcher"; do present "$path" && existing="$existing${existing:+ }$path"; done
   [ -z "$existing" ] || fail "already exists: $existing; use --upgrade or --uninstall"
 fi
 
@@ -86,22 +94,32 @@ had_launcher=0
 moved_launcher=0
 present "$launcher" && had_launcher=1
 launcher_backup=$bin_dir/.dtech-aidlc-rust.launcher-backup.$$
+tmp_mcp=$bin_dir/.dtech-aidlc-rust.mcp-tmp.$$
+mcp_backup=$bin_dir/.dtech-aidlc-rust.mcp-backup.$$
+had_mcp=0
+moved_mcp=0
+present "$mcp_launcher" && had_mcp=1
+# Leftovers from an earlier interrupted run are best-effort removed first.
+rm -rf "$prefix"/lib/.dtech-aidlc-rust.old.* "$bin_dir"/.dtech-aidlc-rust.mcp-backup.* 2>/dev/null || true
 cleanup() {
   status=$?
   if [ "$status" -ne 0 ]; then
     if [ "$moved_launcher" -eq 1 ]; then rm -f "$launcher"; mv "$launcher_backup" "$launcher";
     elif [ "$had_launcher" -eq 0 ]; then rm -f "$launcher"; fi
+    if [ "$moved_mcp" -eq 1 ]; then rm -f "$mcp_launcher"; mv "$mcp_backup" "$mcp_launcher";
+    elif [ "$had_mcp" -eq 0 ]; then rm -f "$mcp_launcher"; fi
     [ "$moved_new" -eq 0 ] || rm -rf "$install_root"
     [ "$moved_old" -eq 0 ] || mv "$old" "$install_root"
   fi
-  rm -rf "$stage" "$old" "$tmp_launcher" "$launcher_backup"
+  rm -rf "$stage" "$old" "$tmp_launcher" "$launcher_backup" "$tmp_mcp" "$mcp_backup"
   exit "$status"
 }
 trap cleanup EXIT HUP INT TERM
 mkdir -p "$stage/assets"
 cp "$binary" "$stage/dtech-aidlc"
+cp "$mcp_binary" "$stage/dtech-aidlc-mcp"
 cp -R "$source_dir/assets/." "$stage/assets/"
-printf '%s\n' 'dtech-aidlc rust installer v1' > "$stage/.dtech-aidlc-rust-install"
+printf '%s\n' 'dtech-aidlc rust installer v2' > "$stage/.dtech-aidlc-rust-install"
 (umask 077; cat > "$tmp_launcher" <<'LAUNCHER'
 #!/bin/sh
 set -eu
@@ -118,12 +136,30 @@ exec "$entry" "$@"
 LAUNCHER
 )
 chmod 755 "$tmp_launcher"
+(umask 077; cat > "$tmp_mcp" <<'LAUNCHER'
+#!/bin/sh
+set -eu
+self=$0
+while [ -L "$self" ]; do
+  link=$(readlink "$self")
+  case $link in /*) self=$link ;; *) self=$(dirname -- "$self")/$link ;; esac
+done
+here=$(CDPATH= cd -- "$(dirname -- "$self")" && pwd -P)
+entry=$here/../lib/dtech-aidlc/dtech-aidlc-mcp
+[ -x "$entry" ] || { printf '%s\n' 'dtech-aidlc-mcp: Rust installation is incomplete.' >&2; exit 1; }
+exec "$entry" "$@"
+LAUNCHER
+)
+chmod 755 "$tmp_mcp"
 if present "$install_root"; then mv "$install_root" "$old"; moved_old=1; fi
 mv "$stage" "$install_root"; moved_new=1
 # Back up a recognised existing launcher so failed publication can roll it back.
 if [ "$had_launcher" -eq 1 ]; then mv "$launcher" "$launcher_backup"; moved_launcher=1; fi
 mv -f "$tmp_launcher" "$launcher"
+if [ "$had_mcp" -eq 1 ]; then mv "$mcp_launcher" "$mcp_backup"; moved_mcp=1; fi
+mv -f "$tmp_mcp" "$mcp_launcher"
 trap - EXIT HUP INT TERM
-rm -rf "$old" "$launcher_backup"
+rm -rf "$old" "$launcher_backup" "$mcp_backup" || true
 printf 'Installed Rust dtech-aidlc to %s\n' "$launcher"
+printf 'Installed Rust dtech-aidlc-mcp to %s\n' "$mcp_launcher"
 printf 'Assets installed to %s\n' "$install_root/assets"

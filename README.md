@@ -377,7 +377,7 @@ This section is proposed. It describes the `dtech-aidlc-mcp` server as designed 
 cargo install --path . --locked
 ```
 
-This installs both binaries, `dtech-aidlc` and `dtech-aidlc-mcp`. The prebuilt-binary installers in scripts/rust-install/ stay CLI-only and do not install the MCP server.
+This installs both binaries, `dtech-aidlc` and `dtech-aidlc-mcp`. The prebuilt-binary installers in scripts/rust-install/ install, upgrade and uninstall both binaries as well.
 
 ### Claude Code
 

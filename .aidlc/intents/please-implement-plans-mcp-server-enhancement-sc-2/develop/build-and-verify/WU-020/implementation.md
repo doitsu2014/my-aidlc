@@ -1,0 +1,8 @@
+# Implementation: WU-020 (Installers for both binaries)
+
+- Status: Complete (build-and-verify, 2026-11-28). Cites FN-039, IF-020, TS-034, AC-026, ADR-034, ADR-035.
+- `scripts/rust-install/install.sh`: installs, upgrades and uninstalls `dtech-aidlc` and `dtech-aidlc-mcp`; marker `dtech-aidlc rust installer v2` (v1 still recognised for upgrade); refuses a missing MCP binary and a foreign `bin/dtech-aidlc-mcp` on upgrade and uninstall; prints `Installed Rust dtech-aidlc-mcp to <path>`; post-commit cleanup is best-effort (`|| true`).
+- `scripts/rust-install/install.ps1`: same for `bin\dtech-aidlc-mcp.exe` (recognised by hash against the installed copy); in-use preflight `Check-InUse` (normalised Get-Process paths plus, on Windows only, an exclusive-open probe) before any change; stale `.old` / backup leftovers swept best-effort; MCP rollback in the catch path.
+- `tests/rust_cargo_install.rs`: TS-034 POSIX and PowerShell tests; HOME/USERPROFILE/APPDATA/LOCALAPPDATA isolated so the settings-bytes check is real; installed MCP binary refuses `--version`/`--help` with exit 1; ts009 reuses `assert_mcp_handshake` (tool names asserted, run outside the checkout); the two `cargo install --path .` tests are serialised with a mutex (conductor fix: they raced on target/release, about 1 run in 4, Observed by the fix worker).
+- `README.md`: the installer sentence now says the prebuilt installers handle both binaries.
+- Conductor fixes after re-review: `cmd /C` path built with `join("bin").join("dtech-aidlc.cmd")`; `Check-InUse` captures the process path before the try/catch (`$_` is the ErrorRecord inside catch).
