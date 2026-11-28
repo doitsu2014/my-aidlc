@@ -137,7 +137,7 @@ fn api(m: &Monitor, target: &str) -> Reply {
     get_with(m, target, &format!("Authorization: Bearer {}\r\n", m.token))
 }
 
-const CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+const CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; require-trusted-types-for 'script'; trusted-types 'none'";
 
 fn assert_fixed_headers(r: &Reply, ctx: &str) {
     for (k, v) in [

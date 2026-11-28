@@ -3,7 +3,7 @@
 
 use sha2::{Digest, Sha256};
 
-const LOCK_SHA256: &str = "fc62a3e7ce27350682a8cb0d0155302283063068cc9a673b2fc9b2ba2c1f1574";
+const LOCK_SHA256: &str = "e0c3502fdb3ae86f0371e47879595413e6d45eaf9791199a47e23868e44c4258";
 
 fn manifest() -> String {
     std::fs::read_to_string(concat!(env!("CARGO_MANIFEST_DIR"), "/Cargo.toml"))

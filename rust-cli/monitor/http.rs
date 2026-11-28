@@ -18,7 +18,7 @@ const WRITE_TIMEOUT: Duration = Duration::from_secs(5);
 const DRAIN_BYTES: usize = 1024 * 1024;
 const DRAIN_TIME: Duration = Duration::from_secs(1);
 
-const CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+const CSP: &str = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; require-trusted-types-for 'script'; trusted-types 'none'";
 
 const INDEX: &str = include_str!("assets/index.html");
 const APP_JS: &str = include_str!("assets/app.js");

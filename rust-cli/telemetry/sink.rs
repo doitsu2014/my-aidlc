@@ -197,20 +197,8 @@ impl FileStore {
         }
         let need = line.len() as u64 + 1;
         if self.open.is_none() {
-            match store_state(&self.root) {
-                StoreState::Unsafe => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::PermissionDenied,
-                        UnsafeLocation,
-                    ))
-                }
-                StoreState::Absent => {
-                    if fs::symlink_metadata(self.root.join(".aidlc")).is_err() {
-                        return Ok(());
-                    }
-                    create_dir(&self.dir())?;
-                }
-                StoreState::Dir => {}
+            if !self.checked_dir()? {
+                return Ok(());
             }
             write_self_ignore(&self.dir())?;
             self.open_part()?;
@@ -219,6 +207,10 @@ impl FileStore {
             }
         } else if let Some((_, _, size)) = &self.open {
             if *size > 0 && *size + need > self.part_max {
+                // The location is re-checked before every part is opened, not only the first.
+                if !self.checked_dir()? {
+                    return Ok(());
+                }
                 self.part += 1;
                 self.open_part()?;
                 if let Some((_, name, _)) = &self.open {
@@ -233,6 +225,26 @@ impl FileStore {
         file.write_all(buf.as_bytes())?;
         *size += need;
         Ok(())
+    }
+
+    /// Requires the store to be a real directory (creating it when `.aidlc` exists), checking
+    /// again after creation. `Ok(false)` means `.aidlc` is missing: nothing to write.
+    fn checked_dir(&self) -> io::Result<bool> {
+        let unsafe_err = || io::Error::new(io::ErrorKind::PermissionDenied, UnsafeLocation);
+        match store_state(&self.root) {
+            StoreState::Unsafe => return Err(unsafe_err()),
+            StoreState::Absent => {
+                if fs::symlink_metadata(self.root.join(".aidlc")).is_err() {
+                    return Ok(false);
+                }
+                create_dir(&self.dir())?;
+                if !matches!(store_state(&self.root), StoreState::Dir) {
+                    return Err(unsafe_err());
+                }
+            }
+            StoreState::Dir => {}
+        }
+        Ok(true)
     }
 
     /// Opens the next free part with `create_new`; an existing file is never touched.
@@ -294,6 +306,9 @@ pub fn prune_with(
     max_age: Duration,
     max_total: u64,
 ) {
+    if !fs::symlink_metadata(dir).is_ok_and(|m| m.is_dir()) {
+        return;
+    }
     let Ok(entries) = fs::read_dir(dir) else {
         return;
     };
@@ -563,6 +578,32 @@ mod tests {
         let err = store.write(&ev(1).to_line()).unwrap_err();
         assert_eq!(err.kind(), io::ErrorKind::PermissionDenied);
         assert_eq!(fs::read_dir(&outside).unwrap().count(), 0);
+        let _ = fs::remove_dir_all(&root);
+        let _ = fs::remove_dir_all(&outside);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn t2_13_store_swapped_for_a_symlink_between_writes_is_refused() {
+        let root = tmp("t2-13-swap");
+        let outside = tmp("t2-13-out");
+        fs::create_dir_all(root.join(".aidlc")).unwrap();
+        let line = ev(1).to_line();
+        let mut store = FileStore::new(&root, SID, 0, line.len() as u64 + 2);
+        store.write(&line).unwrap();
+        let dir = root.join(".aidlc/telemetry");
+        fs::rename(&dir, root.join(".aidlc/moved")).unwrap();
+        std::os::unix::fs::symlink(&outside, &dir).unwrap();
+        // The second line would roll over to a new part: it must not open one via the symlink.
+        let err = store.write(&line).unwrap_err();
+        assert!(is_unsafe(&err), "{err:?}");
+        assert_eq!(disable_msg(&err), MSG_UNSAFE);
+        assert_eq!(fs::read_dir(&outside).unwrap().count(), 0);
+        // Prune refuses a symlinked directory too.
+        let victim = outside.join(file_name(0, 1, SID, 0));
+        fs::write(&victim, b"x").unwrap();
+        prune_with(&dir, None, SystemTime::now(), Duration::ZERO, 0);
+        assert!(victim.exists());
         let _ = fs::remove_dir_all(&root);
         let _ = fs::remove_dir_all(&outside);
     }

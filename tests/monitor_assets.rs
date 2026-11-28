@@ -146,6 +146,7 @@ fn ts030_privacy_text_drops_line_and_generic_label() {
         "The command-line tool (CLI) writes no telemetry",
         "this monitor never deletes anything",
         "Never kept:",
+        "The intent id is made from the first words of the intent text you typed; do not put names or secrets in intent text.",
         "Fields kept per event:",
         "telemetry is not audit",
         "stores nothing in your browser",
@@ -272,6 +273,7 @@ fn ts030_monitor_serves_the_assets_with_the_csp() {
             let csp = h("Content-Security-Policy").expect("CSP");
             assert!(csp.contains("script-src 'self'") && csp.contains("style-src 'self'"));
             assert!(csp.contains("default-src 'none'") && csp.contains("connect-src 'self'"));
+            assert!(csp.contains("require-trusted-types-for 'script'; trusted-types 'none'"));
             assert!(r
                 .headers
                 .iter()

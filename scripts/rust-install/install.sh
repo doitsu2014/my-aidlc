@@ -89,6 +89,8 @@ stage=$prefix/lib/.dtech-aidlc-rust.new.$$
 old=$prefix/lib/.dtech-aidlc-rust.old.$$
 tmp_launcher=$bin_dir/.dtech-aidlc-rust.tmp.$$
 moved_old=0
+had_root=0
+present "$install_root" && had_root=1
 moved_new=0
 had_launcher=0
 moved_launcher=0
@@ -103,18 +105,23 @@ present "$mcp_launcher" && had_mcp=1
 rm -rf "$prefix"/lib/.dtech-aidlc-rust.old.* "$bin_dir"/.dtech-aidlc-rust.mcp-backup.* 2>/dev/null || true
 cleanup() {
   status=$?
+  set +e
+  trap - EXIT HUP INT TERM
   if [ "$status" -ne 0 ]; then
-    if [ "$moved_launcher" -eq 1 ]; then rm -f "$launcher"; mv "$launcher_backup" "$launcher";
+    if present "$launcher_backup"; then mv -f "$launcher_backup" "$launcher";
     elif [ "$had_launcher" -eq 0 ]; then rm -f "$launcher"; fi
-    if [ "$moved_mcp" -eq 1 ]; then rm -f "$mcp_launcher"; mv "$mcp_backup" "$mcp_launcher";
+    if present "$mcp_backup"; then mv -f "$mcp_backup" "$mcp_launcher";
     elif [ "$had_mcp" -eq 0 ]; then rm -f "$mcp_launcher"; fi
-    [ "$moved_new" -eq 0 ] || rm -rf "$install_root"
-    [ "$moved_old" -eq 0 ] || mv "$old" "$install_root"
+    if present "$old"; then rm -rf "$install_root"; mv "$old" "$install_root";
+    elif [ "$had_root" -eq 0 ]; then rm -rf "$install_root"; fi
   fi
   rm -rf "$stage" "$old" "$tmp_launcher" "$launcher_backup" "$tmp_mcp" "$mcp_backup"
   exit "$status"
 }
-trap cleanup EXIT HUP INT TERM
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 mkdir -p "$stage/assets"
 cp "$binary" "$stage/dtech-aidlc"
 cp "$mcp_binary" "$stage/dtech-aidlc-mcp"

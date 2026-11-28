@@ -433,6 +433,41 @@ The entry shape follows the DeepSeek Harness `dsh-mcp-client` documentation, and
 
 On Windows the binary is `dtech-aidlc-mcp.exe` in `%USERPROFILE%\.cargo\bin`; on macOS it is in `~/.cargo/bin`. Make sure the host's `PATH` includes that directory, or give the full path as `command`. Host launch of the `.exe` on Windows has not been verified. On Windows, another process holding the `.aidlc` `state.json` open can make a state change fail with `operation_failed`, which is not retryable: close the other process and re-run `status`.
 
+## MCP telemetry
+
+`dtech-aidlc-mcp` records local telemetry by default. Telemetry is MCP-only: the `dtech-aidlc` CLI records nothing. Start the server with `--telemetry off` to record nothing:
+
+```sh
+claude mcp add --transport stdio aidlc -- dtech-aidlc-mcp --project <dir> --telemetry off
+```
+
+- Recorded: one JSON line per event, with the event kind (request, tool completion, protocol error, operation, stage selected or reported, gate decided), a timestamp, process, session, trace and span ids, the tool or operation `name`, the intent, stage and unit ids, the duration, the outcome and an error code.
+- Never recorded: tool arguments or results, artifact or file contents, file paths, approver names, prompt text (apart from the intent id below), environment values and credentials.
+- The intent id is made from the first words of the intent text you typed; do not put names or secrets in intent text.
+- Location: `.aidlc/telemetry/` under the project. On Windows the folder inherits the project's ACLs, so check them on a shared machine. On Windows keep projects under your user profile or restrict the folder ACL.
+- The monitor URL contains a per-run token (see the Monitor section). It stays in terminal scrollback, browser history (including synced history) and in AI-agent transcripts when an agent starts the monitor.
+- Retention: 5 MiB per file, 7 days, 50 MiB in total. Pruning runs after a part is written, so the total can overshoot by about one part.
+- Drops are disclosed, not counted: when the writer queue is full, events are dropped and one line is written to stderr. Dropped events are not recorded anywhere, so the files can be incomplete.
+- Telemetry is not audit. Approver names are self-asserted by the host. Use the `.aidlc` state and gate records, not telemetry, as the approval record.
+
+## Monitor
+
+`dtech-aidlc monitor` serves a read-only dashboard of the MCP telemetry in the project's `.aidlc/telemetry/`.
+
+```sh
+dtech-aidlc monitor
+```
+
+- It listens on loopback, `127.0.0.1`, on a free port, and never on another address. It only reads; it cannot approve, report or change anything.
+- A new random token is made for each run. The URL, with the token in the fragment (`#token=...`), is printed once on stderr; open that URL in a browser on the same machine. Browsers do not send the fragment to the server.
+- The token stays in terminal scrollback and browser history (including synced history), and in AI-agent transcripts when an agent starts the monitor. It stops working when the monitor stops.
+- On Windows keep projects under your user profile or restrict the folder ACL.
+- Press Ctrl+C to stop it. In a `.cmd` wrapper on Windows, Ctrl+C asks `Terminate batch job (Y/N)?`; answer `Y`.
+- A local firewall may ask whether to allow the program; allow loopback only, no inbound network access is needed.
+- It shows only what MCP calls recorded; CLI use and dropped events do not appear.
+- Security boundary: loopback plus the per-run token keeps out remote hosts, web pages and other OS users on the same machine. It does not protect against processes of the same OS user, which can read the terminal output and the `.aidlc/telemetry/` files directly.
+- Troubleshooting: if a wrapper script or process manager starts the monitor, make it forward SIGINT and SIGTERM to `dtech-aidlc monitor`; otherwise the server keeps running after the wrapper stops. If the page says `Token missing`, reopen the full URL printed on stderr (a reload removes the token).
+
 ## Dependency repositories
 
 `aidlc.deps.json` can declare dependency repositories. `dtech-aidlc repos pull` clones missing repositories, or fast-forwards existing clean checkouts, under `.aidlc/repos/`. It refuses dirty checkouts, non-fast-forward updates, and unmanaged paths. Repositories are workflow inputs, not executable content, so review dependency sources and changes before relying on them.

@@ -532,6 +532,91 @@ fn assert_mcp_refuses_flags(make: impl Fn() -> Command, home: &std::path::Path) 
 }
 
 #[test]
+fn ts034_installed_cli_starts_monitor_from_its_own_location() {
+    use std::io::{BufRead, BufReader};
+    use std::process::Stdio;
+    let _serial = CARGO_INSTALL.lock().unwrap_or_else(|e| e.into_inner());
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!(
+        "aidlc-cargo-install-monitor-{}-{unique}",
+        std::process::id()
+    ));
+    let project = root.join("project");
+    fs::create_dir_all(&project).unwrap();
+    let install = Command::new("cargo")
+        .args(["install", "--offline", "--locked", "--path"])
+        .arg(env!("CARGO_MANIFEST_DIR"))
+        .arg("--root")
+        .arg(&root)
+        .output()
+        .unwrap();
+    assert!(
+        install.status.success(),
+        "{}",
+        String::from_utf8_lossy(&install.stderr)
+    );
+    let exe = root.join("bin").join(if cfg!(windows) {
+        "dtech-aidlc.exe"
+    } else {
+        "dtech-aidlc"
+    });
+    let mut command = Command::new(exe);
+    isolate_home(&mut command, &root.join("home"));
+    let mut monitor = command
+        .args(["monitor", "--project"])
+        .arg(&project)
+        .current_dir(&project)
+        .env_remove("DTECH_AIDLC_HOME")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let mut line = String::new();
+    BufReader::new(monitor.stderr.take().unwrap())
+        .read_line(&mut line)
+        .unwrap();
+    // One GET / proves the installed binary serves the dashboard it embeds.
+    let page = line
+        .strip_prefix("monitor: http://127.0.0.1:")
+        .and_then(|rest| rest.split('/').next())
+        .and_then(|port| port.parse::<u16>().ok())
+        .map(|port| {
+            use std::io::{Read, Write};
+            let mut stream = std::net::TcpStream::connect(("127.0.0.1", port)).unwrap();
+            write!(
+                stream,
+                "GET / HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\nConnection: close\r\n\r\n"
+            )
+            .unwrap();
+            let mut response = String::new();
+            let _ = stream.read_to_string(&mut response);
+            response
+        });
+    // The monitor never exits on its own; stop it before asserting so a failure cannot leak it.
+    let _ = monitor.kill();
+    let _ = monitor.wait();
+    assert!(
+        line.starts_with("monitor: http://127.0.0.1:") && line.contains("/#token="),
+        "unexpected startup line: {line:?}"
+    );
+    let page = page.unwrap_or_default();
+    assert!(
+        page.starts_with("HTTP/1.1 200") && page.contains("dtech-aidlc Monitor"),
+        "unexpected response: {}",
+        page.lines().next().unwrap_or("")
+    );
+    let _ = Command::new("cargo")
+        .args(["uninstall", "dtech-aidlc", "--root"])
+        .arg(&root)
+        .output();
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn ts034_posix_installer_round_trips_both_binaries() {
     if !sh_available() {
         eprintln!("skipped: POSIX shell unavailable");
@@ -582,6 +667,108 @@ fn ts034_posix_installer_round_trips_both_binaries() {
     assert!(!f.prefix.join("bin/dtech-aidlc").exists());
     assert!(!f.prefix.join("bin/dtech-aidlc-mcp").exists());
     assert_eq!(fs::read(&settings).unwrap(), bytes);
+}
+
+#[cfg(unix)]
+#[test]
+fn ts034_posix_term_between_swaps_exits_nonzero_and_keeps_the_previous_install() {
+    // T2-22a: a TERM that lands after the launcher swaps must roll back, not report success.
+    use std::os::unix::fs::PermissionsExt;
+    let f = ScriptFixture::new("sh-term");
+    assert_ok(&sh_install(&f, &[]));
+    let snapshot = |f: &ScriptFixture| {
+        (
+            fs::read(f.lib().join("assets/phase-graph.json")).unwrap(),
+            fs::read(f.lib().join("dtech-aidlc")).unwrap(),
+            fs::read(f.prefix.join("bin/dtech-aidlc")).unwrap(),
+            fs::read(f.prefix.join("bin/dtech-aidlc-mcp")).unwrap(),
+        )
+    };
+    let before = snapshot(&f);
+    // A new payload, so a half-applied upgrade is visible.
+    fs::write(
+        f.source.join("assets/phase-graph.json"),
+        "{\"version\":2}\n",
+    )
+    .unwrap();
+    // `mv` shim: the swap that publishes the new MCP launcher sends TERM to the installer first.
+    let shims = f.dir.join("shims");
+    fs::create_dir_all(&shims).unwrap();
+    let shim = shims.join("mv");
+    fs::write(
+        &shim,
+        "#!/bin/sh\nfor last; do :; done\ncase $last in */bin/dtech-aidlc-mcp) [ -e \"$0.fired\" ] || { : > \"$0.fired\"; kill -TERM $PPID; sleep 1; exit 0; } ;; esac\nexec /bin/mv \"$@\"\n",
+    )
+    .unwrap();
+    fs::set_permissions(&shim, fs::Permissions::from_mode(0o755)).unwrap();
+    let mut command = Command::new("sh");
+    isolate_home(&mut command, &f.dir.join("home"));
+    let path = format!(
+        "{}:{}",
+        shims.display(),
+        std::env::var("PATH").unwrap_or_default()
+    );
+    let out = command
+        .env("PATH", path)
+        .arg(sh_path(&scripts_dir().join("install.sh")))
+        .args([
+            "--from",
+            &sh_path(&f.source),
+            "--prefix",
+            &sh_path(&f.prefix),
+        ])
+        .arg("--upgrade")
+        .output()
+        .unwrap();
+    assert_eq!(
+        out.status.code(),
+        Some(143),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    assert_eq!(snapshot(&f), before, "previous install must be restored");
+    assert_ok(&sh_install(&f, &["--upgrade"]));
+}
+
+#[cfg(unix)]
+#[test]
+fn ts034_posix_failed_fresh_install_leaves_an_empty_prefix() {
+    // A first install that fails after publishing lib/dtech-aidlc must remove it again,
+    // so a plain retry works (same as install.ps1).
+    use std::os::unix::fs::PermissionsExt;
+    let f = ScriptFixture::new("sh-fresh-fail");
+    let shims = f.dir.join("shims");
+    fs::create_dir_all(&shims).unwrap();
+    let shim = shims.join("mv");
+    fs::write(
+        &shim,
+        "#!/bin/sh\nfor last; do :; done\ncase $last in */bin/dtech-aidlc-mcp) exit 1 ;; esac\nexec /bin/mv \"$@\"\n",
+    )
+    .unwrap();
+    fs::set_permissions(&shim, fs::Permissions::from_mode(0o755)).unwrap();
+    let mut command = Command::new("sh");
+    isolate_home(&mut command, &f.dir.join("home"));
+    let path = format!(
+        "{}:{}",
+        shims.display(),
+        std::env::var("PATH").unwrap_or_default()
+    );
+    let out = command
+        .env("PATH", path)
+        .arg(sh_path(&scripts_dir().join("install.sh")))
+        .args([
+            "--from",
+            &sh_path(&f.source),
+            "--prefix",
+            &sh_path(&f.prefix),
+        ])
+        .output()
+        .unwrap();
+    assert!(!out.status.success());
+    assert!(!f.lib().exists(), "lib/dtech-aidlc left behind");
+    assert!(!f.prefix.join("bin/dtech-aidlc").exists());
+    assert!(!f.prefix.join("bin/dtech-aidlc-mcp").exists());
+    assert_ok(&sh_install(&f, &[]));
 }
 
 #[test]
@@ -710,31 +897,80 @@ fn ts034_powershell_upgrade_from_cli_only_v1_adds_mcp_and_keeps_unrelated_files(
 #[cfg(windows)]
 #[test]
 fn ts034_powershell_upgrade_refuses_when_installed_files_are_in_use() {
-    use std::process::Stdio;
+    // T2-22c: unverified locally; runs on windows-latest CI only.
+    use std::process::{Child, Stdio};
     assert!(pwsh_available());
     let f = ScriptFixture::new("ps-inuse");
     assert_ok(&ps_install(&f, &[]));
-    let mut running = Command::new(f.prefix.join("bin/dtech-aidlc-mcp.exe"))
-        .arg("--project")
-        .arg(&f.dir)
-        .stdin(Stdio::piped())
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .spawn()
-        .unwrap();
-    let out = ps_install(&f, &["-Upgrade"]);
-    let _ = running.kill();
-    let _ = running.wait();
-    assert!(!out.status.success());
-    let text = format!(
-        "{}{}",
-        String::from_utf8_lossy(&out.stdout),
-        String::from_utf8_lossy(&out.stderr)
-    );
-    assert!(
-        text.contains("dtech-aidlc files are in use: stop the AI host and any dtech-aidlc monitor, then re-run"),
-        "{text}"
-    );
+    // Every file under the prefix, with its bytes: a refused run must change none of them.
+    fn tree(dir: &std::path::Path, out: &mut Vec<(PathBuf, Vec<u8>)>) {
+        let mut entries: Vec<_> = fs::read_dir(dir).unwrap().flatten().collect();
+        entries.sort_by_key(|e| e.path());
+        for entry in entries {
+            let path = entry.path();
+            if path.is_dir() {
+                tree(&path, out);
+            } else {
+                out.push((path.clone(), fs::read(&path).unwrap()));
+            }
+        }
+    }
+    let snapshot = |f: &ScriptFixture| {
+        let mut files = Vec::new();
+        tree(&f.prefix, &mut files);
+        files
+    };
+    let before = snapshot(&f);
+    let start_mcp = |f: &ScriptFixture| -> Child {
+        Command::new(f.prefix.join("bin/dtech-aidlc-mcp.exe"))
+            .arg("--project")
+            .arg(&f.dir)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap()
+    };
+    // The monitor runs from `lib\dtech-aidlc` itself, as `cargo`-less installs launch it.
+    let start_monitor = |f: &ScriptFixture| -> Child {
+        let mut command = Command::new(f.lib().join("dtech-aidlc.exe"));
+        isolate_home(&mut command, &f.dir.join("home"));
+        command
+            .args(["monitor", "--project"])
+            .arg(&f.dir)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap()
+    };
+    let text_of = |out: &std::process::Output| {
+        format!(
+            "{}{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        )
+    };
+    let in_use =
+        "dtech-aidlc files are in use: stop the AI host and any dtech-aidlc monitor, then re-run";
+    let mut first = true;
+    let starts: [&dyn Fn(&ScriptFixture) -> Child; 2] = [&start_mcp, &start_monitor];
+    for start in starts {
+        let mut running = start(&f);
+        let out = ps_install(&f, &["-Upgrade"]);
+        assert!(!out.status.success(), "{}", text_of(&out));
+        if first {
+            assert!(text_of(&out).contains(in_use), "{}", text_of(&out));
+        }
+        let uninstall = ps_install(&f, &["-Uninstall"]);
+        let _ = running.kill();
+        let _ = running.wait();
+        assert!(!uninstall.status.success(), "{}", text_of(&uninstall));
+        assert!(snapshot(&f) == before, "a refused run must change nothing");
+        first = false;
+    }
+    // ADR-035 recovery: after the process is stopped, the same command succeeds.
+    assert_ok(&ps_install(&f, &["-Upgrade"]));
     assert!(f.lib().join("dtech-aidlc-mcp.exe").is_file());
     assert!(f.prefix.join("bin/dtech-aidlc.cmd").is_file());
 }

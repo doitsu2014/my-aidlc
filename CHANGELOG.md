@@ -2,6 +2,16 @@
 
 Each release lists the behaviour changes a user or a script can notice.
 
+## 1.3.0
+
+- Added the `dtech-aidlc-mcp` binary, a local stdio MCP server with the tools `status`, `queue`, `next` and `report` over the same library behaviour as the CLI, which is unchanged. The server, telemetry and monitor are local optional capabilities; the CLI works without them. The minimum Rust version is 1.100. Approver names are self-asserted by the host. The README MCP section keeps its "proposed" label: DeepSeek Harness has not been verified against the server, and the label is dropped only after green CI on Windows and macOS and a live Claude Code `tools/call`. This release therefore ships the server as proposed: the MCP server, telemetry, monitor and installers are released; the live host verification (Claude Code `tools/call`, DeepSeek Harness, Windows host launch) is still pending.
+- MCP telemetry is on by default and MCP-only; start the server with `--telemetry off` to record nothing. Events go to `.aidlc/telemetry/` with retention of 5 MiB per file, 7 days and 50 MiB in total. Dropped events are disclosed on stderr, not recorded or counted. The CLI writes no telemetry. Telemetry is not audit. The intent id is made from the first words of the intent text you typed; do not put names or secrets in intent text. The managed `.gitignore` gains a `/telemetry/` line.
+- Added `dtech-aidlc monitor`: a read-only dashboard of the MCP telemetry, bound to 127.0.0.1 only, with a per-run token in the URL fragment printed on stderr. Ctrl+C stops it. It adds a `monitor` line to help, completion and validation output.
+- The shell and PowerShell installers now install, upgrade and uninstall both binaries, `dtech-aidlc` and `dtech-aidlc-mcp`. `cargo install --path . --locked` installs both.
+- `deps add` now takes the `.aidlc` state lock, so concurrent `deps add` runs no longer lose edges.
+- Fixed flaky tests (prerequisite timeout, artifact verification, projection backups) and added characterisation tests for the MCP server follow-ups.
+- Golden snapshots changed only for the version, the `monitor` help, completion and validation lines, and the `/telemetry/` ignore line.
+
 ## 1.2.2
 
 - Harden Claude Code Workflow guidance against JavaScript prompt-quoting parse errors: load the workflow-authoring skill, use ordinary quoted strings for prompts containing Markdown backticks, and correct parse failures before retrying. Added regression checks and recognized the updated skill projection hash.

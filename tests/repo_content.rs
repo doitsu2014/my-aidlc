@@ -1409,6 +1409,69 @@ fn help_completion_and_the_command_table_stay_in_step() {
 // ---------------------------------------------------------------------------
 
 #[test]
+fn ts036_readme_telemetry_and_monitor_sections() {
+    // TS-036: the telemetry and monitor sections state the contract (AC-020, AC-025, AC-030).
+    let readme = read_lf("README.md");
+    let section = |heading: &str| {
+        let at = readme
+            .find(heading)
+            .unwrap_or_else(|| panic!("README is missing `{heading}`"));
+        let rest = &readme[at + 3..];
+        rest[..rest.find("\n## ").unwrap_or(rest.len())].to_owned()
+    };
+    let telemetry = section("\n## MCP telemetry\n");
+    for needle in [
+        "--telemetry off",
+        ".aidlc/telemetry",
+        "5 MiB per file, 7 days, 50 MiB",
+        "overshoot",
+        "the `dtech-aidlc` CLI records nothing",
+        "not recorded anywhere",
+        "Telemetry is not audit",
+        "self-asserted",
+        "Never recorded",
+        "The intent id is made from the first words of the intent text you typed; do not put names or secrets in intent text.",
+        "browser history (including synced history)",
+        "AI-agent transcripts",
+    ] {
+        assert!(
+            telemetry.contains(needle),
+            "README telemetry section is missing `{needle}`"
+        );
+    }
+    let monitor = section("\n## Monitor\n");
+    for needle in [
+        "dtech-aidlc monitor",
+        "127.0.0.1",
+        "read-only",
+        "#token=",
+        "stderr",
+        "Ctrl+C",
+        "Terminate batch job (Y/N)?",
+        "firewall",
+        "same OS user",
+        "SIGTERM",
+        "browser history (including synced history)",
+        "AI-agent transcripts",
+        "stops working when the monitor stops",
+        "restrict the folder ACL",
+    ] {
+        assert!(
+            monitor.contains(needle),
+            "README monitor section is missing `{needle}`"
+        );
+    }
+    assert!(
+        readme.contains("## MCP server (proposed)"),
+        "the proposed heading stays until the live check"
+    );
+    assert!(
+        read_lf("CHANGELOG.md").contains("do not put names or secrets in intent text"),
+        "CHANGELOG telemetry entry carries the intent-id warning"
+    );
+}
+
+#[test]
 fn readme_has_the_required_sections_and_mentions() {
     let readme = read_lf("README.md");
     for heading in [
