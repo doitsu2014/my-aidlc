@@ -8,7 +8,7 @@
   "depth": "standard",
   "mode": "ai",
   "status": "active",
-  "currentStage": null,
+  "currentStage": "red-tests",
   "stages": {
     "problem-framing": {
       "status": "complete",
@@ -255,12 +255,18 @@
           "sha256": "515cadaeaa62620af96426157654ac9c4627771fedc8b66f67958238513c4cdb"
         }
       ]
+    },
+    "red-tests": {
+      "status": "in_progress",
+      "startedAt": "2026-11-28T04:03:14.955Z",
+      "units": {},
+      "detail": null
     }
   },
   "dependencies": {},
   "createdAt": "2026-11-28T01:39:49.917Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T04:03:14.911Z",
+  "updatedAt": "2026-11-28T04:04:36.175Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -321,7 +327,7 @@
       "WU-022"
     ],
     "progressSeq": 0,
-    "syncedAt": "2026-11-28T04:03:14.907Z",
+    "syncedAt": "2026-11-28T04:04:36.173Z",
     "units": {
       "WU-011": {
         "title": "Flaky-test fixes",
@@ -330,7 +336,7 @@
           "TS-032"
         ],
         "status": "pending",
-        "selectedAt": null,
+        "selectedAt": "2026-11-28T04:03:14.955Z",
         "steps": {
           "red-tests": null,
           "build-and-verify": null
@@ -353,7 +359,7 @@
           "TS-031"
         ],
         "status": "pending",
-        "selectedAt": null,
+        "selectedAt": "2026-11-28T04:04:36.122Z",
         "steps": {
           "red-tests": null,
           "build-and-verify": null
@@ -380,7 +386,7 @@
           "TS-025"
         ],
         "status": "pending",
-        "selectedAt": null,
+        "selectedAt": "2026-11-28T04:04:36.173Z",
         "steps": {
           "red-tests": null,
           "build-and-verify": null
@@ -639,7 +645,20 @@
       "via": null
     },
     "baselineTests": [],
-    "rework": null
+    "rework": null,
+    "claims": [
+      {
+        "unit": "WU-012",
+        "stage": "red-tests",
+        "claimedAt": "2026-11-28T04:04:36.122Z"
+      },
+      {
+        "unit": "WU-013",
+        "stage": "red-tests",
+        "claimedAt": "2026-11-28T04:04:36.173Z"
+      }
+    ],
+    "parallelSince": "2026-11-28T04:04:36.122Z"
   },
   "units": [
     {
@@ -727,5 +746,6 @@
         "WU-021"
       ]
     }
-  ]
+  ],
+  "currentUnit": "WU-011"
 }
