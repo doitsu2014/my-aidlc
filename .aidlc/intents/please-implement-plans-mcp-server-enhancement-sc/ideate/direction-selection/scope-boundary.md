@@ -119,3 +119,9 @@ Consistent with the plans, not superseded: design s2's two public binaries (`dte
 - **What this changes:** the row "Windows verification and external CI" above (N3 default: no CI; platform claims limited to local tests) is superseded. Windows/macOS support and the CI workflow file under `.github/workflows/` are now in scope. Linux is not named by the owner and stays best-effort (not a release claim).
 - **Consequences:** the release-candidate gate needs a green CI run on both platforms. That run happens only after the branch is pushed, and pushing is an external action that needs the owner's separate authorization. Design must cover Windows specifics already noted as untested (CRLF input, stdin/stdout handling, `.exe` names, path separators in redaction, A5/R17). The baseline definition for "unchanged" (N5/Q14) applies to macOS locally; CI establishes the Windows baseline on its first run.
 - **Decision record:** this amends the scope only; ADR-002 (packaging) and ADR-005 (framing, CRLF stripping) already cover the platform behaviour. implementation-design records the CI work as a work unit and mints its identifiers.
+
+## Amendment at the release-candidate gate (2026-11-28)
+
+- **Owner decision (User-provided, project owner, 2026-11-28, in the conductor session after the release-candidate gate was blocked on AC-003):** "không cần deepseek harness giờ đâu" (DeepSeek Harness is not needed now).
+- **What this changes:** owner decision Q1 (both Claude Code and DeepSeek Harness must launch and list the tools, AC-003) is narrowed for this release: Claude Code is the required host; DeepSeek Harness launch-and-list verification is deferred (follow-up, later intent). The README keeps the DeepSeek Harness configuration, labelled proposed and not verified.
+- **Unchanged:** every other acceptance criterion and owner decision.

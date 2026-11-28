@@ -555,7 +555,7 @@
       "reworkResetAt": "2026-11-28T00:24:39.075Z"
     },
     "build-and-verify": {
-      "status": "in_progress",
+      "status": "complete",
       "startedAt": "2026-11-27T16:47:10.201Z",
       "units": {
         "WU-010": {
@@ -587,7 +587,7 @@
           "reportedAt": "2026-11-27T17:53:43.039Z"
         },
         "WU-009": {
-          "status": "pending",
+          "status": "complete",
           "reportedAt": "2026-11-28T00:33:33.649Z"
         },
         "WU-007": {
@@ -600,7 +600,7 @@
         }
       },
       "detail": null,
-      "reportedAt": "2026-11-28T00:56:44.770Z",
+      "reportedAt": "2026-11-28T01:12:52.137Z",
       "reports": [
         {
           "at": "2026-11-27T16:48:31.139Z",
@@ -661,6 +661,29 @@
           "result": "complete",
           "detail": null,
           "unit": "WU-008"
+        },
+        {
+          "at": "2026-11-28T01:11:25.219Z",
+          "result": "blocked",
+          "detail": "release-candidate needs the owner's written decision on AC-003 (owner Q1: Claude Code AND DeepSeek Harness must launch and list tools). Evidence: CI green on windows-latest (547/0) and macos-latest (545/0); local sweep 545/0; Claude Code 2.1.332 'claude mcp list' Connected with the real binary; DeepSeek Harness launch-and-list not run (dsh not installed). Owner to verify DeepSeek, accept releasing with it unverified, or move it to intent 2. See develop/build-and-verify/gate-recommendation.md.",
+          "sweep": true
+        },
+        {
+          "at": "2026-11-28T01:12:52.137Z",
+          "result": "complete",
+          "detail": null,
+          "approval": {
+            "decision": "approved",
+            "by": "AI Orchestrator",
+            "bySource": "flag",
+            "mode": "ai",
+            "note": null,
+            "openItems": {
+              "writtenApproval": 0,
+              "followUp": 14
+            }
+          },
+          "sweep": true
         }
       ],
       "artifacts": [
@@ -903,15 +926,40 @@
           "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-008/known-limitations.md",
           "bytes": 1155,
           "sha256": "6f09241314238d0b5904e9d3a4c7c7aa6253f603185df380dedeff358bf5bf7b"
+        },
+        {
+          "output": "implementation",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/implementation.md",
+          "bytes": 6728,
+          "sha256": "4112ca7ac47693b89b1ad3d49ae315d8dee1efc5f1d67c933b99c04869048f81"
+        },
+        {
+          "output": "green-verification-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/green-verification-report.md",
+          "bytes": 13947,
+          "sha256": "f17a9b445fce8f4b616b72954846db5dbf2bd24ae2010eb20a2350c2365bbb72"
+        },
+        {
+          "output": "regression-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/regression-report.md",
+          "bytes": 3999,
+          "sha256": "36c4a2f6c08cfd7acb46d4017bea235fd40cb53eb0e71ad2e9c45a16cefb6f65"
+        },
+        {
+          "output": "known-limitations",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/known-limitations.md",
+          "bytes": 7931,
+          "sha256": "e6c6547906e42d620015be2ba8f85a0c72fa32429a802c3b430751f07a7e96af"
         }
       ],
-      "reworkResetAt": "2026-11-28T00:24:39.075Z"
+      "reworkResetAt": "2026-11-28T00:24:39.075Z",
+      "resumedAt": "2026-11-28T01:11:46.310Z"
     }
   },
   "dependencies": {},
   "createdAt": "2026-11-27T14:29:23.464Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T00:56:44.771Z",
+  "updatedAt": "2026-11-28T01:12:52.139Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -948,6 +996,24 @@
         "writtenApproval": 0,
         "followUp": 16
       }
+    },
+    "release-candidate": {
+      "phase": "develop",
+      "stage": "build-and-verify",
+      "decision": "approved",
+      "result": "complete",
+      "by": "AI Orchestrator",
+      "bySource": "flag",
+      "mode": "ai",
+      "at": "2026-11-28T01:12:52.137Z",
+      "note": null,
+      "detail": null,
+      "skippedStages": [],
+      "artifacts": [],
+      "openItems": {
+        "writtenApproval": 0,
+        "followUp": 14
+      }
     }
   },
   "workUnits": {
@@ -970,7 +1036,7 @@
       "WU-009"
     ],
     "progressSeq": 10,
-    "syncedAt": "2026-11-28T00:56:44.770Z",
+    "syncedAt": "2026-11-28T01:12:52.137Z",
     "units": {
       "WU-001": {
         "title": "Scaffold and packaging",
@@ -979,7 +1045,7 @@
           "TS-016",
           "TS-017"
         ],
-        "status": "verified",
+        "status": "done",
         "selectedAt": "2026-11-27T16:49:19.636Z",
         "steps": {
           "red-tests": "complete",
@@ -1008,7 +1074,7 @@
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-27T16:51:00.398Z"
+        "updatedAt": "2026-11-28T01:12:52.137Z"
       },
       "WU-010": {
         "title": "Fix pre-existing Unix test bugs",
@@ -1016,7 +1082,7 @@
         "tests": [
           "TS-019"
         ],
-        "status": "verified",
+        "status": "done",
         "selectedAt": "2026-11-27T16:47:10.186Z",
         "steps": {
           "red-tests": "complete",
@@ -1045,7 +1111,7 @@
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-27T16:48:31.139Z"
+        "updatedAt": "2026-11-28T01:12:52.137Z"
       },
       "WU-002": {
         "title": "Prerequisite guard, error constant and pending preview",
@@ -1057,7 +1123,7 @@
           "TS-010",
           "TS-011"
         ],
-        "status": "verified",
+        "status": "done",
         "selectedAt": "2026-11-27T17:14:45.193Z",
         "steps": {
           "red-tests": "complete",
@@ -1086,7 +1152,7 @@
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-27T17:16:18.337Z"
+        "updatedAt": "2026-11-28T01:12:52.137Z"
       },
       "WU-004": {
         "title": "MCP protocol layer",
@@ -1098,7 +1164,7 @@
           "TS-002",
           "TS-003"
         ],
-        "status": "verified",
+        "status": "done",
         "selectedAt": "2026-11-27T17:16:54.820Z",
         "steps": {
           "red-tests": "complete",
@@ -1127,7 +1193,7 @@
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-27T17:18:24.756Z"
+        "updatedAt": "2026-11-28T01:12:52.137Z"
       },
       "WU-006": {
         "title": "Path redaction",
@@ -1137,7 +1203,7 @@
         "tests": [
           "TS-008"
         ],
-        "status": "verified",
+        "status": "done",
         "selectedAt": "2026-11-27T17:20:29.766Z",
         "steps": {
           "red-tests": "complete",
@@ -1166,7 +1232,7 @@
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-27T17:23:13.883Z"
+        "updatedAt": "2026-11-28T01:12:52.137Z"
       },
       "WU-003": {
         "title": "Facade and CLI routing",
@@ -1177,7 +1243,7 @@
           "TS-010",
           "TS-011"
         ],
-        "status": "verified",
+        "status": "done",
         "selectedAt": "2026-11-27T17:34:05.469Z",
         "steps": {
           "red-tests": "complete",
@@ -1206,7 +1272,7 @@
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-27T17:35:34.327Z"
+        "updatedAt": "2026-11-28T01:12:52.137Z"
       },
       "WU-005": {
         "title": "MCP tool adapter",
@@ -1219,7 +1285,7 @@
           "TS-004",
           "TS-018"
         ],
-        "status": "verified",
+        "status": "done",
         "selectedAt": "2026-11-27T17:52:14.758Z",
         "steps": {
           "red-tests": "complete",
@@ -1248,7 +1314,7 @@
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-27T17:53:43.039Z"
+        "updatedAt": "2026-11-28T01:12:52.137Z"
       },
       "WU-007": {
         "title": "Integration, parity, install tests and state write lock",
@@ -1266,7 +1332,7 @@
           "TS-014",
           "TS-020"
         ],
-        "status": "verified",
+        "status": "done",
         "selectedAt": "2026-11-28T00:49:18.782Z",
         "steps": {
           "red-tests": "complete",
@@ -1324,7 +1390,7 @@
         ],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-28T00:51:08.049Z"
+        "updatedAt": "2026-11-28T01:12:52.137Z"
       },
       "WU-008": {
         "title": "CI workflow",
@@ -1336,7 +1402,7 @@
           "TS-012",
           "TS-015"
         ],
-        "status": "verified",
+        "status": "done",
         "selectedAt": "2026-11-28T00:55:31.965Z",
         "steps": {
           "red-tests": "complete",
@@ -1365,7 +1431,7 @@
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-28T00:56:44.770Z"
+        "updatedAt": "2026-11-28T01:12:52.137Z"
       },
       "WU-009": {
         "title": "README docs",
@@ -1377,7 +1443,7 @@
           "TS-013",
           "TS-015"
         ],
-        "status": "verified",
+        "status": "done",
         "selectedAt": "2026-11-28T00:32:34.620Z",
         "steps": {
           "red-tests": "complete",
@@ -1406,17 +1472,22 @@
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-28T00:33:33.649Z"
+        "updatedAt": "2026-11-28T01:12:52.137Z"
       }
     },
     "deferredRegressions": [],
     "sweep": {
-      "status": "pending",
-      "selectedAt": null,
-      "at": null,
+      "status": "green",
+      "selectedAt": "2026-11-28T01:11:46.310Z",
+      "at": "2026-11-28T01:12:52.137Z",
       "failures": [],
-      "attempts": 0,
-      "via": null
+      "attempts": 2,
+      "via": null,
+      "commands": [
+        "cargo build",
+        "TMPDIR=/private/tmp/aidlc-test PATH=\"$PWD/target/debug:$PATH\" cargo test --no-fail-fast"
+      ],
+      "baselineFailures": []
     },
     "baselineTests": [],
     "rework": null,
@@ -1489,12 +1560,11 @@
     },
     {
       "id": "WU-009",
-      "status": "in_progress",
+      "status": "complete",
       "dependsOn": [
         "WU-004",
         "WU-005"
       ]
     }
-  ],
-  "currentUnit": "WU-008"
+  ]
 }
