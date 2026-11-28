@@ -360,7 +360,9 @@ fn file_state<'a>(status: &'a ProjectionStatus, path: &str) -> Option<&'a str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
+    static SEQ: AtomicUsize = AtomicUsize::new(0);
 
     #[test]
     fn hashes_normalized_text_like_node() {
@@ -373,8 +375,9 @@ mod tests {
 
     fn temp(tag: &str) -> PathBuf {
         std::env::temp_dir().join(format!(
-            "aidlc-projection-{tag}-{}-{}",
+            "aidlc-projection-{tag}-{}-{}-{}",
             std::process::id(),
+            SEQ.fetch_add(1, Ordering::Relaxed),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()

@@ -367,11 +367,14 @@ pub fn verify_artifacts(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::time::{SystemTime, UNIX_EPOCH};
+    static SEQ: AtomicUsize = AtomicUsize::new(0);
     fn temp() -> PathBuf {
         let p = std::env::temp_dir().join(format!(
-            "aidlc-artifacts-{}-{}",
+            "aidlc-artifacts-{}-{}-{}",
             std::process::id(),
+            SEQ.fetch_add(1, Ordering::Relaxed),
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()

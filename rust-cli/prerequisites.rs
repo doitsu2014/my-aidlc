@@ -606,9 +606,9 @@ mod tests {
     #[test]
     fn check_timeout_is_reported() {
         #[cfg(not(windows))]
-        let config = json!({"prerequisites":{"slow":{"check":"sleep 1","timeoutSeconds":1}}});
+        let config = json!({"prerequisites":{"slow":{"check":"sleep 5","timeoutSeconds":1}}});
         #[cfg(windows)]
-        let config = json!({"prerequisites":{"slow":{"check":"ping -n 3 127.0.0.1 >NUL","timeoutSeconds":1}}});
+        let config = json!({"prerequisites":{"slow":{"check":"ping -n 6 127.0.0.1 >NUL","timeoutSeconds":1}}});
         let result = run_prerequisites(".", &config, &["slow".into()]);
         assert_eq!(result[0]["ok"], false);
         assert_eq!(result[0]["timedOut"], true);
