@@ -1,0 +1,3 @@
+# add-a-port-n-option-to-dtech-aidlc-monitor-so-th
+
+Add a `--port <n>` option to `dtech-aidlc monitor` so the dashboard can be served on a fixed loopback port (for bookmarks). It must still bind 127.0.0.1 only; without the option the monitor keeps choosing a free port. Owner decisions (2026-11-28): fast depth; fold into the unreleased 1.3.0 (no version bump; add a CHANGELOG 1.3.0 line; main is fast-forwarded only after this intent); continue on branch feature/please-implement-plans-mcp-server-enhancement-sc; scoped golden re-bless allowed only for the monitor/--port help, completion and validation lines, via DTECH_AIDLC_BLESS=1 and checked by diff.
