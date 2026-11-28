@@ -179,6 +179,8 @@ fn ts030_narrow_width_and_accessibility_css() {
         "@media (prefers-color-scheme: dark)",
         "@media (prefers-reduced-motion: reduce)",
         "@media (forced-colors: active)",
+        // Forced colors paint the transparent row border; unselected rows must use Canvas.
+        ".row-btn { border-left-color: Canvas; }",
         ":focus-visible",
         "overflow-wrap: anywhere",
         "min-width: 0",

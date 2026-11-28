@@ -114,6 +114,7 @@ input[aria-invalid="true"] { border: 2px solid var(--error); }
 
 @media (forced-colors: active) {
   .banner, .panel, .privacy-body { border: 1px solid CanvasText; border-left-width: 4px; }
+  .row-btn { border-left-color: Canvas; }
   .row-btn[aria-current="true"] { border-left: 4px solid Highlight; outline: 1px solid Highlight; }
   :focus-visible { outline: 2px solid Highlight; }
   .o-ok, .o-blocked, .o-error, .o-null { color: CanvasText; }
