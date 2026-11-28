@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: build-test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            experimental: false
+          - os: macos-latest
+            experimental: false
+          # Best effort only, not a release claim.
+          - os: ubuntu-latest
+            experimental: true
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # Measure code behaviour, not checkout settings: Windows runners default to
+      # core.autocrlf=true, and several goldens compare LF bytes.
+      - name: Keep LF line endings
+        run: git config --global core.autocrlf false
+
+      - uses: actions/checkout@v4
+
+      - name: Install Rust 1.100
+        run: |
+          rustup toolchain install 1.100 --profile minimal
+          rustup default 1.100
+
+      - name: Prepare macOS environment
+        if: runner.os == 'macOS'
+        run: |
+          mkdir -p /private/tmp/aidlc-test
+          echo "TMPDIR=/private/tmp/aidlc-test" >> "$GITHUB_ENV"
+          echo "$GITHUB_WORKSPACE/target/debug" >> "$GITHUB_PATH"
+
+      - name: Prepare Linux environment
+        if: runner.os == 'Linux'
+        run: echo "$GITHUB_WORKSPACE/target/debug" >> "$GITHUB_PATH"
+
+      - name: Prepare Windows environment
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Add-Content -Path $env:GITHUB_PATH -Value "$env:GITHUB_WORKSPACE\target\debug"
+
+      - name: Build
+        run: cargo build --locked
+
+      # tests/rust_cargo_install.rs runs `cargo install --offline --locked` (release
+      # binaries). That needs a warmed cargo cache: the `cargo build --locked` above
+      # has already fetched every locked dependency, so no extra fetch step is needed.
+      - name: Test
+        run: cargo test --locked --no-fail-fast
+
+      # The installer tests skip (and still pass) when sh or pwsh is missing; make that
+      # visible instead of silently green.
+      - name: Installer tests must not skip
+        run: |
+          cargo test --locked --test rust_cargo_install -- --nocapture 2>&1 | tee install-tests.log
+          ! grep -E 'skipped: (pwsh|POSIX shell) unavailable' install-tests.log
+
+      - name: MCP transcript tests
+        run: cargo test --locked --test mcp_stdio --test mcp_parity --test mcp_redaction

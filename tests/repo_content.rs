@@ -1895,3 +1895,66 @@ fn graph_model_aliases_must_match_the_cli_allowlist_in_lint() {
     });
     assert_lint_fails(copy.path(), "phase-graph modelAliases must be");
 }
+
+#[test]
+fn ts015_ci_workflow_and_readme_mcp_section() {
+    let ci = read_lf(".github/workflows/ci.yml");
+    for needle in [
+        "windows-latest",
+        "macos-latest",
+        "fail-fast: false",
+        "name: MCP transcript tests",
+        "cargo build --locked",
+        "cargo test --locked --no-fail-fast",
+        "cargo test --locked --test mcp_stdio --test mcp_parity --test mcp_redaction",
+        "1.100",
+        "actions/checkout@v",
+        "pull_request:",
+        "mkdir -p /private/tmp/aidlc-test",
+        "TMPDIR=/private/tmp/aidlc-test",
+        "GITHUB_PATH",
+        "core.autocrlf false",
+        "name: Installer tests must not skip",
+        "skipped: (pwsh|POSIX shell) unavailable",
+    ] {
+        assert!(ci.contains(needle), "ci.yml is missing `{needle}`");
+    }
+    // Only the best-effort Linux leg may continue on error.
+    assert_eq!(ci.matches("experimental: true").count(), 1);
+    let ubuntu = &ci[ci.find("os: ubuntu-latest").expect("ubuntu leg")..];
+    assert!(ubuntu
+        .lines()
+        .nth(1)
+        .is_some_and(|line| line.trim() == "experimental: true"));
+    // Build, then the full suite, then the named MCP step.
+    let build = ci.find("cargo build --locked").unwrap();
+    let full = ci.find("--no-fail-fast").unwrap();
+    let mcp = ci.find("name: MCP transcript tests").unwrap();
+    assert!(build < full && full < mcp, "ci.yml steps are out of order");
+    assert!(
+        !ci.contains("scripts/rust-install"),
+        "ci.yml must not run installers"
+    );
+    assert!(!ci.contains("secrets."), "ci.yml must not use secrets");
+    let readme = read_lf("README.md");
+    let at = readme
+        .find("## MCP server (proposed)")
+        .expect("README MCP section");
+    let rest = &readme[at + 3..];
+    let section = &rest[..rest.find("\n## ").unwrap_or(rest.len())];
+    for needle in [
+        "proposed",
+        "`status`",
+        "`queue`",
+        "`next`",
+        "`report`",
+        "self-asserted",
+        "`state_conflict`",
+        "retryable",
+    ] {
+        assert!(
+            section.contains(needle),
+            "README MCP section is missing `{needle}`"
+        );
+    }
+}
