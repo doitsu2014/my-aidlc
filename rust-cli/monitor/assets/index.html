@@ -3,11 +3,127 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>dtech-aidlc monitor</title>
+<meta name="color-scheme" content="light dark">
+<title>dtech-aidlc Monitor</title>
 <link rel="stylesheet" href="/app.css">
 </head>
 <body>
-<main id="app"><p>Monitor placeholder. The dashboard arrives with the next build.</p></main>
+<a class="skip" id="skip" href="#events-h" hidden>Skip to events</a>
+<header class="band" id="top">
+  <h1>dtech-aidlc Monitor</h1>
+  <p class="meta"><span>local project</span> <span class="tag"><span aria-hidden="true">&#x25CF;</span> LOCAL ONLY</span> <span>read-only</span></p>
+  <p class="meta"><span>Setting: unknown</span> <span>MCP process: unknown (not inferred from events)</span></p>
+  <details class="privacy" id="privacy">
+    <summary>Privacy and data</summary>
+    <div class="privacy-body">
+      <h2>What this monitor shows</h2>
+      <p><strong>Setting: unknown.</strong> This monitor only reads what is already stored. It cannot tell whether telemetry is on or off for your AI host. The MCP server records telemetry by default; start it with <code>--telemetry off</code> to record nothing. The command-line tool (CLI) writes no telemetry.</p>
+      <p><strong>Location:</strong> <code>.aidlc/telemetry/</code> inside the local project. The folder is ignored by git. On macOS and Linux the files are readable only by your user account; on Windows they inherit the folder's permissions.</p>
+      <p><strong>Retention:</strong> each file is at most 5 MiB, then a new file starts. Files older than 7 days are deleted, then the oldest files are deleted until the folder is under 50 MiB in total. Deletion happens only when an MCP server with telemetry on starts writing or starts a new file; this monitor never deletes anything. Expired files still present are counted but not shown.</p>
+      <p><strong>Fields kept per event:</strong> schema version, event id, time, source (mcp or application), caller (mcp), process id, session id, trace id, span id, parent span id, event kind, tool or operation name (status, queue, next, report, unknown, protocol), intent id, stage id and unit id when valid, duration in milliseconds, outcome (ok, blocked, error) and a fixed error code.</p>
+      <p><strong>Never kept:</strong> prompts, tool arguments and results, artifact or document content, the <code>detail</code> text, approver names and approval notes, messages, file paths including the project path, command lines, environment variables, credentials, raw protocol frames, and unknown tool names. Gate events record that a gate decision happened, not who approved it or whether it was approved: telemetry is not audit, and approver names are self-asserted labels, not authentication.</p>
+      <p><strong>Dropped events: not recorded</strong></p>
+      <p>If the disk is slow the MCP server may drop events instead of slowing your assistant. Drops are not written to the store, so counts can be lower than the real number of calls. A call whose completion was dropped shows as incomplete, never as successful.</p>
+      <p><strong>What this page cannot show:</strong> whether an MCP process is running now, events from the CLI, events that were dropped, skipped (malformed) records, and events older than 7 days.</p>
+      <p>This page runs only on 127.0.0.1, reads only, sends nothing off this machine, and stores nothing in your browser. Reloading the page removes its access token; reopen the address printed in the terminal.</p>
+    </div>
+  </details>
+</header>
+<main id="main" aria-busy="false">
+  <div id="status" class="sr-only" role="status" aria-live="polite"></div>
+  <noscript><p class="banner">This page needs JavaScript to read the monitor.</p></noscript>
+  <section id="range-band" class="panel" aria-labelledby="range-h" hidden>
+    <h2 id="range-h">Range and refresh</h2>
+    <div class="row-wrap">
+      <label for="range">Range</label>
+      <select id="range">
+        <option value="900">Last 15 minutes</option>
+        <option value="3600" selected>Last 1 hour</option>
+        <option value="86400">Last 24 hours</option>
+        <option value="604800">All retained, up to 7 days</option>
+      </select>
+      <button type="button" id="refresh">Refresh</button>
+    </div>
+    <p class="muted" id="range-label"></p>
+    <p class="muted" id="updated"></p>
+  </section>
+
+  <div id="banner" hidden></div>
+  <div id="notes"></div>
+
+  <section id="summary" class="panel" aria-labelledby="summary-h" hidden>
+    <h2 id="summary-h">Summary</h2>
+    <p class="muted">Whole filtered range, not only this page.</p>
+    <dl class="sum">
+      <div><dt>Tool calls</dt><dd id="s-tool"></dd></div>
+      <div><dt>Blocked</dt><dd id="s-blocked"></dd></div>
+      <div><dt>Errors</dt><dd id="s-errors"></dd></div>
+      <div><dt>Incomplete</dt><dd id="s-incomplete"></dd></div>
+      <div><dt>Operations</dt><dd id="s-ops"></dd></div>
+      <div><dt>Gate-decided events</dt><dd id="s-gate"></dd></div>
+      <div class="wide2"><dt>Latency, completed tool calls</dt><dd id="s-latency"></dd></div>
+      <div><dt>Last event</dt><dd id="s-last"></dd></div>
+    </dl>
+    <p class="cov" id="coverage"></p>
+  </section>
+
+  <section id="filters" class="panel" aria-labelledby="filters-h" hidden>
+    <details id="filters-box" open>
+      <summary><h2 id="filters-h">Filters (0)</h2></summary>
+      <form id="filter-form" aria-label="Event filters" novalidate>
+        <div class="fields">
+          <div class="field"><label for="f-component">Source</label>
+            <select id="f-component"><option value="">Any</option><option value="mcp">mcp</option><option value="application">application</option></select></div>
+          <div class="field"><label for="f-name">Name</label>
+            <select id="f-name"><option value="">Any</option><option>status</option><option>queue</option><option>next</option><option>report</option><option>unknown</option><option>protocol</option></select></div>
+          <div class="field"><label for="f-outcome">Outcome</label>
+            <select id="f-outcome"><option value="">Any</option><option>ok</option><option>blocked</option><option>error</option></select></div>
+          <div class="field"><label for="f-stage">Stage (workflow events only)</label>
+            <input id="f-stage" type="text" autocomplete="off" spellcheck="false" aria-describedby="f-stage-hint">
+            <p class="hint" id="f-stage-hint">Lowercase letters, digits, '-', up to 64. Tool and operation events carry no stage.</p></div>
+          <div class="field"><label for="f-session">Session</label>
+            <input id="f-session" type="text" autocomplete="off" spellcheck="false" aria-describedby="f-session-hint">
+            <p class="hint" id="f-session-hint">32 lowercase hex characters.</p></div>
+          <div class="field"><label for="f-trace">Trace</label>
+            <input id="f-trace" type="text" autocomplete="off" spellcheck="false" aria-describedby="f-trace-hint">
+            <p class="hint" id="f-trace-hint">Session id, '-', a number; up to 64.</p></div>
+        </div>
+        <div class="row-wrap">
+          <button type="submit" class="primary">Apply filters</button>
+          <button type="button" id="clear">Clear</button>
+        </div>
+        <p class="muted" id="active"></p>
+      </form>
+    </details>
+  </section>
+
+  <div class="cols" id="cols" hidden>
+    <section id="detail" class="panel" aria-labelledby="detail-h" hidden>
+      <div class="row-wrap between">
+        <h2 id="detail-h" tabindex="-1">Event detail</h2>
+        <button type="button" id="d-close">Close</button>
+      </div>
+      <p class="d-title" id="d-title"></p>
+      <p class="d-outcome" id="d-outcome"></p>
+      <dl class="kv" id="d-kv"></dl>
+      <div class="row-wrap">
+        <button type="button" id="d-trace">Show this trace</button>
+        <button type="button" id="d-session">Show this session</button>
+        <button type="button" id="d-parent" hidden>Go to parent</button>
+      </div>
+    </section>
+
+    <section id="events" class="panel" aria-labelledby="events-h">
+      <h2 id="events-h" tabindex="-1">Events</h2>
+      <p class="muted" id="events-meta"></p>
+      <div id="empty" hidden></div>
+      <ol id="list" class="list" aria-label="Events, newest first"></ol>
+      <p class="muted" id="end" hidden>End of results</p>
+      <div class="row-wrap"><button type="button" id="older" hidden>Load older events</button></div>
+    </section>
+  </div>
+</main>
+<footer class="band"><p class="muted">dtech-aidlc monitor &middot; loopback only &middot; telemetry is not audit</p></footer>
 <script src="/app.js"></script>
 </body>
 </html>

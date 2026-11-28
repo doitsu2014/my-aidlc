@@ -1,0 +1,7 @@
+# Implementation: WU-019 (Dashboard build)
+
+- Status: Complete (build-and-verify, 2026-11-28). Cites FN-036, CFG-012, IF-017, ADR-021, ADR-031, ADR-039.
+- `rust-cli/monitor/assets/index.html`, `app.js` (one IIFE, about 600 lines, no build step, no framework), `app.css`: the accepted WU-016 design - header (local project, LOCAL ONLY, read-only, Setting: unknown, MCP process: unknown), range and refresh, summary over the whole filtered range (gate-decided count without approve/reject values, latency with n), coverage line with `Dropped events: not recorded` and kinds not observed, filters (stage filter labelled "workflow events only", per the WU-017 contract note), newest-first event list keyed by eventId, event detail, privacy panel with the fixed AC-020 text, every QS-10 state (Token missing/rejected, empty, loading, error with 5/10/20/40/60 s backoff, unavailable, stale, quiet, paused by the user, limit reached, stale cursor).
+- Token read once from the fragment, removed with `history.replaceState(null, '', '/')` before the first request, kept in IIFE scope only, sent as `Authorization: Bearer`; no storage APIs; untrusted values rendered with `textContent` only; request sequence numbers plus `AbortController` so a late reply never overwrites a newer one.
+- Review fixes: flexible event column above 60rem; retries fire while paused; `aria-describedby` only for existing hints; no nested banner boxes; stronger token-order and no-console assertions.
+- `tests/monitor_assets.rs` (new): 7 TS-030 tests.
