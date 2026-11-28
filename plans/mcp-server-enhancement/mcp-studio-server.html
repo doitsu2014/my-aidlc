@@ -1,5 +1,5 @@
 <meta name="claude:viewport-fit-sides" content="cover">
-<title>Orca MCP Studio</title>
+<title>dtech-aidlc MCP Studio</title>
 <meta name="description" content="A proposed local-first dtech-aidlc MCP design with configured gate policy, separate telemetry, and a loopback-only read-only monitor.">
 <style>
 /* Layout: a tide-chart console that traces the request from two entry points through one guarded engine to local project state. */
@@ -13,9 +13,9 @@
   --accent-ink: #ffffff;
   --warm: #a55327;
   --warm-ink: #ffffff;
-  --display: "Space Grotesk", "Trebuchet MS", sans-serif;
-  --body: "Inter", "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", Consolas, monospace;
+  --display: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -120,14 +120,11 @@ footer { border-top: 1px solid var(--line); padding-top: 1rem; display: flex; fl
   @keyframes sonar { 50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--accent) 8%, transparent); } }
 }
 </style>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <main>
   <header>
     <div>
       <div class="kicker">AIDLC · interface concept</div>
-      <h1>Orca MCP<br>Studio</h1>
+      <h1>dtech-aidlc MCP<br>Studio</h1>
       <p class="lede">One workflow engine, two ways in. The MCP server gives assistants structured tools while the CLI remains useful on its own.</p>
     </div>
     <div class="hero-note"><span class="pulse"></span>MCP STDIO · NO MCP LISTENER</div>
@@ -135,21 +132,21 @@ footer { border-top: 1px solid var(--line); padding-top: 1rem; display: flex; fl
 
   <section class="claim" aria-labelledby="thesis">
     <h2 id="thesis">Keep the engine. Add a new door.</h2>
-    <p>In this proposed design, the MCP server is the assistant-facing entry point, but it is not a shell-shaped proxy to the CLI. The MCP adapter and existing CLI are peers over shared AIDLC operations. Explicit instrumentation could emit MCP tool-call spans and shared-layer workflow events; direct CLI use would get operation-level events only where the CLI route passes through instrumented shared operations, not MCP-level spans.</p>
+    <p>In this proposed design, the MCP server is the assistant-facing entry point, but it is not a shell-shaped proxy to the CLI. The MCP adapter and existing CLI are peers over shared AIDLC operations. Explicit instrumentation in the MCP adapter emits tool-call spans and operation events for MCP callers only; direct CLI use writes no telemetry.</p>
   </section>
 
   <section class="diagram" aria-labelledby="diagram-title">
     <div class="diagram-head"><h2 id="diagram-title">Request path + observability · local boundary</h2><span>HOST → MCP → SHARED OPS · EVENT STREAM → DASHBOARD</span></div>
     <figure>
       <div class="diagram-scroll">
-        <svg viewBox="0 0 1200 610" role="img" aria-label="Proposed architecture, not yet implemented: the assistant harness calls an MCP process over stdio; the process opens no network listener. MCP and the existing CLI are separate entry paths to shared AIDLC operations. Mutations use existing validation and configured human-or-AI gate policy; gate decisions pass only through aidlc_report, and caller-supplied approver names are not authenticated identities. Workflow audit records remain in .aidlc/audit.jsonl. Proposed metadata-only MCP request spans and selected shared-operation events go to separate local telemetry; direct CLI activity has no MCP spans and appears only where shared operations are instrumented. Event coverage is partial and does not mirror every audit event or establish that any gate decision occurred. A separately started monitor serves a read-only dashboard over loopback HTTP, not MCP. Loopback access still needs Host/Origin, CORS, DNS-rebinding, and local-access review.">
+        <svg viewBox="0 0 1200 610" role="img" aria-label="Proposed architecture, not yet implemented: the assistant harness calls an MCP process over stdio; the process opens no network listener. MCP and the existing CLI are separate entry paths to shared AIDLC operations. Mutations use existing validation and configured human-or-AI gate policy; gate decisions pass only through the report tool, which requires an explicit approver label that is self-asserted, not an authenticated identity. Workflow audit records remain in .aidlc/audit.jsonl. Metadata-only MCP request spans and operation events for MCP callers go to separate local telemetry, on by default with an opt-out; direct CLI activity writes no telemetry. Event coverage is partial and does not mirror every audit event or establish that any gate decision occurred. The dtech-aidlc monitor command runs a read-only dashboard server in its own foreground process over loopback HTTP, not MCP, with a per-run token in the URL fragment. Loopback access still needs Host/Origin, CORS, DNS-rebinding, and local-access review.">
           <defs>
             <marker id="arrow-ink" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink)"/></marker>
             <marker id="arrow-accent" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/></marker>
             <marker id="arrow-warm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" fill="var(--warm)"/></marker>
           </defs>
           <rect x="12" y="16" width="1176" height="576" rx="8" fill="none" stroke="var(--line)" stroke-dasharray="5 6"/>
-          <text x="30" y="39" class="small">LOCAL MACHINE · EXPLICIT PROJECT ROOT · TELEMETRY DEFAULT UNDECIDED</text>
+          <text x="30" y="39" class="small">LOCAL MACHINE · EXPLICIT PROJECT ROOT · TELEMETRY MCP-ONLY · DEFAULT ON · OPT-OUT</text>
 
           <rect class="box" x="42" y="93" width="178" height="74" rx="5"/>
           <text x="60" y="121" class="label">Assistant harness</text><text x="60" y="145" class="sub">MCP client · configured tools</text>
@@ -200,25 +197,25 @@ footer { border-top: 1px solid var(--line); padding-top: 1rem; display: flex; fl
           <path class="flow-accent" stroke-dasharray="5 4" d="M393 179 V463" marker-end="url(#arrow-accent)"/>
           <text x="405" y="234" class="small">MCP spans</text>
           <path class="flow-accent" stroke-dasharray="5 4" d="M670 326 V348 H520 V489 H519" marker-end="url(#arrow-accent)"/>
-          <text x="531" y="468" class="small">shared-op events</text>
+          <text x="531" y="468" class="small">MCP-caller op events</text>
           <path class="flow" d="M519 489 H894" marker-end="url(#arrow-ink)"/>
           <text x="680" y="480" class="small">dashboard reads events</text>
           <text x="550" y="535" class="small">MCP stdout stays protocol-only · telemetry uses a separate local channel</text>
-          <text x="550" y="559" class="small">Separate read-only loopback HTTP monitor · MCP process remains stdio-only</text>
+          <text x="550" y="559" class="small">In-process foreground monitor · loopback HTTP, read-only · MCP stays stdio-only</text>
         </svg>
       </div>
-      <figcaption><span class="caption-mark">Proposed mechanism</span>The harness calls MCP over stdio; MCP and the CLI converge on shared operations. Explicit instrumentation can emit metadata-only MCP request spans and shared-operation lifecycle events to a separate local telemetry store. These are proposed operational events, not an OpenTelemetry export. A separately started monitor serves the read-only dashboard over loopback HTTP; this is not the MCP transport. Keep MCP stdout protocol-only. Direct CLI use may appear in operation events only where its route reaches instrumented shared code, and it never creates MCP spans. Telemetry is best-effort and distinct from `.aidlc/audit.jsonl`, which remains the workflow audit record; telemetry does not prove an audited gate decision. Telemetry enablement/retention and monitor access controls remain open design decisions. Loopback binding does not replace browser-origin defenses or a review of local-process access. All MCP/monitor instrumentation shown here is proposed, not shipped.</figcaption>
+      <figcaption><span class="caption-mark">Proposed mechanism</span>The harness calls MCP over stdio; MCP and the CLI converge on shared operations. Explicit instrumentation emits metadata-only MCP request spans and operation lifecycle events for MCP callers only to a separate local telemetry store. These are proposed operational events, not an OpenTelemetry export. The <code>dtech-aidlc monitor</code> command runs the read-only dashboard server in its own foreground process over loopback HTTP; this is not the MCP transport. Keep MCP stdout protocol-only. Direct CLI use writes no telemetry: no operation events and no MCP spans. Telemetry is best-effort and distinct from `.aidlc/audit.jsonl`, which remains the workflow audit record; telemetry does not prove an audited gate decision. MCP telemetry is on by default; start the server with <code>--telemetry off</code> to record nothing. Retention: 5 MiB per file, 7 days, 50 MiB total. The monitor requires a per-run token delivered in the URL fragment. Loopback binding does not replace browser-origin defenses or a review of local-process access. All MCP/monitor instrumentation shown here is proposed, not shipped.</figcaption>
     </figure>
   </section>
 
   <section aria-labelledby="safety-title">
     <h2 class="section-title" id="safety-title">Safety findings · proposed corrections</h2>
     <div class="guardrail-list">
-      <article class="guardrail"><h3>Approver label is not identity</h3><p><code>approved_by</code> is an untrusted caller-supplied label; CLI fallback to Git or OS username is equally unauthenticated. An allowlist only compares a name. For MCP v1, never submit <code>approval: "approved"</code> on a human-mode gate: leave it for the owner to approve through the existing direct CLI flow. AI-mode approvals may use the existing AI Orchestrator policy only, including recommendation and open-item checks; that name is not proof of a person. Host confirmation is an additional UX safeguard only, not server-verifiable authorization. Preserve the resolved name and source when recorded, without presenting either as proof.<div class="reference">Amend <code>plans/mcp-server-detailed-design.md</code> §4.3–4.4 and §10; <code>plans/mcp-server-architecture.md</code> §8–9; implementation plan §3.3 “Gate/approval semantics” and §7 “Risks and mitigations”.</div></article>
-      <article class="guardrail"><h3><code>aidlc_next</code> needs a guard</h3><p>In MCP v1, require an existing active intent and refuse if none exists; do not expose intent/scope/depth/mode creation or model-controlled force-resume. The existing operation can run owner-configured prerequisite shell checks before selecting a stage, so do not execute them implicitly. Return the configured prerequisite requirement without running it, or add a separately reviewed explicit opt-in. Selection may persist state and audit events. Test active/no-intent and prerequisite cases.</p><div class="reference">See <code>plans/mcp-server-detailed-design.md</code> §4.3 and §4.4; implementation plan §3.3 tool contract and §4 Phase 2.</div></article>
-      <article class="guardrail"><h3>Queue preview is not a migration</h3><p>The existing queue computes a migration preview in memory for legacy unit state and can return <code>migration: pending</code>; it does not persist the migration. Keep it a read tool and state this distinction precisely—do not claim that it migrates or writes state. Test both preview output and unchanged on-disk state.</p><div class="reference">Amend <code>plans/mcp-server-detailed-design.md</code> §3.3 <code>aidlc_queue</code>, §9 “Application parity”; implementation plan §3.3 tool contract and §5 Integration tests.</div></article>
+      <article class="guardrail"><h3>Approver label is not identity</h3><p>An approval over MCP requires an explicit <code>approved_by</code> label; without one the call is refused (<code>approver_required</code>), and there is no Git or OS username fallback. The label is self-asserted, not authentication; an allowlist only compares a name. Use <code>approval</code> only for a decision the human owner made in this conversation. AI-mode approvals use the existing AI Orchestrator policy, including recommendation and open-item checks; that name is not proof of a person. Host confirmation is an additional UX safeguard only, not server-verifiable authorization. Preserve the resolved name and source when recorded, without presenting either as proof.<div class="reference">Amend <code>plans/mcp-server-detailed-design.md</code> §4.3–4.4 and §10; <code>plans/mcp-server-architecture.md</code> §8–9; implementation plan §3.3 “Gate/approval semantics” and §7 “Risks and mitigations”.</div></article>
+      <article class="guardrail"><h3><code>next</code> needs a guard</h3><p>In MCP v1, require an existing active intent and refuse if none exists; do not expose intent/scope/depth/mode creation or model-controlled force-resume. The existing operation can run owner-configured prerequisite shell checks before selecting a stage, so do not execute them implicitly. Return the configured prerequisite requirement without running it, or add a separately reviewed explicit opt-in. Selection may persist state and audit events. Test active/no-intent and prerequisite cases.</p><div class="reference">See <code>plans/mcp-server-detailed-design.md</code> §4.3 and §4.4; implementation plan §3.3 tool contract and §4 Phase 2.</div></article>
+      <article class="guardrail"><h3>Queue preview is not a migration</h3><p>The existing queue computes a migration preview in memory for legacy unit state and can return <code>migration: pending</code>; it does not persist the migration. Keep it a read tool and state this distinction precisely—do not claim that it migrates or writes state. Test both preview output and unchanged on-disk state.</p><div class="reference">Amend <code>plans/mcp-server-detailed-design.md</code> §3.3 (the <code>queue</code> tool), §9 “Application parity”; implementation plan §3.3 tool contract and §5 Integration tests.</div></article>
       <article class="guardrail"><h3>Audit is not event coverage</h3><p>Audit records are durable workflow evidence under the existing implementation semantics; telemetry is best-effort operational data. Keep telemetry transition events allowlisted and explicitly partial: list only transitions instrumented in shared code, state that legacy CLI paths can bypass those hooks, and do not imply every state change—or every audit row—has a corresponding telemetry event. Missing telemetry says nothing about whether an operation or gate decision occurred; telemetry never proves approval or replaces audit.</p><div class="reference">Amend <code>plans/mcp-server-detailed-design.md</code> §6.3 and §7.5; implementation plan §2.4, §3.5, §5 Telemetry and §7 Risks; architecture §7 and §8.</div></article>
-      <article class="guardrail"><h3>Monitor is a separate process</h3><p>The proposed launch contract is <code>dtech-aidlc monitor</code>, which starts a separate foreground read-only monitor and returns independently of the stdio MCP process. It binds to loopback HTTP only; it is not the MCP transport. Keep CLI command, process lifecycle, packaging, tests, and diagram aligned with that contract.</p><div class="reference">See <code>plans/mcp-server-detailed-design.md</code> §2 and §7.7; implementation plan §3.2, §3.6, and §4 Phase 4.</div></article>
+      <article class="guardrail"><h3>Monitor runs in-process, in the foreground</h3><p><code>dtech-aidlc monitor</code> runs the read-only HTTP server inside that command's own process, in the foreground: no daemon, no child process, no browser launch, and no link to the stdio MCP process. It binds 127.0.0.1 only, answers GET only, prints one stderr line with the address and a per-run token in the URL fragment, and stops on Ctrl+C. It is not the MCP transport. Keep CLI command, process lifecycle, packaging, tests, and diagram aligned with that contract.</p><div class="reference">See <code>plans/mcp-server-detailed-design.md</code> §2 and §7.7; implementation plan §3.2, §3.6, and §4 Phase 4.</div></article>
     </div>
   </section>
 
@@ -226,10 +223,10 @@ footer { border-top: 1px solid var(--line); padding-top: 1rem; display: flex; fl
     <div>
       <h2 class="section-title">A deliberately small tool surface</h2>
       <div class="tool-list">
-        <article class="tool"><code>aidlc_status</code><span class="tag">read</span><p>Current intent, stage, gate, and work-unit state.</p></article>
-        <article class="tool"><code>aidlc_next</code><span class="tag write">state-affecting</span><p>MCP v1 requires an existing active intent; refuse if none exists. Do not expose model-controlled intent creation or force-resume. Do not run configured prerequisite shell checks implicitly; return their requirements, or use a separately reviewed explicit opt-in. Selection can persist state and audit events.</p></article>
-        <article class="tool"><code>aidlc_queue</code><span class="tag">read</span><p>Ready, blocked, parked, waiting, and done work units. On legacy state, the queue may show an in-memory migration preview marked pending; it does not persist the migration.</p></article>
-        <article class="tool"><code>aidlc_report</code><span class="tag write">write · policy checked</span><p>Submit results through existing validation and audit. MCP v1 must not approve human-mode gates; the owner approves those through the existing CLI flow. AI-mode approvals use existing recommendation/open-item rules. Approver names are not authenticated.</p></article>
+        <article class="tool"><code>status</code><span class="tag">read</span><p>Current intent, stage, gate, and work-unit state.</p></article>
+        <article class="tool"><code>queue</code><span class="tag">read</span><p>Ready, blocked, parked, waiting, and done work units. On legacy state, the queue may show an in-memory migration preview marked pending; it does not persist the migration.</p></article>
+        <article class="tool"><code>next</code><span class="tag write">state-affecting</span><p>MCP v1 requires an existing active intent; refuse if none exists. Do not expose model-controlled intent creation or force-resume. Do not run configured prerequisite shell checks implicitly; return their requirements, or use a separately reviewed explicit opt-in. Selection can persist state and audit events.</p></article>
+        <article class="tool"><code>report</code><span class="tag write">write · policy checked</span><p>Submit results through existing validation and audit. Use <code>approval</code> only for a decision the human owner made in this conversation; <code>approved_by</code> is required with it and is a self-asserted label, not authentication. AI-mode approvals use existing recommendation/open-item rules.</p></article>
       </div>
     </div>
     <aside>
@@ -237,10 +234,10 @@ footer { border-top: 1px solid var(--line); padding-top: 1rem; display: flex; fl
       <div class="principles">
         <div class="principle"><strong>CLI still stands alone</strong><p>Setup, administration, shell use, and fallback do not depend on an MCP host.</p></div>
         <div class="principle"><strong>No second workflow engine</strong><p>State transitions and policy belong in shared operations, not in a parallel MCP implementation.</p></div>
-        <div class="principle"><strong>Local by default</strong><p>MCP uses stdio and opens no listener. The separate monitor serves read-only HTTP on loopback; the project owns its state.</p></div>
+        <div class="principle"><strong>Local by default</strong><p>MCP uses stdio and opens no listener. The <code>dtech-aidlc monitor</code> command serves read-only HTTP on loopback in its own foreground process; the project owns its state.</p></div>
         <div class="principle"><strong>Audit is not telemetry</strong><p>The existing append-only audit log records workflow audit events. Proposed bounded, best-effort telemetry is separate and never authorizes writes.</p></div>
-        <div class="principle"><strong>Loopback still needs defenses</strong><p>Loopback is not process isolation. Review Host/Origin, CORS, DNS rebinding, local access, and whether a per-run read token is needed.</p></div>
-        <div class="principle"><strong>Defaults remain open</strong><p>Telemetry enablement and retention need a decision. Metadata spans are operational signals, not OpenTelemetry export or proof of an audited gate decision; file integrity and completeness also need separate treatment if stronger assurance is required.</p></div>
+        <div class="principle"><strong>Loopback still needs defenses</strong><p>Loopback is not process isolation. The monitor checks Host and Origin, sends no CORS headers, and requires a per-run 128-bit token delivered in the URL fragment and sent as a bearer header; the page strips it from the address before the first request.</p></div>
+        <div class="principle"><strong>Telemetry defaults are set</strong><p>MCP telemetry is on by default; <code>--telemetry off</code> records nothing; the CLI writes none. Retention: each file at most 5 MiB, files older than 7 days deleted, then oldest files until the folder is under 50 MiB. Metadata spans are operational signals, not OpenTelemetry export or proof of an audited gate decision; file integrity and completeness also need separate treatment if stronger assurance is required.</p></div>
         <div class="principle"><strong>Use honest empty states</strong><p>No telemetry files cannot distinguish disabled collection from a first run. Show status unknown unless the monitor has a reliable collector-status signal.</p></div>
       </div>
     </aside>

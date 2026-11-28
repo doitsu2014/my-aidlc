@@ -8,7 +8,7 @@
   "depth": "standard",
   "mode": "ai",
   "status": "active",
-  "currentStage": "red-tests",
+  "currentStage": null,
   "stages": {
     "problem-framing": {
       "status": "complete",
@@ -275,10 +275,14 @@
         "WU-020": {
           "status": "complete",
           "reportedAt": "2026-11-28T04:55:41.185Z"
+        },
+        "WU-016": {
+          "status": "skipped",
+          "reportedAt": "2026-11-28T04:56:20.314Z"
         }
       },
-      "detail": null,
-      "reportedAt": "2026-11-28T04:55:41.185Z",
+      "detail": "Design unit with no owned tests (work-units.json tests: []); its output is the dashboard design pack, the AI design review record and the Studio mock edit, verified by review, not by a failing test.",
+      "reportedAt": "2026-11-28T04:56:20.314Z",
       "reports": [
         {
           "at": "2026-11-28T04:34:32.255Z",
@@ -303,6 +307,12 @@
           "result": "complete",
           "detail": null,
           "unit": "WU-020"
+        },
+        {
+          "at": "2026-11-28T04:56:20.314Z",
+          "result": "skipped",
+          "detail": "Design unit with no owned tests (work-units.json tests: []); its output is the dashboard design pack, the AI design review record and the Studio mock edit, verified by review, not by a failing test.",
+          "unit": "WU-016"
         }
       ],
       "artifacts": [
@@ -375,10 +385,14 @@
         "WU-020": {
           "status": "complete",
           "reportedAt": "2026-11-28T04:55:41.215Z"
+        },
+        "WU-016": {
+          "status": "complete",
+          "reportedAt": "2026-11-28T04:57:27.294Z"
         }
       },
       "detail": null,
-      "reportedAt": "2026-11-28T04:55:41.215Z",
+      "reportedAt": "2026-11-28T04:57:27.294Z",
       "reports": [
         {
           "at": "2026-11-28T04:34:57.819Z",
@@ -403,6 +417,12 @@
           "result": "complete",
           "detail": null,
           "unit": "WU-020"
+        },
+        {
+          "at": "2026-11-28T04:57:27.294Z",
+          "result": "complete",
+          "detail": null,
+          "unit": "WU-016"
         }
       ],
       "artifacts": [
@@ -501,6 +521,30 @@
           "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-020/known-limitations.md",
           "bytes": 646,
           "sha256": "d2826fd33e260a5525b68e1233138d00b1df89e7db41c52b30064d07cab75321"
+        },
+        {
+          "output": "implementation",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-016/implementation.md",
+          "bytes": 1408,
+          "sha256": "2f0d5489271dcea4197c984dcfe5bd87f732e3685097a831de9b27c1f00fd244"
+        },
+        {
+          "output": "green-verification-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-016/green-verification-report.md",
+          "bytes": 705,
+          "sha256": "d20636c4ed9e490f6e74ac7fc55364526a080d71e261386afe82a3fdcb666fc2"
+        },
+        {
+          "output": "regression-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-016/regression-report.md",
+          "bytes": 332,
+          "sha256": "c145fd5fb599041cf61d19475dfbc270f66539af51c4ea7988b7bfdd58ec99b3"
+        },
+        {
+          "output": "known-limitations",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-016/known-limitations.md",
+          "bytes": 486,
+          "sha256": "5c4dc2c7248d008aca563a785fc35b0852f7bf77b06563da5ebf2becb02a9539"
         }
       ]
     }
@@ -508,7 +552,7 @@
   "dependencies": {},
   "createdAt": "2026-11-28T01:39:49.917Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T04:55:41.216Z",
+  "updatedAt": "2026-11-28T04:57:27.295Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -568,8 +612,8 @@
       "WU-021",
       "WU-022"
     ],
-    "progressSeq": 4,
-    "syncedAt": "2026-11-28T04:55:41.215Z",
+    "progressSeq": 5,
+    "syncedAt": "2026-11-28T04:57:27.294Z",
     "units": {
       "WU-011": {
         "title": "Flaky-test fixes",
@@ -690,22 +734,36 @@
         "title": "Dashboard design pack, AI design review, Studio mock",
         "dependsOn": [],
         "tests": [],
-        "status": "pending",
-        "selectedAt": "2026-11-28T04:36:02.667Z",
+        "status": "verified",
+        "selectedAt": "2026-11-28T04:56:20.314Z",
         "steps": {
-          "red-tests": null,
-          "build-and-verify": null
+          "red-tests": "skipped",
+          "build-and-verify": "complete"
         },
-        "attempts": {},
+        "attempts": {
+          "red-tests": 1,
+          "build-and-verify": 1
+        },
         "blockedStreak": null,
         "park": null,
         "parkHistory": [],
         "inputFingerprint": "sha256:f866287159ec651517826460560f20a8063688dcc3d34533a806c48084e09db3",
-        "history": [],
+        "history": [
+          {
+            "stage": "red-tests",
+            "result": "skipped",
+            "at": "2026-11-28T04:56:20.314Z"
+          },
+          {
+            "stage": "build-and-verify",
+            "result": "complete",
+            "at": "2026-11-28T04:57:27.294Z"
+          }
+        ],
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-28T04:03:14.907Z"
+        "updatedAt": "2026-11-28T04:57:27.294Z"
       },
       "WU-020": {
         "title": "Installers for both binaries",
@@ -944,7 +1002,7 @@
     },
     "baselineTests": [],
     "rework": null,
-    "lastSatisfiedAt": "2026-11-28T04:55:41.215Z",
+    "lastSatisfiedAt": "2026-11-28T04:57:27.294Z",
     "parallelSince": "2026-11-28T04:04:36.122Z",
     "claims": [
       {
@@ -972,7 +1030,7 @@
     },
     {
       "id": "WU-016",
-      "status": "in_progress",
+      "status": "complete",
       "dependsOn": []
     },
     {
