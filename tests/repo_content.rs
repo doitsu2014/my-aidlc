@@ -1351,6 +1351,11 @@ fn help_completion_and_the_command_table_stay_in_step() {
         })
         .collect();
     assert_eq!(help_commands(&help), names);
+    let arm = &completion[completion.find("monitor)").expect("monitor arm")..];
+    assert!(
+        arm[..arm.find(";;").unwrap()].contains("--port"),
+        "monitor arm lists --port"
+    );
     let mut table: BTreeSet<String> = COMMAND_KEYS
         .iter()
         .map(|key| key.split(' ').next().unwrap().to_owned())
@@ -1455,6 +1460,12 @@ fn ts036_readme_telemetry_and_monitor_sections() {
         "AI-agent transcripts",
         "stops working when the monitor stops",
         "restrict the folder ACL",
+        "dtech-aidlc monitor --port 8787",
+        "1 to 65535",
+        "Token missing",
+        "no other port",
+        "excludedportrange",
+        "another local user",
     ] {
         assert!(
             monitor.contains(needle),
@@ -1468,6 +1479,13 @@ fn ts036_readme_telemetry_and_monitor_sections() {
     assert!(
         read_lf("CHANGELOG.md").contains("do not put names or secrets in intent text"),
         "CHANGELOG telemetry entry carries the intent-id warning"
+    );
+    let changelog = read_lf("CHANGELOG.md");
+    let section = &changelog[changelog.find("## 1.3.0").unwrap()..];
+    let section = &section[..section[3..].find("\n## ").map_or(section.len(), |i| i + 3)];
+    assert!(
+        section.contains("--port"),
+        "CHANGELOG 1.3.0 mentions --port"
     );
 }
 

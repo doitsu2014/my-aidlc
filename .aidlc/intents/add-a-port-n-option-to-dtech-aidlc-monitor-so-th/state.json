@@ -8,7 +8,7 @@
   "depth": "fast",
   "mode": "ai",
   "status": "active",
-  "currentStage": "red-tests",
+  "currentStage": "build-and-verify",
   "stages": {
     "problem-framing": {
       "status": "complete",
@@ -72,14 +72,47 @@
       ]
     },
     "red-tests": {
+      "status": "complete",
+      "startedAt": "2026-11-28T07:41:32.189Z",
+      "detail": null,
+      "reportedAt": "2026-11-28T08:10:16.749Z",
+      "reports": [
+        {
+          "at": "2026-11-28T08:10:16.749Z",
+          "result": "complete",
+          "detail": null
+        }
+      ],
+      "units": {
+        "_": {
+          "status": "complete",
+          "reportedAt": "2026-11-28T08:10:16.749Z"
+        }
+      },
+      "artifacts": [
+        {
+          "output": "failing-tests",
+          "path": ".aidlc/intents/add-a-port-n-option-to-dtech-aidlc-monitor-so-th/develop/red-tests/failing-tests.md",
+          "bytes": 1536,
+          "sha256": "8fdad4810d0d732ff3a857d51a3ab1e76c88ee65481ff86796c0f545036e5e61"
+        },
+        {
+          "output": "red-evidence",
+          "path": ".aidlc/intents/add-a-port-n-option-to-dtech-aidlc-monitor-so-th/develop/red-tests/red-evidence.md",
+          "bytes": 935,
+          "sha256": "8b013a55250fa7478958129021495335cd3f039b2597786cd4d058d5468c6f89"
+        }
+      ]
+    },
+    "build-and-verify": {
       "status": "in_progress",
-      "startedAt": "2026-11-28T07:41:32.189Z"
+      "startedAt": "2026-11-28T08:10:16.790Z"
     }
   },
   "dependencies": {},
   "createdAt": "2026-11-28T07:28:49.571Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T07:41:32.195Z",
+  "updatedAt": "2026-11-28T08:10:16.795Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",

@@ -219,6 +219,10 @@ const SCOPE_FLAGS: &[OptionSpec] = &[OptionSpec {
     name: "depth",
     kind: OptionType::String,
 }];
+const PORT_FLAGS: &[OptionSpec] = &[OptionSpec {
+    name: "port",
+    kind: OptionType::String,
+}];
 const STATUS_FLAGS: &[OptionSpec] = &[OptionSpec {
     name: "intent",
     kind: OptionType::String,
@@ -311,10 +315,11 @@ pub fn command_flags(command: &str) -> Option<&'static [OptionSpec]> {
         "ids check" => IDS_CHECK_FLAGS,
         "scope" => SCOPE_FLAGS,
         "status" => STATUS_FLAGS,
+        "monitor" => PORT_FLAGS,
         "doctor" | "orchestrate queue" | "intent list" | "intent resume" | "intent assign"
         | "config agents" | "config scope" | "config mode" | "config gate-mode" | "harness add"
         | "repos list" | "repos remove" | "deps add" | "deps list" | "deps pull"
-        | "completion zsh" | "monitor" | "knowledge init" | "knowledge list" | "knowledge show"
+        | "completion zsh" | "knowledge init" | "knowledge list" | "knowledge show"
         | "knowledge check" | "knowledge index" | "harness status" => &[],
         "intent pause" | "intent abandon" => INTENT_DETAIL_FLAGS,
         "intent rework" => INTENT_REWORK_FLAGS,
@@ -684,7 +689,7 @@ mod tests {
             ("knowledge index", 0, &[]),
             ("harness status", 0, &[]),
             ("harness refresh", 1, &["dry-run", "force"]),
-            ("monitor", 0, &[]),
+            ("monitor", 0, &["port"]),
         ];
         assert_eq!(spec.len(), COMMANDS.len());
         for (key, max, flags) in spec {

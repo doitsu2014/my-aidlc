@@ -43,10 +43,24 @@ impl Drop for Monitor {
 }
 
 fn spawn(project: &Path) -> Monitor {
+    spawn_args(project, &[])
+}
+
+fn spawn_args(project: &Path, extra: &[&str]) -> Monitor {
+    let p = project.to_str().unwrap();
+    let mut argv = vec!["--project", p, "monitor"];
+    argv.extend_from_slice(extra);
+    spawn_argv(&argv)
+}
+
+fn spawn_argv(argv: &[&str]) -> Monitor {
+    spawn_try(argv).unwrap_or_else(|line| panic!("no startup line, got {line:?}"))
+}
+
+/// Err carries the first stderr line when there was no startup line.
+fn spawn_try(argv: &[&str]) -> Result<Monitor, String> {
     let mut child = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
-        .arg("--project")
-        .arg(project)
-        .arg("monitor")
+        .args(argv)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -61,18 +75,69 @@ fn spawn(project: &Path) -> Monitor {
         None => {
             let _ = child.kill();
             let _ = child.wait();
-            panic!("no startup line, got {line:?}");
+            return Err(line);
         }
     };
     let (port, rest) = rest.split_once("/#token=").expect("fragment token");
     let token = rest.split("  ").next().unwrap().to_owned();
-    Monitor {
+    Ok(Monitor {
         child,
         port: port.parse().unwrap(),
         token,
         first_line: line,
         stderr,
+    })
+}
+
+/// Windows restart flake: retry for up to 5 s. The product never retries.
+fn spawn_retry(project: &Path, extra: &[&str]) -> Monitor {
+    let p = project.to_str().unwrap();
+    let mut argv = vec!["--project", p, "monitor"];
+    argv.extend_from_slice(extra);
+    let start = Instant::now();
+    loop {
+        match spawn_try(&argv) {
+            Ok(m) => return m,
+            Err(line) if start.elapsed() > Duration::from_secs(5) => {
+                panic!("no startup line after retries, got {line:?}")
+            }
+            Err(_) => std::thread::sleep(Duration::from_millis(100)),
+        }
     }
+}
+
+fn run_refused(project: &Path, args: &[&str]) -> (Option<i32>, String, String) {
+    let p = project.to_str().unwrap();
+    let mut argv = vec!["--project", p, "monitor"];
+    argv.extend_from_slice(args);
+    let mut child = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
+        .args(&argv)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    // A refused run exits at once; a regression that starts serving must fail, not hang.
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    while child.try_wait().unwrap().is_none() {
+        if std::time::Instant::now() > deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("monitor did not exit within 10 s: it started serving");
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    let out = child.wait_with_output().unwrap();
+    (
+        out.status.code(),
+        String::from_utf8_lossy(&out.stdout).into_owned(),
+        String::from_utf8_lossy(&out.stderr).into_owned(),
+    )
+}
+
+fn free_port() -> u16 {
+    let l = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    l.local_addr().unwrap().port()
 }
 
 struct Reply {
@@ -889,4 +954,226 @@ fn ts029_no_response_ever_carries_access_control_headers() {
     for r in replies {
         assert_fixed_headers(&r, "cors sweep");
     }
+}
+
+const RANGE: &str = "dtech-aidlc: Option --port requires a whole number from 1 to 65535\n";
+const EMPTY: &str = "dtech-aidlc: Option --port requires a non-empty value\n";
+
+fn assert_refused(r: (Option<i32>, String, String), stderr: &str, what: &str) {
+    assert_eq!(r.0, Some(1), "{what}");
+    assert_eq!(r.1, "", "{what}");
+    assert_eq!(r.2, stderr, "{what}");
+}
+
+fn host_status(m: &Monitor, host: &str) -> Reply {
+    raw(
+        m,
+        format!("GET / HTTP/1.1\r\nHost: {host}\r\n\r\n").as_bytes(),
+    )
+}
+
+#[test]
+fn port_flag_binds_the_chosen_loopback_port_in_both_forms_and_orders() {
+    let project = Tmp::new("port-forms");
+    let d = project.0.to_str().unwrap();
+    let ports: Vec<u16> = {
+        // hold all four at once so they are distinct
+        let ls: Vec<_> = (0..4)
+            .map(|_| std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap())
+            .collect();
+        ls.iter().map(|l| l.local_addr().unwrap().port()).collect()
+    };
+    let s: Vec<String> = ports.iter().map(u16::to_string).collect();
+    let eq = format!("--port={}", s[1]);
+    let monitors = [
+        spawn_args(&project.0, &["--port", &s[0]]),
+        spawn_args(&project.0, &[&eq]),
+        spawn_argv(&["monitor", "--port", &s[2], "--project", d]),
+        spawn_argv(&["--project", d, "monitor", "--port", &s[3]]),
+    ];
+    for (m, p) in monitors.iter().zip(&ports) {
+        assert_eq!(m.port, *p, "{}", m.first_line);
+        assert!(TcpStream::connect(("127.0.0.1", *p)).is_ok());
+        assert_eq!(host_status(m, &format!("127.0.0.1:{p}")).status, 200);
+    }
+    for mut m in monitors {
+        let _ = m.child.kill();
+        let mut out = String::new();
+        m.child
+            .stdout
+            .take()
+            .unwrap()
+            .read_to_string(&mut out)
+            .unwrap();
+        assert_eq!(out, "");
+    }
+}
+
+#[test]
+fn port_flag_accepts_leading_zeros() {
+    let project = Tmp::new("port-zeros");
+    let p = free_port();
+    let m = spawn_args(&project.0, &["--port", &format!("0{p}")]);
+    assert_eq!(m.port, p);
+    drop(m);
+    assert_refused(run_refused(&project.0, &["--port", "00"]), RANGE, "00");
+}
+
+#[test]
+fn port_flag_refuses_invalid_values_with_the_fixed_line_and_writes_nothing() {
+    let project = Tmp::new("port-invalid");
+    for v in [
+        "0",
+        "00",
+        "65536",
+        "99999999999999999999",
+        "abc",
+        "80a",
+        "8 0",
+        "0x50",
+        "1e3",
+        "+8080",
+        "-8080",
+        "8080.0",
+    ] {
+        assert_refused(run_refused(&project.0, &["--port", v]), RANGE, v);
+        assert_eq!(fs::read_dir(&project.0).unwrap().count(), 0, "{v}");
+    }
+}
+
+#[test]
+fn port_flag_boundary_65535_passes_validation() {
+    let project = Tmp::new("port-edge");
+    match spawn_try(&[
+        "--project",
+        project.0.to_str().unwrap(),
+        "monitor",
+        "--port",
+        "65535",
+    ]) {
+        Ok(m) => assert_eq!(m.port, 65535),
+        Err(line) => assert_eq!(
+            format!("{line}\n"),
+            "dtech-aidlc: Cannot bind 127.0.0.1:65535 (port in use or not permitted)\n"
+        ),
+    }
+    assert_refused(
+        run_refused(&project.0, &["--port", "65536"]),
+        RANGE,
+        "65536",
+    );
+}
+
+#[test]
+fn port_flag_missing_empty_and_option_like_values_are_refused() {
+    let project = Tmp::new("port-empty");
+    for a in [
+        &["--port"][..],
+        &["--port", ""],
+        &["--port="],
+        &["--port", "--project", "x"],
+    ] {
+        assert_refused(run_refused(&project.0, a), EMPTY, &format!("{a:?}"));
+    }
+}
+
+#[test]
+fn port_flag_duplicate_is_refused_and_nothing_is_bound() {
+    let project = Tmp::new("port-dup");
+    let (p, q) = (free_port().to_string(), free_port().to_string());
+    assert_refused(
+        run_refused(&project.0, &["--port", &p, "--port", &q]),
+        "dtech-aidlc: Option --port was given more than once\n",
+        "dup",
+    );
+}
+
+#[test]
+fn port_flag_validation_order_follows_the_decision() {
+    let project = Tmp::new("port-order");
+    let msg = |m: &str| format!("dtech-aidlc: {m}\n");
+    assert_refused(
+        run_refused(&project.0, &["--port", "abc", "extra"]),
+        &msg("Unexpected argument 'extra' for 'monitor'."),
+        "positional",
+    );
+    assert_refused(
+        run_refused(&project.0, &["--port", "0", "--wat"]),
+        &msg("Unknown option --wat for 'monitor'. Allowed options: --port, --project."),
+        "unknown",
+    );
+    assert_refused(
+        run_refused(&project.0, &["extra0", "--port", "8787"]),
+        &msg("Unexpected argument 'extra0' for 'monitor'."),
+        "positional first",
+    );
+    fs::create_dir_all(project.0.join(".aidlc")).unwrap();
+    fs::write(project.0.join(".aidlc/telemetry"), "x").unwrap();
+    assert_refused(
+        run_refused(&project.0, &["--port", "abc"]),
+        RANGE,
+        "range wins",
+    );
+    let free = free_port().to_string();
+    assert_refused(
+        run_refused(&project.0, &["--port", &free]),
+        &msg("Refusing unsafe .aidlc/telemetry path"),
+        "unsafe wins",
+    );
+}
+
+#[test]
+fn port_in_use_is_refused_without_fallback() {
+    let project = Tmp::new("port-busy");
+    let l = std::net::TcpListener::bind(("127.0.0.1", 0)).unwrap();
+    let p = l.local_addr().unwrap().port();
+    assert_refused(
+        run_refused(&project.0, &["--port", &p.to_string()]),
+        &format!("dtech-aidlc: Cannot bind 127.0.0.1:{p} (port in use or not permitted)\n"),
+        "in use",
+    );
+    // The message names the validated number, not the raw spelling.
+    assert_refused(
+        run_refused(&project.0, &["--port", &format!("0{p}")]),
+        &format!("dtech-aidlc: Cannot bind 127.0.0.1:{p} (port in use or not permitted)\n"),
+        "in use, leading zero",
+    );
+    drop(l);
+}
+
+#[test]
+fn port_flag_host_check_uses_the_chosen_port() {
+    let project = Tmp::new("port-host");
+    let p = free_port();
+    let m = spawn_args(&project.0, &["--port", &p.to_string()]);
+    assert_eq!(host_status(&m, &format!("127.0.0.1:{p}")).status, 200);
+    let q = if p < 65535 { p + 1 } else { p - 1 };
+    for h in [
+        format!("127.0.0.1:{q}"),
+        format!("localhost:{p}"),
+        "127.0.0.1".to_owned(),
+    ] {
+        let r = host_status(&m, &h);
+        assert_eq!(r.status, 421, "{h}");
+        assert!(r.body.contains("host_rejected"), "{h}");
+    }
+}
+
+#[test]
+fn port_flag_token_is_new_on_every_run() {
+    let project = Tmp::new("port-token");
+    let p = free_port().to_string();
+    let first = spawn_args(&project.0, &["--port", &p]);
+    let old = first.token.clone();
+    drop(first);
+    let second = spawn_retry(&project.0, &["--port", &p]);
+    assert_ne!(second.token, old);
+    let r = get_with(
+        &second,
+        "/api/events",
+        &format!("Authorization: Bearer {old}\r\n"),
+    );
+    assert_eq!(r.status, 401);
+    assert!(r.body.contains("unauthorized"));
+    assert_eq!(get_with(&second, "/", "").status, 200);
 }

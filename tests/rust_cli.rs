@@ -480,3 +480,47 @@ fn formerly_unrouted_commands_run_natively_without_unexpected_writes() {
     assert!(!project.join(".aidlc/config.json").exists());
     std::fs::remove_dir_all(&project).unwrap();
 }
+
+#[test]
+fn status_port_effects_are_the_disclosed_ones() {
+    let status_allowed = "Allowed options: --intent, --project.";
+    let nonempty = "Option --port requires a non-empty value".to_owned();
+    let cases: Vec<(Vec<&str>, String)> = vec![
+        (vec!["status", "--port"], nonempty.clone()),
+        (vec!["status", "--port="], nonempty.clone()),
+        (vec!["status", "--port", "--intent", "x"], nonempty),
+        (
+            vec!["status", "--port", "1", "--wat"],
+            format!("Unknown option --wat for 'status'. {status_allowed}"),
+        ),
+        (
+            vec!["status", "--port", "1", "--port", "2"],
+            "Option --port was given more than once".to_owned(),
+        ),
+        (
+            vec!["status", "--intent", "--port"],
+            "Option --intent requires a non-empty value".to_owned(),
+        ),
+        (
+            vec!["status", "--port", "1"],
+            format!("Unknown option --port for 'status'. {status_allowed}"),
+        ),
+        (
+            vec!["intent", "list", "--port", "1"],
+            "Unknown option --port for 'intent list'. Allowed options: --project.".to_owned(),
+        ),
+    ];
+    for (args, msg) in cases {
+        let out = Command::new(env!("CARGO_BIN_EXE_dtech-aidlc"))
+            .args(&args)
+            .output()
+            .unwrap();
+        assert_eq!(out.status.code(), Some(1), "{args:?}");
+        assert!(out.stdout.is_empty(), "{args:?}");
+        assert_eq!(
+            String::from_utf8_lossy(&out.stderr),
+            format!("dtech-aidlc: {msg}\n"),
+            "{args:?}"
+        );
+    }
+}

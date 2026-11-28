@@ -455,10 +455,14 @@ claude mcp add --transport stdio aidlc -- dtech-aidlc-mcp --project <dir> --tele
 `dtech-aidlc monitor` serves a read-only dashboard of the MCP telemetry in the project's `.aidlc/telemetry/`.
 
 ```sh
-dtech-aidlc monitor
+dtech-aidlc monitor            # a free port is chosen
+dtech-aidlc monitor --port 8787
 ```
 
-- It listens on loopback, `127.0.0.1`, on a free port, and never on another address. It only reads; it cannot approve, report or change anything.
+- It listens on loopback, `127.0.0.1`, on a free port (or the port you give with `--port`), and never on another address. It only reads; it cannot approve, report or change anything.
+- `--port N` (1 to 65535, `--port=N` also works) listens on `127.0.0.1:N` only. If the port is in use or not permitted, the monitor exits with `Cannot bind 127.0.0.1:N (port in use or not permitted)` and starts on no other port. Low ports may need privileges on macOS and Linux. On Windows a port inside an excluded or reserved range (Hyper-V, WinNAT; see `netsh int ipv4 show excludedportrange protocol=tcp`) fails even when it is high. On macOS and BSD a listener on `0.0.0.0` with the same port may not block the bind, while Linux refuses it.
+- The token is still new on every run, so a fixed port gives a stable address, not a working bookmark: open the full URL from stderr, otherwise the page says `Token missing`.
+- On a shared machine another local user can bind a well-known port first; the monitor then refuses to start and prints no token. On Windows another process of the same OS user may share the address while the monitor holds the port; this falls under the same-OS-user boundary below.
 - A new random token is made for each run. The URL, with the token in the fragment (`#token=...`), is printed once on stderr; open that URL in a browser on the same machine. Browsers do not send the fragment to the server.
 - The token stays in terminal scrollback and browser history (including synced history), and in AI-agent transcripts when an agent starts the monitor. It stops working when the monitor stops.
 - On Windows keep projects under your user profile or restrict the folder ACL.

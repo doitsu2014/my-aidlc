@@ -60,7 +60,7 @@ Commands:
   harness add NAME        Project another harness into this project
   harness status          Show the state of the projected skill files
   harness refresh [NAME] [--dry-run] [--force]  Update projected skill files to this engine version
-  monitor                 Serve the read-only telemetry dashboard on 127.0.0.1 (address and token on stderr; Ctrl+C stops it)
+  monitor [--port N]      Serve the read-only telemetry dashboard on 127.0.0.1 (--port N: fixed port 1-65535, default a free port; address and token on stderr; Ctrl+C stops it)
 Global option: --project DIR  Use DIR as the project root instead of the current directory.
 
 Scope values: solo, team, enterprise. Harness values: claude, deepseek.

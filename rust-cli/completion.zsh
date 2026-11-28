@@ -63,6 +63,9 @@ _dtech-aidlc() {
         status)
           _arguments '--intent[Intent id]:intent:'
           ;;
+        monitor)
+          _arguments '--port[Fixed loopback port 1-65535]:port:'
+          ;;
         knowledge)
           _arguments -C '1:action:(init sources list show check index)' '*::arg:->knowledgerest'
           case $state in
