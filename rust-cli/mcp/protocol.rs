@@ -14,6 +14,9 @@ pub struct ToolHost<C> {
     pub list: fn() -> Value,
     /// `None` means unknown tool. `Ok`/`Err` carry structuredContent objects.
     pub call: fn(&C, &str, &Value) -> Option<Result<Value, Value>>,
+    /// Called once per error reply, after it was written and flushed (FN-030). The code is
+    /// a fixed name, so no frame text can reach an observer.
+    pub on_error: fn(&C, &'static str),
 }
 
 const LEGACY: &[&str] = &["2025-11-25", "2025-06-18"]; // newest first
@@ -238,6 +241,19 @@ fn handle<C>(initialized: &mut bool, host: &ToolHost<C>, ctx: &C, msg: &Value) -
     })
 }
 
+/// IF-015 protocol code names, the only error text an observer ever sees.
+fn error_code_name(code: i64) -> &'static str {
+    match code {
+        -32700 => "parse_error",
+        -32600 => "invalid_request",
+        -32601 => "method_not_found",
+        -32602 => "invalid_params",
+        -32022 => "unsupported_protocol_version",
+        -32603 => "internal_error",
+        _ => "protocol_error",
+    }
+}
+
 /// FN-012: serve until EOF (returns 0) or a stdout write error (returns 1). The only
 /// stdout writer: one compact line plus flush per response.
 pub fn serve<R: BufRead, W: Write, C>(
@@ -248,7 +264,9 @@ pub fn serve<R: BufRead, W: Write, C>(
 ) -> i32 {
     let mut initialized = false;
     loop {
-        let reply = match read_frame(&mut input) {
+        let frame = read_frame(&mut input);
+        let oversized = matches!(frame, Frame::Oversized);
+        let reply = match frame {
             Frame::Eof => return 0,
             Frame::Oversized => Some(frame_error(
                 Value::Null,
@@ -271,6 +289,14 @@ pub fn serve<R: BufRead, W: Write, C>(
             {
                 return 1;
             }
+            if let Some(code) = v.pointer("/error/code").and_then(Value::as_i64) {
+                let name = if oversized {
+                    "line_too_long"
+                } else {
+                    error_code_name(code)
+                };
+                (host.on_error)(ctx, name);
+            }
         }
     }
 }
@@ -291,7 +317,11 @@ mod tests {
             _ => None,
         }
     }
-    const HOST: ToolHost<()> = ToolHost { list, call };
+    const HOST: ToolHost<()> = ToolHost {
+        list,
+        call,
+        on_error: |_, _| {},
+    };
 
     fn raw(input: &[u8]) -> (i32, Vec<u8>) {
         let mut out = Vec::new();
@@ -707,5 +737,134 @@ mod tests {
             json!({"jsonrpc": "2.0", "method": "tools/list", "params": {"_meta": meta(json!("0000"))}}),
         ]);
         assert_eq!(raw(&input), (0, Vec::new()));
+    }
+
+    // ---- TS-026: on_error observer (FN-030) ------------------------------------------
+
+    use std::sync::Mutex;
+
+    fn record(seen: &Mutex<Vec<&'static str>>, code: &'static str) {
+        seen.lock().unwrap().push(code);
+    }
+    const OBSERVED: ToolHost<Mutex<Vec<&'static str>>> = ToolHost {
+        list,
+        call: |_, name, args| call(&(), name, args),
+        on_error: record,
+    };
+
+    fn observe(input: &[u8]) -> Vec<&'static str> {
+        let seen = Mutex::new(Vec::new());
+        let mut out = Vec::new();
+        assert_eq!(serve(input, &mut out, &OBSERVED, &seen), 0);
+        seen.into_inner().unwrap()
+    }
+
+    fn initialize_frame() -> Value {
+        req(
+            json!(1),
+            "initialize",
+            json!({"protocolVersion": "2025-11-25"}),
+        )
+    }
+
+    #[test]
+    fn ts026_on_error_table_maps_every_error_reply_to_a_fixed_code() {
+        let init = initialize_frame();
+        let modern_meta = meta(json!("2026-07-28"));
+        let cases: Vec<(&str, Vec<u8>, &str)> = vec![
+            ("bad utf8", b"\xff\xfe\n".to_vec(), "parse_error"),
+            ("bad json", b"{nope\n".to_vec(), "parse_error"),
+            ("not an object", b"[]\n".to_vec(), "invalid_request"),
+            (
+                "oversized",
+                [vec![b'a'; MAX_LINE_BYTES + 5], b"\n".to_vec()].concat(),
+                "line_too_long",
+            ),
+            (
+                "unsupported version",
+                lines(&[req(
+                    json!(1),
+                    "tools/list",
+                    json!({"_meta": meta(json!("1999-01-01"))}),
+                )]),
+                "unsupported_protocol_version",
+            ),
+            (
+                "method not found",
+                lines(&[init.clone(), req(json!(2), "foo", json!({}))]),
+                "method_not_found",
+            ),
+            (
+                "missing name",
+                lines(&[req(json!(1), "tools/call", json!({"_meta": modern_meta}))]),
+                "invalid_params",
+            ),
+            (
+                "unknown tool",
+                lines(&[req(
+                    json!(1),
+                    "tools/call",
+                    json!({"_meta": modern_meta, "name": "nope"}),
+                )]),
+                "invalid_params",
+            ),
+            (
+                "panic in the host",
+                lines(&[req(
+                    json!(1),
+                    "tools/call",
+                    json!({"_meta": modern_meta, "name": "boom"}),
+                )]),
+                "internal_error",
+            ),
+        ];
+        for (label, input, want) in cases {
+            assert_eq!(observe(&input), [want], "{label}");
+        }
+    }
+
+    #[test]
+    fn ts026_on_error_is_silent_for_successes_and_notifications() {
+        let input = lines(&[
+            initialize_frame(),
+            json!({"jsonrpc": "2.0", "method": "notifications/initialized"}),
+            json!({"jsonrpc": "2.0", "method": "foo"}),
+            req(json!(2), "ping", json!({})),
+            req(json!(3), "tools/list", json!({})),
+            req(json!(4), "tools/call", json!({"name": "fail"})),
+        ]);
+        assert!(observe(&input).is_empty());
+    }
+
+    #[test]
+    fn ts026_on_error_is_not_called_when_the_write_fails() {
+        struct Broken;
+        impl Write for Broken {
+            fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
+                Err(std::io::ErrorKind::BrokenPipe.into())
+            }
+            fn flush(&mut self) -> std::io::Result<()> {
+                Ok(())
+            }
+        }
+        let seen = Mutex::new(Vec::new());
+        let input = lines(&[req(json!(1), "foo", json!({}))]);
+        assert_eq!(serve(&input[..], Broken, &OBSERVED, &seen), 1);
+        assert!(seen.into_inner().unwrap().is_empty());
+    }
+
+    #[test]
+    fn ts026_error_code_name_covers_the_ifs_table() {
+        for (code, name) in [
+            (-32700, "parse_error"),
+            (-32600, "invalid_request"),
+            (-32601, "method_not_found"),
+            (-32602, "invalid_params"),
+            (-32022, "unsupported_protocol_version"),
+            (-32603, "internal_error"),
+            (-1, "protocol_error"),
+        ] {
+            assert_eq!(error_code_name(code), name, "{code}");
+        }
     }
 }

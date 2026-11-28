@@ -5,8 +5,10 @@
 use super::redact::Redactor;
 use crate::application::{self, Caller};
 use crate::orchestrate::{self, NextOptions, NextOutcome, ReportOptions};
+use crate::telemetry::{Event, EventKind, Outcome, Sink};
 use serde_json::{json, Map, Value};
 use std::path::PathBuf;
+use std::time::Instant;
 
 pub const MAX_INTENT_ID: usize = 64;
 pub const MAX_STAGE: usize = 64;
@@ -21,6 +23,8 @@ pub const MAX_ERROR_MESSAGE: usize = 1000;
 pub struct ToolContext {
     pub root: PathBuf,
     pub redactor: Redactor,
+    /// `None` with `--telemetry off` (IF-016): no event is built or sent.
+    pub telemetry: Option<Sink>,
 }
 
 type Chars = (fn(char) -> bool, &'static str);
@@ -251,57 +255,265 @@ fn finish(ctx: &ToolContext, r: Result<Value, String>) -> Result<Value, Value> {
     }
 }
 
+fn normalized<'a>(args: &'a Value, empty: &'a Value) -> &'a Value {
+    if args.is_null() {
+        empty
+    } else {
+        args
+    }
+}
+
+/// Validation only (FN-031); nothing touches the project.
+fn check_call(ctx: &ToolContext, name: &str, args: &Value) -> Result<(), Value> {
+    validate(name, args)
+        .map_err(|m| error_value(ctx, "invalid_arguments", &m, "Invalid arguments.", false))
+}
+
+/// The operation itself, for a tool already validated.
+fn run_op(ctx: &ToolContext, name: &str, args: &Value) -> Result<Value, String> {
+    let p = application::open(&ctx.root, Caller::Mcp)?;
+    match name {
+        "status" => application::status(&p, string(args, "intent_id").as_deref()),
+        "queue" => application::queue(&p),
+        "next" => application::next(
+            &p,
+            &NextOptions {
+                claim: args.get("claim") == Some(&json!(true)),
+                unit: string(args, "unit"),
+                ..NextOptions::default()
+            },
+        )
+        .map(outcome_value),
+        _ => application::report(
+            &p,
+            &ReportOptions {
+                stage: string(args, "stage"),
+                unit: string(args, "unit"),
+                result: string(args, "result"),
+                approval: string(args, "approval"),
+                approved_by: string(args, "approved_by"),
+                approval_note: string(args, "approval_note"),
+                detail: string(args, "detail"),
+                needs: args
+                    .get("needs")
+                    .and_then(Value::as_array)
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|x| x.as_str().map(str::to_owned))
+                            .collect()
+                    })
+                    .unwrap_or_default(),
+            },
+        ),
+    }
+}
+
 pub fn call_tool(ctx: &ToolContext, name: &str, args: &Value) -> Option<Result<Value, Value>> {
     fields(name)?;
     let empty = json!({});
-    let args = if args.is_null() { &empty } else { args };
-    if let Err(m) = validate(name, args) {
-        return Some(Err(error_value(
-            ctx,
-            "invalid_arguments",
-            &m,
-            "Invalid arguments.",
-            false,
-        )));
+    let args = normalized(args, &empty);
+    if let Err(e) = check_call(ctx, name, args) {
+        return Some(Err(e));
     }
-    let run = || -> Result<Value, String> {
-        let p = application::open(&ctx.root, Caller::Mcp)?;
-        match name {
-            "status" => application::status(&p, string(args, "intent_id").as_deref()),
-            "queue" => application::queue(&p),
-            "next" => application::next(
-                &p,
-                &NextOptions {
-                    claim: args.get("claim") == Some(&json!(true)),
-                    unit: string(args, "unit"),
-                    ..NextOptions::default()
-                },
-            )
-            .map(outcome_value),
-            _ => application::report(
-                &p,
-                &ReportOptions {
-                    stage: string(args, "stage"),
-                    unit: string(args, "unit"),
-                    result: string(args, "result"),
-                    approval: string(args, "approval"),
-                    approved_by: string(args, "approved_by"),
-                    approval_note: string(args, "approval_note"),
-                    detail: string(args, "detail"),
-                    needs: args
-                        .get("needs")
-                        .and_then(Value::as_array)
-                        .map(|a| {
-                            a.iter()
-                                .filter_map(|x| x.as_str().map(str::to_owned))
-                                .collect()
-                        })
-                        .unwrap_or_default(),
-                },
-            ),
+    Some(finish(ctx, run_op(ctx, name, args)))
+}
+
+/// One trace's shared event fields.
+struct Trace<'a> {
+    sink: &'a Sink,
+    trace: String,
+    name: &'static str,
+}
+
+impl Trace<'_> {
+    #[allow(clippy::too_many_arguments)]
+    fn send(
+        &self,
+        kind: EventKind,
+        span: &str,
+        parent: Option<&str>,
+        ids: [Option<String>; 3],
+        timer: Option<Instant>,
+        outcome: Option<Outcome>,
+        code: Option<&str>,
+    ) {
+        let sink = self.sink;
+        let [intent_id, stage_id, unit_id] = ids;
+        sink.send(|| Event {
+            kind,
+            event_id: sink.next_id(),
+            timestamp: crate::audit::format_iso_millis(crate::telemetry::sink::now_ms()),
+            process_id: std::process::id(),
+            session_id: sink.session().to_owned(),
+            trace_id: self.trace.clone(),
+            span_id: span.to_owned(),
+            parent_span_id: parent.map(str::to_owned),
+            name: self.name.to_owned(),
+            intent_id,
+            stage_id,
+            unit_id,
+            duration_ms: timer.map(|t| t.elapsed().as_millis() as u64),
+            outcome,
+            error_code: code.map(str::to_owned),
+        });
+    }
+}
+
+/// FN-031: `call_tool` plus telemetry. The reply is identical with or without a Sink.
+pub fn traced_call(ctx: &ToolContext, name: &str, args: &Value) -> Option<Result<Value, Value>> {
+    let Some(sink) = &ctx.telemetry else {
+        return call_tool(ctx, name, args);
+    };
+    let known = ["status", "queue", "next", "report"]
+        .into_iter()
+        .find(|t| *t == name);
+    let tr = Trace {
+        sink,
+        trace: sink.next_id(),
+        name: known.unwrap_or("unknown"),
+    };
+    let tool_span = sink.next_id();
+    let t0 = Instant::now();
+    let none = || [None, None, None];
+    tr.send(
+        EventKind::RequestStarted,
+        &tool_span,
+        None,
+        none(),
+        None,
+        None,
+        None,
+    );
+    let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        traced_body(ctx, &tr, &tool_span, known.is_some(), name, args)
+    }));
+    let (reply, outcome, code) = match r {
+        Ok(done) => done,
+        Err(panic) => {
+            let o = Some(Outcome::Error);
+            tr.send(
+                EventKind::ToolCompleted,
+                &tool_span,
+                None,
+                none(),
+                Some(t0),
+                o,
+                Some("internal_error"),
+            );
+            std::panic::resume_unwind(panic)
         }
     };
-    Some(finish(ctx, run()))
+    tr.send(
+        EventKind::ToolCompleted,
+        &tool_span,
+        None,
+        none(),
+        Some(t0),
+        Some(outcome),
+        code,
+    );
+    reply
+}
+
+type Traced = (Option<Result<Value, Value>>, Outcome, Option<&'static str>);
+
+fn traced_body(
+    ctx: &ToolContext,
+    tr: &Trace,
+    tool_span: &str,
+    known: bool,
+    name: &str,
+    args: &Value,
+) -> Traced {
+    if !known {
+        return (None, Outcome::Error, Some("unknown_tool"));
+    }
+    let empty = json!({});
+    let args = normalized(args, &empty);
+    if let Err(e) = check_call(ctx, name, args) {
+        return (Some(Err(e)), Outcome::Error, Some("invalid_arguments"));
+    }
+    let sink = tr.sink;
+    let none = || [None, None, None];
+    let op_span = sink.next_id();
+    let t0 = Instant::now();
+    tr.send(
+        EventKind::OperationStarted,
+        &op_span,
+        Some(tool_span),
+        none(),
+        None,
+        None,
+        None,
+    );
+    let raw = run_op(ctx, name, args);
+    let (outcome, code) = match &raw {
+        Ok(v) if v["outcome"] == "blocked" || v["outcome"] == "busy" => (Outcome::Blocked, None),
+        Ok(_) => (Outcome::Ok, None),
+        Err(e) => (Outcome::Error, Some(classify(e).0)),
+    };
+    tr.send(
+        EventKind::OperationCompleted,
+        &op_span,
+        Some(tool_span),
+        none(),
+        Some(t0),
+        Some(outcome),
+        code,
+    );
+    if let Ok(v) = &raw {
+        // Only after the state and audit write succeeded. Ids that fail the line
+        // validators are omitted by `Event::to_line`.
+        let s = |x: Option<&Value>| x.and_then(Value::as_str).map(str::to_owned);
+        let workflow = |kind, ids: [Option<String>; 3]| {
+            tr.send(
+                kind,
+                &sink.next_id(),
+                Some(&op_span),
+                ids,
+                None,
+                Some(Outcome::Ok),
+                None,
+            )
+        };
+        if name == "next" && v["outcome"] == "directive" {
+            let d = &v["result"];
+            workflow(
+                EventKind::StageSelected,
+                [
+                    s(d.get("intentId")),
+                    s(d.pointer("/stage/id")),
+                    s(d.get("currentUnit")),
+                ],
+            );
+        } else if name == "report" {
+            let ids = [s(v.get("intentId")), s(v.get("stage")), s(v.get("unit"))];
+            workflow(EventKind::StageReported, ids.clone());
+            if args.get("approval").is_some() {
+                workflow(EventKind::GateDecided, ids);
+            }
+        }
+    }
+    (Some(finish(ctx, raw)), outcome, code)
+}
+
+/// FN-030: one single-event trace per protocol error reply; `code` is a fixed name.
+pub fn on_protocol_error(ctx: &ToolContext, code: &'static str) {
+    let Some(sink) = &ctx.telemetry else { return };
+    let tr = Trace {
+        sink,
+        trace: sink.next_id(),
+        name: "protocol",
+    };
+    tr.send(
+        EventKind::ProtocolError,
+        &sink.next_id(),
+        None,
+        [None, None, None],
+        None,
+        Some(Outcome::Error),
+        Some(code),
+    );
 }
 
 #[cfg(test)]
@@ -317,6 +529,7 @@ mod tests {
         ToolContext {
             root: root.to_path_buf(),
             redactor: Redactor::new(root),
+            telemetry: None,
         }
     }
     fn err_of(r: Option<Result<Value, Value>>) -> Value {

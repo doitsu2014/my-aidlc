@@ -193,7 +193,18 @@ fn ts005_startup_failure_exits_one_before_reading_stdin() {
     assert_eq!(out.status.code(), Some(1));
     assert!(out.stdout.is_empty());
     // Unknown arguments are refused; there is no --version or --help.
-    for args in [&["--version"][..], &["--help"], &["--project"], &["x"]] {
+    for args in [
+        &["--version"][..],
+        &["--help"],
+        &["--project"],
+        &["x"],
+        &["--telemetry"],
+        &["--telemetry", "ON"],
+        &["--telemetry", "yes"],
+        &["--telemetry", "on", "--telemetry", "off"],
+        &["--project", "d", "--project", "e"],
+        &["--telemetry", "on", "x"],
+    ] {
         let out = std::process::Command::new(MCP_BIN)
             .args(args)
             .stdin(std::process::Stdio::null())
@@ -240,6 +251,7 @@ fn ts005_launch_directory_is_the_root_without_project_flag() {
     let mut command = std::process::Command::new(MCP_BIN);
     command
         .current_dir(&project.0)
+        .args(["--telemetry", "off"])
         .env_remove("DTECH_AIDLC_HOME")
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())

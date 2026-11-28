@@ -395,6 +395,7 @@ fn racer(
         let mut child = Command::new(MCP_BIN)
             .arg("--project")
             .arg(&project)
+            .args(["--telemetry", "off"])
             .env_remove("DTECH_AIDLC_HOME")
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())

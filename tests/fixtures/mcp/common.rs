@@ -156,10 +156,21 @@ pub fn run_mcp(project: Option<&Path>, input: Vec<u8>) -> Output {
 
 /// `run_mcp` with extra environment variables (`DTECH_AIDLC_HOME` is cleared unless given).
 pub fn run_mcp_env(project: Option<&Path>, input: Vec<u8>, envs: &[(&str, &Path)]) -> Output {
+    run_mcp_args(project, input, envs, &["--telemetry", "off"])
+}
+
+/// `run_mcp_env` with explicit extra launch arguments (no default `--telemetry off`).
+pub fn run_mcp_args(
+    project: Option<&Path>,
+    input: Vec<u8>,
+    envs: &[(&str, &Path)],
+    extra: &[&str],
+) -> Output {
     let mut command = Command::new(MCP_BIN);
     if let Some(project) = project {
         command.arg("--project").arg(project);
     }
+    command.args(extra);
     if !envs.iter().any(|(k, _)| *k == "DTECH_AIDLC_HOME") {
         command.env_remove("DTECH_AIDLC_HOME");
     }

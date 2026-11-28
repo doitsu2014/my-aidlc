@@ -9,18 +9,31 @@ pub mod tools;
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-/// Parse `[--project <dir>]` (CFG-005). No other argument is accepted.
-fn parse_args(args: &[OsString]) -> Result<Option<PathBuf>, String> {
-    match args {
-        [] => Ok(None),
-        [flag, _, rest @ ..] if flag == "--project" && !rest.is_empty() => Err(format!(
-            "unexpected argument: {}",
-            rest[0].to_string_lossy()
-        )),
-        [flag, dir] if flag == "--project" => Ok(Some(PathBuf::from(dir))),
-        [flag] if flag == "--project" => Err("--project requires a directory".to_string()),
-        [other, ..] => Err(format!("unexpected argument: {}", other.to_string_lossy())),
+/// Parse `[--project <dir>] [--telemetry on|off]` in any order (CFG-005, CFG-007, IF-016).
+/// Returns the project and whether telemetry is on (default). Nothing else is accepted.
+fn parse_args(args: &[OsString]) -> Result<(Option<PathBuf>, bool), String> {
+    let (mut project, mut telemetry) = (None, None);
+    let mut it = args.iter();
+    while let Some(flag) = it.next() {
+        if flag == "--project" {
+            let dir = it.next().ok_or("--project requires a directory")?;
+            if project.replace(PathBuf::from(dir)).is_some() {
+                return Err("--project given more than once".to_string());
+            }
+        } else if flag == "--telemetry" {
+            let on = match it.next().and_then(|v| v.to_str()) {
+                Some("on") => true,
+                Some("off") => false,
+                _ => return Err("--telemetry requires on or off".to_string()),
+            };
+            if telemetry.replace(on).is_some() {
+                return Err("--telemetry given more than once".to_string());
+            }
+        } else {
+            return Err(format!("unexpected argument: {}", flag.to_string_lossy()));
+        }
     }
+    Ok((project, telemetry.unwrap_or(true)))
 }
 
 /// Resolve the launch root once and check it is a directory with a safe state dir.
@@ -48,8 +61,10 @@ fn launch_root(project: Option<PathBuf>) -> Result<PathBuf, String> {
 /// panics before the server can report a proper error. A startup failure prints
 /// `dtech-aidlc-mcp: <msg>` to stderr and exits 1 before reading stdin.
 pub fn run(args: Vec<OsString>) -> u8 {
-    let root = match parse_args(&args).and_then(launch_root) {
-        Ok(root) => root,
+    let launched = parse_args(&args)
+        .and_then(|(project, telemetry)| launch_root(project).map(|root| (root, telemetry)));
+    let (root, telemetry) = match launched {
+        Ok(launched) => launched,
         Err(msg) => {
             eprintln!("dtech-aidlc-mcp: {msg}");
             return 1;
@@ -64,14 +79,28 @@ pub fn run(args: Vec<OsString>) -> u8 {
             );
         }
     }
-    let ctx = tools::ToolContext { root, redactor };
+    let sink = if telemetry {
+        crate::telemetry::Sink::start(&root)
+    } else {
+        None
+    };
+    let ctx = tools::ToolContext {
+        root,
+        redactor,
+        telemetry: sink,
+    };
     let host = protocol::ToolHost {
         list: tools::tool_list,
-        call: tools::call_tool,
+        call: tools::traced_call,
+        on_error: tools::on_protocol_error,
     };
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();
-    protocol::serve(stdin.lock(), stdout.lock(), &host, &ctx) as u8
+    let code = protocol::serve(stdin.lock(), stdout.lock(), &host, &ctx) as u8;
+    if let Some(sink) = ctx.telemetry {
+        sink.finish(std::time::Duration::from_millis(500));
+    }
+    code
 }
 
 #[cfg(test)]
@@ -83,11 +112,11 @@ mod tests {
     }
 
     #[test]
-    fn parse_args_accepts_only_project() {
-        assert_eq!(parse_args(&os(&[])), Ok(None));
+    fn parse_args_accepts_only_project_and_telemetry() {
+        assert_eq!(parse_args(&os(&[])), Ok((None, true)));
         assert_eq!(
             parse_args(&os(&["--project", "d"])),
-            Ok(Some(PathBuf::from("d")))
+            Ok((Some(PathBuf::from("d")), true))
         );
         assert!(parse_args(&os(&["--project"])).is_err());
         assert!(parse_args(&os(&["--version"])).is_err());
@@ -95,6 +124,20 @@ mod tests {
             parse_args(&os(&["--project", "d", "x"])),
             Err("unexpected argument: x".to_string())
         );
+        assert_eq!(
+            parse_args(&os(&["--telemetry", "off", "--project", "d"])),
+            Ok((Some(PathBuf::from("d")), false))
+        );
+        assert_eq!(parse_args(&os(&["--telemetry", "on"])), Ok((None, true)));
+        for bad in [
+            &["--telemetry"][..],
+            &["--telemetry", "ON"],
+            &["--telemetry", "1"],
+            &["--telemetry", "on", "--telemetry", "off"],
+            &["--project", "a", "--project", "b"],
+        ] {
+            assert!(parse_args(&os(bad)).is_err(), "{bad:?}");
+        }
     }
 
     #[test]
