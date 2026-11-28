@@ -1,0 +1,1 @@
+{"schemaVersion":1,"unit":"sweep","scope":"full","commands":["cargo build","TMPDIR=/private/tmp/aidlc-test-sweep2 PATH=\"$PWD/target/debug:$PATH\" cargo test --locked --no-fail-fast"],"failures":[]}
