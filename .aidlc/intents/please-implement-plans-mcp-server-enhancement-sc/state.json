@@ -8,7 +8,7 @@
   "depth": "standard",
   "mode": "ai",
   "status": "active",
-  "currentStage": null,
+  "currentStage": "red-tests",
   "stages": {
     "problem-framing": {
       "status": "complete",
@@ -345,10 +345,14 @@
         "WU-007": {
           "status": "pending",
           "reportedAt": "2026-11-28T00:24:35.095Z"
+        },
+        "WU-009": {
+          "status": "complete",
+          "reportedAt": "2026-11-28T00:32:34.620Z"
         }
       },
-      "detail": "WU-007 test ts007_concurrent_reports_never_lose_an_update exposes a lost update under concurrent state writers (ensure_unchanged then persist with no lock; two recorded:true replies and two stage.reported rows, one report kept). Owner decided 2026-11-28 to add an advisory file lock now (ADR-015 superseded). Needs a new work unit for the lock in orchestrate.rs before WU-007 can pass.",
-      "reportedAt": "2026-11-28T00:24:35.095Z",
+      "detail": null,
+      "reportedAt": "2026-11-28T00:32:34.620Z",
       "reports": [
         {
           "at": "2026-11-27T16:47:10.186Z",
@@ -402,6 +406,12 @@
             "blockedBy": [],
             "auto": false
           }
+        },
+        {
+          "at": "2026-11-28T00:32:34.620Z",
+          "result": "complete",
+          "detail": null,
+          "unit": "WU-009"
         }
       ],
       "artifacts": [
@@ -488,6 +498,18 @@
           "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/red-tests/WU-005/red-evidence.md",
           "bytes": 1666,
           "sha256": "84216004a84e0c52f4b40ae4c715a823956707a554950104818d2dd4d50eb5f2"
+        },
+        {
+          "output": "failing-tests",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/red-tests/WU-009/failing-tests.md",
+          "bytes": 658,
+          "sha256": "7e9ec2acc210251baa4cbdbf834ca3e709a8828fe64e327758c6f11570650111"
+        },
+        {
+          "output": "red-evidence",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/red-tests/WU-009/red-evidence.md",
+          "bytes": 432,
+          "sha256": "26dec21796e6c0f52b8f4feca4ac87c8a5f0a0f4e173dabdcfc749bdea81d433"
         }
       ],
       "reworkResetAt": "2026-11-28T00:24:39.075Z"
@@ -523,10 +545,14 @@
         "WU-005": {
           "status": "complete",
           "reportedAt": "2026-11-27T17:53:43.039Z"
+        },
+        "WU-009": {
+          "status": "complete",
+          "reportedAt": "2026-11-28T00:33:33.649Z"
         }
       },
       "detail": null,
-      "reportedAt": "2026-11-27T17:53:43.039Z",
+      "reportedAt": "2026-11-28T00:33:33.649Z",
       "reports": [
         {
           "at": "2026-11-27T16:48:31.139Z",
@@ -569,6 +595,12 @@
           "result": "complete",
           "detail": null,
           "unit": "WU-005"
+        },
+        {
+          "at": "2026-11-28T00:33:33.649Z",
+          "result": "complete",
+          "detail": null,
+          "unit": "WU-009"
         }
       ],
       "artifacts": [
@@ -739,6 +771,30 @@
           "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-005/known-limitations.md",
           "bytes": 804,
           "sha256": "056ed8310574262c79cb0a3084ab6c4b14e538f576a63974cbdb8b6c121a683f"
+        },
+        {
+          "output": "implementation",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-009/implementation.md",
+          "bytes": 2176,
+          "sha256": "09ef4c2fe48fee1f01545cd0656f2b9e3bae5080b7653b35b3e00920c4da1ab3"
+        },
+        {
+          "output": "green-verification-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-009/green-verification-report.md",
+          "bytes": 1426,
+          "sha256": "08d2f58aba33f00d55cf4eaf81fee7c346f192cb06fc490ab7675f5f461fdf08"
+        },
+        {
+          "output": "regression-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-009/regression-report.md",
+          "bytes": 344,
+          "sha256": "c3ea16f10842eef4f00ca3c6aeb23947db58faa5d06a4d46d8cb760697cdbb82"
+        },
+        {
+          "output": "known-limitations",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc/develop/build-and-verify/WU-009/known-limitations.md",
+          "bytes": 449,
+          "sha256": "76d5ee370a92ff5ce89ea9f3ed8a9525e8952f77566890824ea41a65822eb0e8"
         }
       ],
       "reworkResetAt": "2026-11-28T00:24:39.075Z"
@@ -747,7 +803,7 @@
   "dependencies": {},
   "createdAt": "2026-11-27T14:29:23.464Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T00:32:01.772Z",
+  "updatedAt": "2026-11-28T00:33:33.652Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -805,8 +861,8 @@
       "WU-008",
       "WU-009"
     ],
-    "progressSeq": 7,
-    "syncedAt": "2026-11-28T00:32:01.768Z",
+    "progressSeq": 8,
+    "syncedAt": "2026-11-28T00:33:33.649Z",
     "units": {
       "WU-001": {
         "title": "Scaffold and packaging",
@@ -1103,7 +1159,7 @@
           "TS-020"
         ],
         "status": "pending",
-        "selectedAt": "2026-11-27T17:53:50.015Z",
+        "selectedAt": "2026-11-28T00:32:08.830Z",
         "steps": {
           "red-tests": null,
           "build-and-verify": null
@@ -1186,22 +1242,36 @@
           "TS-013",
           "TS-015"
         ],
-        "status": "pending",
-        "selectedAt": "2026-11-27T17:53:50.032Z",
+        "status": "verified",
+        "selectedAt": "2026-11-28T00:32:34.620Z",
         "steps": {
-          "red-tests": null,
-          "build-and-verify": null
+          "red-tests": "complete",
+          "build-and-verify": "complete"
         },
-        "attempts": {},
+        "attempts": {
+          "red-tests": 1,
+          "build-and-verify": 1
+        },
         "blockedStreak": null,
         "park": null,
         "parkHistory": [],
         "inputFingerprint": "sha256:0f150e0670ad5774ed8ef4a8d6bde41126c22e1f2f176261716892a71dc3f3fc",
-        "history": [],
+        "history": [
+          {
+            "stage": "red-tests",
+            "result": "complete",
+            "at": "2026-11-28T00:32:34.620Z"
+          },
+          {
+            "stage": "build-and-verify",
+            "result": "complete",
+            "at": "2026-11-28T00:33:33.649Z"
+          }
+        ],
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-27T16:38:17.722Z"
+        "updatedAt": "2026-11-28T00:33:33.649Z"
       }
     },
     "deferredRegressions": [],
@@ -1215,7 +1285,8 @@
     },
     "baselineTests": [],
     "rework": null,
-    "lastSatisfiedAt": "2026-11-27T17:35:34.327Z"
+    "lastSatisfiedAt": "2026-11-28T00:33:33.649Z",
+    "parallelSince": "2026-11-28T00:32:08.849Z"
   },
   "units": [
     {
@@ -1284,11 +1355,12 @@
     },
     {
       "id": "WU-009",
-      "status": "in_progress",
+      "status": "complete",
       "dependsOn": [
         "WU-004",
         "WU-005"
       ]
     }
-  ]
+  ],
+  "currentUnit": "WU-007"
 }

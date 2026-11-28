@@ -365,6 +365,74 @@ dtech-aidlc harness add deepseek
 
 `harness status` reports whether projected files match this engine version. `harness refresh` updates unedited files and preserves your edits unless you pass `--force`, which saves backups first. `harness add` projects another supported harness. Review local changes before forcing an update.
 
+## MCP server (proposed)
+
+This section is proposed. It describes the `dtech-aidlc-mcp` server as designed for this release; the host checks listed below have not all been run.
+
+`dtech-aidlc-mcp` is a local Model Context Protocol server. It talks to an AI host over stdio only: there is no HTTP transport and no network listener. It serves four tools, `status`, `queue`, `next` and `report`, over the same library behaviour as the matching CLI commands, which are unchanged.
+
+### Install
+
+```sh
+cargo install --path . --locked
+```
+
+This installs both binaries, `dtech-aidlc` and `dtech-aidlc-mcp`. The prebuilt-binary installers in scripts/rust-install/ stay CLI-only and do not install the MCP server.
+
+### Claude Code
+
+Register the server with Claude Code, pointing `--project` at the project directory:
+
+```sh
+claude mcp add --transport stdio aidlc -- dtech-aidlc-mcp --project <dir>
+```
+
+Or add a project-level `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "aidlc": {
+      "command": "dtech-aidlc-mcp",
+      "args": ["--project", "<dir>"]
+    }
+  }
+}
+```
+
+Without `--project` the server uses its working directory. Startup errors go to stderr. Do not add `next` or `report` to a host auto-allow list: they change project state.
+
+### DeepSeek Harness
+
+Add the server as a `dsh-mcp-client` plugin entry in a user patch layer, `$DSH_HOME/profiles/<name>/cordis.patch.yml` for one profile or `$DSH_HOME/cordis.patch.yml` for every profile. Merge it into an existing file rather than replacing it. `serverName` must match `[A-Za-z0-9_-]{1,32}`, and the default tool-call timeout is 60,000 ms.
+
+```yaml
+- insert:
+    - id: mcp-aidlc
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: aidlc
+        transport: stdio
+        command: dtech-aidlc-mcp
+        args: ['--project', '<dir>']
+        cwd: !!js process.cwd()
+```
+
+The entry shape follows the DeepSeek Harness `dsh-mcp-client` documentation, and its pinned MCP client was exercised against a prototype server. Not verified: DeepSeek Harness itself has not been run against `dtech-aidlc-mcp`, and that `DTECH_AIDLC_HOME` survives its scrubbed environment is assumed. A launch-and-list check in each host is a manual release check, not yet run.
+
+### Troubleshooting
+
+- The server serves protocol revisions 2026-07-28, plus legacy 2025-11-25 and 2025-06-18.
+- Startup errors go to stderr.
+- Prerequisites declared by a project are never run over MCP. They are reported as not executed, so a gate that needs them is finished from the CLI.
+- Approvals need an approver label (`approved_by`). The label is self-asserted by the host and is not authentication; without it the call fails with `approver_required`.
+- `state_conflict` means the project state changed since the preview. It is retryable: re-run `status`, then retry.
+- Paths under the project root are shown relative to it, paths under `DTECH_AIDLC_HOME` as `$DTECH_AIDLC_HOME`, home-directory paths as `~`, and other absolute paths as `<redacted-path>`.
+
+### Windows and macOS
+
+On Windows the binary is `dtech-aidlc-mcp.exe` in `%USERPROFILE%\.cargo\bin`; on macOS it is in `~/.cargo/bin`. Make sure the host's `PATH` includes that directory, or give the full path as `command`. Host launch of the `.exe` on Windows has not been verified. On Windows, another process holding the `.aidlc` `state.json` open can make a state change fail with `operation_failed`, which is not retryable: close the other process and re-run `status`.
+
 ## Dependency repositories
 
 `aidlc.deps.json` can declare dependency repositories. `dtech-aidlc repos pull` clones missing repositories, or fast-forwards existing clean checkouts, under `.aidlc/repos/`. It refuses dirty checkouts, non-fast-forward updates, and unmanaged paths. Repositories are workflow inputs, not executable content, so review dependency sources and changes before relying on them.
