@@ -1,6 +1,7 @@
 //! Telemetry core: the v1 event line (IF-012), the OS random source (IF-013) and the store
 //! location rules. Written by the MCP adapter only (owner Q1: the CLI writes no telemetry).
 
+pub mod query;
 pub mod sink;
 
 pub use sink::Sink;
