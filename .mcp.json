@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "aidlc": {
+      "command": "dtech-aidlc-mcp",
+      "args": ["--project", "."]
+    }
+  }
+}
