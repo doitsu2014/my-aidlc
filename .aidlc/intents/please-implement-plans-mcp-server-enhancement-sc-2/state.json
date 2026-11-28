@@ -319,16 +319,26 @@
         "WU-011": {
           "status": "complete",
           "reportedAt": "2026-11-28T04:34:57.819Z"
+        },
+        "WU-012": {
+          "status": "complete",
+          "reportedAt": "2026-11-28T04:35:54.255Z"
         }
       },
       "detail": null,
-      "reportedAt": "2026-11-28T04:34:57.819Z",
+      "reportedAt": "2026-11-28T04:35:54.255Z",
       "reports": [
         {
           "at": "2026-11-28T04:34:57.819Z",
           "result": "complete",
           "detail": null,
           "unit": "WU-011"
+        },
+        {
+          "at": "2026-11-28T04:35:54.255Z",
+          "result": "complete",
+          "detail": null,
+          "unit": "WU-012"
         }
       ],
       "artifacts": [
@@ -355,6 +365,30 @@
           "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-011/known-limitations.md",
           "bytes": 353,
           "sha256": "04b116bb4c50f50d1c0e252699198d22c099875a730c74bc96f47cef661a0edf"
+        },
+        {
+          "output": "implementation",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-012/implementation.md",
+          "bytes": 732,
+          "sha256": "bcad2507953f08d5777dc4ea9ced41dbc05ff429b5ca41724eaea2bdd5a987f8"
+        },
+        {
+          "output": "green-verification-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-012/green-verification-report.md",
+          "bytes": 513,
+          "sha256": "b2330a87ca9b6e4f57ac5c0db1141db7c98ba6697948ca4d9ecb761f9f2dd916"
+        },
+        {
+          "output": "regression-report",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-012/regression-report.md",
+          "bytes": 378,
+          "sha256": "cedc034b6bb800a16cf88058a7fad3d3f182288a733a13ae0bda4c7b861c86da"
+        },
+        {
+          "output": "known-limitations",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/develop/build-and-verify/WU-012/known-limitations.md",
+          "bytes": 294,
+          "sha256": "03f8d59f432c7dbd427db07aaa9dbc4d84acdec4ccef7465de1281cfe815a772"
         }
       ]
     }
@@ -362,7 +396,7 @@
   "dependencies": {},
   "createdAt": "2026-11-28T01:39:49.917Z",
   "modeSource": "config",
-  "updatedAt": "2026-11-28T04:34:57.820Z",
+  "updatedAt": "2026-11-28T04:35:54.256Z",
   "gates": {
     "analysis-baseline": {
       "phase": "analyze",
@@ -422,8 +456,8 @@
       "WU-021",
       "WU-022"
     ],
-    "progressSeq": 1,
-    "syncedAt": "2026-11-28T04:34:57.819Z",
+    "progressSeq": 2,
+    "syncedAt": "2026-11-28T04:35:54.255Z",
     "units": {
       "WU-011": {
         "title": "Flaky-test fixes",
@@ -468,14 +502,15 @@
         "tests": [
           "TS-031"
         ],
-        "status": "red",
+        "status": "verified",
         "selectedAt": "2026-11-28T04:34:32.292Z",
         "steps": {
           "red-tests": "complete",
-          "build-and-verify": null
+          "build-and-verify": "complete"
         },
         "attempts": {
-          "red-tests": 1
+          "red-tests": 1,
+          "build-and-verify": 1
         },
         "blockedStreak": null,
         "park": null,
@@ -486,12 +521,17 @@
             "stage": "red-tests",
             "result": "complete",
             "at": "2026-11-28T04:34:32.292Z"
+          },
+          {
+            "stage": "build-and-verify",
+            "result": "complete",
+            "at": "2026-11-28T04:35:54.255Z"
           }
         ],
         "reopened": [],
         "removed": false,
         "splitInto": null,
-        "updatedAt": "2026-11-28T04:34:32.292Z"
+        "updatedAt": "2026-11-28T04:35:54.255Z"
       },
       "WU-013": {
         "title": "Telemetry core plus managed ignore line",
@@ -766,18 +806,13 @@
     "rework": null,
     "claims": [
       {
-        "unit": "WU-012",
-        "stage": "build-and-verify",
-        "claimedAt": "2026-11-28T04:04:36.122Z"
-      },
-      {
         "unit": "WU-013",
         "stage": "red-tests",
         "claimedAt": "2026-11-28T04:04:36.173Z"
       }
     ],
     "parallelSince": "2026-11-28T04:04:36.122Z",
-    "lastSatisfiedAt": "2026-11-28T04:34:57.819Z"
+    "lastSatisfiedAt": "2026-11-28T04:35:54.255Z"
   },
   "units": [
     {
@@ -787,7 +822,7 @@
     },
     {
       "id": "WU-012",
-      "status": "in_progress",
+      "status": "complete",
       "dependsOn": []
     },
     {

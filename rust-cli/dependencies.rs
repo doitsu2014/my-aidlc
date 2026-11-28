@@ -1264,6 +1264,15 @@ pub fn run_deps(
 ) -> Result<(Value, i32), String> {
     let root = std::path::absolute(project).map_err(|error| error.to_string())?;
     crate::audit::assert_safe_state_dir(&root)?;
+    if key.split(' ').nth(1) == Some("add") {
+        // FN-037: serialise the read-modify-write so concurrent adds keep every edge.
+        return crate::orchestrate::with_state_lock(&root, || deps_unlocked(key, &root, args));
+    }
+    deps_unlocked(key, &root, args)
+}
+
+fn deps_unlocked(key: &str, root: &Path, args: &[String]) -> Result<(Value, i32), String> {
+    let root = root.to_path_buf();
     let action = key.split(' ').nth(1);
     let graph = crate::ids::load_runtime_graph(&root)?;
     let loaded = crate::workflow::load_workflow(&root, &graph, action == Some("add"))?;
