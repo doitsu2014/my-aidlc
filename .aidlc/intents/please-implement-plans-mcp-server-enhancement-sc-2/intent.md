@@ -1,0 +1,5 @@
+# please-implement-plans-mcp-server-enhancement-sc-2
+
+please implement @plans/mcp-server-enhancement
+
+Scope of this intent (owner decision): intent 2 of 2 — the rest of the plans after intent 1 (please-implement-plans-mcp-server-enhancement-sc, closed 2026-11-28): plan phases 3–5 in plans/mcp-server-enhancement/mcp-server-observability-implementation-plan.md, with the related parts of mcp-server-architecture.md, mcp-server-detailed-design.md and mcp-studio-server.html. That is (1) the local telemetry pipeline (event schema, storage, retention, redaction, instrumentation of the shared facade and MCP tools), (2) the read-only, loopback-only monitor command and dashboard, and (3) hardening and release work (version bump, CHANGELOG, README updates including removing the 'proposed' label, install-script support). Read .aidlc/knowledge/please-implement-plans-mcp-server-enhancement-sc.md and the intent-1 next-intent notes first; keep intent 1's decisions unless the owner changes them.

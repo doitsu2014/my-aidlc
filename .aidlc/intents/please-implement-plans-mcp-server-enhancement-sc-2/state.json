@@ -1,0 +1,145 @@
+{
+  "version": 2,
+  "intentId": "please-implement-plans-mcp-server-enhancement-sc-2",
+  "intent": "please implement @plans/mcp-server-enhancement\n\nScope of this intent (owner decision): intent 2 of 2 — the rest of the plans after intent 1 (please-implement-plans-mcp-server-enhancement-sc, closed 2026-11-28): plan phases 3–5 in plans/mcp-server-enhancement/mcp-server-observability-implementation-plan.md, with the related parts of mcp-server-architecture.md, mcp-server-detailed-design.md and mcp-studio-server.html. That is (1) the local telemetry pipeline (event schema, storage, retention, redaction, instrumentation of the shared facade and MCP tools), (2) the read-only, loopback-only monitor command and dashboard, and (3) hardening and release work (version bump, CHANGELOG, README updates including removing the 'proposed' label, install-script support). Read .aidlc/knowledge/please-implement-plans-mcp-server-enhancement-sc.md and the intent-1 next-intent notes first; keep intent 1's decisions unless the owner changes them.",
+  "scope": "solo",
+  "scopeSource": "config",
+  "projectScope": "solo",
+  "depth": "standard",
+  "mode": "ai",
+  "status": "active",
+  "currentStage": "option-generation",
+  "stages": {
+    "problem-framing": {
+      "status": "complete",
+      "startedAt": "2026-11-28T01:39:49.917Z",
+      "detail": null,
+      "reportedAt": "2026-11-28T01:50:13.980Z",
+      "reports": [
+        {
+          "at": "2026-11-28T01:50:13.980Z",
+          "result": "complete",
+          "detail": null
+        }
+      ],
+      "units": {},
+      "artifacts": [
+        {
+          "output": "problem-statement",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/analyze/problem-framing/problem-statement.md",
+          "bytes": 12262,
+          "sha256": "f220d3bc06044615b83eb7fb44f4f7e5ab88db8b24adbf4e5d544f4bae7afafd"
+        },
+        {
+          "output": "success-measures",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/analyze/problem-framing/success-measures.md",
+          "bytes": 2773,
+          "sha256": "470f005c880f03e0686bf264ad40da86049d4786f16529c0684d7718ce249073"
+        },
+        {
+          "output": "stakeholder-map",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/analyze/problem-framing/stakeholder-map.md",
+          "bytes": 2317,
+          "sha256": "760246d25bcabfd808a262b5ce2868bc74f7d16e447fa35d5f8588c343309024"
+        },
+        {
+          "output": "acceptance-criteria",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/analyze/problem-framing/acceptance-criteria.md",
+          "bytes": 26011,
+          "sha256": "74146544a3c764cb110fbd1dcf8d0f4ada51dd8087396be1c8192f54a187caa2"
+        },
+        {
+          "output": "user-stories",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/analyze/problem-framing/user-stories.md",
+          "bytes": 4514,
+          "sha256": "2b443372ffa3f47fc96583b3d2fc01acfb7be66283092aa51a8d99cf5498caa8"
+        }
+      ]
+    },
+    "context-and-risk": {
+      "status": "complete",
+      "startedAt": "2026-11-28T01:50:13.992Z",
+      "detail": null,
+      "reportedAt": "2026-11-28T02:19:46.346Z",
+      "reports": [
+        {
+          "at": "2026-11-28T02:19:46.346Z",
+          "result": "complete",
+          "detail": null,
+          "approval": {
+            "decision": "approved",
+            "by": "AI Orchestrator",
+            "bySource": "flag",
+            "mode": "ai",
+            "note": null,
+            "openItems": {
+              "writtenApproval": 0,
+              "followUp": 14
+            }
+          }
+        }
+      ],
+      "units": {},
+      "artifacts": [
+        {
+          "output": "constraints-and-assumptions",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/analyze/context-and-risk/constraints-and-assumptions.md",
+          "bytes": 9296,
+          "sha256": "e034680de7bb158aca5a72be8c83c628baf169ef437b7e516ed5da4d4dce3fc7"
+        },
+        {
+          "output": "evidence-log",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/analyze/context-and-risk/evidence-log.md",
+          "bytes": 8504,
+          "sha256": "745eb22e3617642000c3ca9ba9c89a182c56825ee32021463e63303bcf3f4549"
+        },
+        {
+          "output": "risk-register",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/analyze/context-and-risk/risk-register.md",
+          "bytes": 10138,
+          "sha256": "94a354826f9145d37bd8260d80c469b2a6b425aa541f814920fd0ee23d58940d"
+        },
+        {
+          "output": "open-questions",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/analyze/context-and-risk/open-questions.md",
+          "bytes": 7757,
+          "sha256": "438de95a3df758308ddcab1ec7c68e629daefde879032926dcdad688cf6afd58"
+        },
+        {
+          "output": "quality-requirements",
+          "path": ".aidlc/intents/please-implement-plans-mcp-server-enhancement-sc-2/analyze/context-and-risk/quality-requirements.md",
+          "bytes": 4116,
+          "sha256": "869aadbb51ca689298c9090265ceba6871f427e60795d25715af233b4c7a2399"
+        }
+      ]
+    },
+    "option-generation": {
+      "status": "in_progress",
+      "startedAt": "2026-11-28T02:19:46.358Z"
+    }
+  },
+  "dependencies": {},
+  "createdAt": "2026-11-28T01:39:49.917Z",
+  "modeSource": "config",
+  "updatedAt": "2026-11-28T02:19:46.364Z",
+  "gates": {
+    "analysis-baseline": {
+      "phase": "analyze",
+      "stage": "context-and-risk",
+      "decision": "approved",
+      "result": "complete",
+      "by": "AI Orchestrator",
+      "bySource": "flag",
+      "mode": "ai",
+      "at": "2026-11-28T02:19:46.346Z",
+      "note": null,
+      "detail": null,
+      "skippedStages": [],
+      "artifacts": [],
+      "openItems": {
+        "writtenApproval": 0,
+        "followUp": 14
+      }
+    }
+  }
+}
